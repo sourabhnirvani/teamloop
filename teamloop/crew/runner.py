@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 from teamloop import trace
@@ -34,8 +35,9 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
             ctx.check_stop()
             reply = await router.chat(messages, tools=tool_schemas, prefer=prefer, purpose=f"turn:{bot.id}")
             if not reply.tool_calls:
-                sp.set("output.value", reply.text.strip() or "Done.")
-                return reply.text.strip() or "Done."
+                text = clean_reply(reply.text)
+                sp.set("output.value", text)
+                return text
             messages.append(reply.message)
             for call in reply.tool_calls:
                 ctx.check_stop()
@@ -52,8 +54,16 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
         ctx.check_stop()
         final = await router.chat(messages + [{"role": "user", "content": WRAP_UP}], prefer=prefer,
                                   purpose=f"wrapup:{bot.id}")
-        sp.set("output.value", final.text.strip() or "Done.")
-        return final.text.strip() or "Done."
+        text = clean_reply(final.text)
+        sp.set("output.value", text)
+        return text
+
+
+_CITATION = re.compile(r"\s?【[^】\n]{0,80}】")  # gpt-oss leaves "【fetch_page†0】" markers in its text
+
+
+def clean_reply(text: str) -> str:
+    return _CITATION.sub("", text or "").strip() or "Done."
 
 
 def _facts(ctx: TurnCtx) -> list[str]:

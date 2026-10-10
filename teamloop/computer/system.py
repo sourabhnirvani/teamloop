@@ -72,9 +72,15 @@ def battery() -> dict | None:
     import psutil
 
     b = psutil.sensors_battery()
-    if b is None:
-        return None
-    return {"percent": round(b.percent), "plugged_in": bool(b.power_plugged)}
+    if b is not None:
+        return {"percent": round(b.percent), "plugged_in": bool(b.power_plugged)}
+    # psutil can come back empty on some laptops; ask Windows directly (BatteryStatus 2 = on AC power).
+    out = _ps("Get-CimInstance Win32_Battery | Select-Object -First 1 EstimatedChargeRemaining, BatteryStatus | "
+              "ForEach-Object { \"$($_.EstimatedChargeRemaining) $($_.BatteryStatus)\" }", timeout=10)
+    parts = (out.stdout or "").split()
+    if len(parts) == 2 and parts[0].isdigit():
+        return {"percent": int(parts[0]), "plugged_in": parts[1] == "2"}
+    return None
 
 
 def wifi() -> dict:

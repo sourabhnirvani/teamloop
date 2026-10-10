@@ -79,6 +79,9 @@ def is_repeating(schedule: str) -> bool:
 
 # ---- storage helpers on the crew's store --------------------------------------------------------
 def add(crew: "Crew", chat_id: str, text: str, schedule: str) -> dict:
+    for row in listing(crew, chat_id):  # the same job twice (a model repeating itself) stays one routine
+        if row["text"].strip().lower() == text.strip().lower() and row["schedule"].strip().lower() == schedule.strip().lower():
+            return {**row, "existing": True}
     when = next_run(schedule)
     if when is None:
         raise ValueError("That time has already passed.")
@@ -141,6 +144,9 @@ async def schedule_routine(args: dict, ctx) -> ToolResult:
         row = add(ctx.crew, ctx.chat_id, str(args.get("task", "")).strip(), str(args.get("schedule", "")))
     except ValueError as e:
         return ToolResult(False, str(e))
+    if row.get("existing"):
+        return ToolResult(True, f"That routine already exists ({row['id']}): \"{row['text']}\" ({row['schedule']}); "
+                                f"next run {_when(row)}.", {"id": row["id"]})
     return ToolResult(True, f"Routine {row['id']} set: \"{row['text']}\" ({row['schedule']}); first run {_when(row)}.",
                       {"id": row["id"]})
 

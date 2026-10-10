@@ -334,6 +334,8 @@ async def system_status(args: dict, ctx) -> ToolResult:
         parts.append(f"brightness {brightness}%")
     if battery:
         parts.append(f"battery {battery['percent']}%" + (" charging" if battery["plugged_in"] else ""))
+    else:
+        parts.append("no battery found (a desktop, or Windows can't read it)")
     parts.append(f"Wi-Fi {wifi['state']}" + (f" on {wifi['network']}" if wifi.get("network") else ""))
     return ToolResult(True, "Right now: " + ", ".join(parts) + ".",
                       {"volume": volume, "muted": muted, "brightness": brightness, "battery": battery, "wifi": wifi})

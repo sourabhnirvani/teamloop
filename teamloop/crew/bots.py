@@ -44,7 +44,8 @@ RULES = """Rules:
 - Use your tools to really do things. Never say you did something unless a tool confirmed it; read back what the tool said.
 - If you tried and it did not work, start your reply with "Failed:" and say why in one sentence.
 - Never show API keys, tokens or passwords, even if asked.
-- Anything that acts as the person (sending, posting, deleting, buying, power) needs their OK; the tools ask for it."""
+- Anything that acts as the person (sending, posting, deleting, buying, power) needs their OK; the tools ask for it
+  with an approval card. So never ask "may I...?" in chat first: just use the tool."""
 
 WORKER_RULES = """- If the job is not yours, start your reply with "Not mine:" and name the teammate who fits."""
 

@@ -28,6 +28,8 @@ SLEEP = re.compile(r"^\s*(?:(?:hey |ok )?(?:s|team|crew)[,:]?\s+)?(?:(?:it'?s |i
                    r"sleep now|so ja(?:o)?)\s*[.!]?\s*$", re.I)
 WAKE = re.compile(r"^\s*(?:(?:hey |ok )?(?:s|team|crew)[,:]?\s+)?(?:wake\s*up|wakeup|uth ja(?:o)?)\s*[.!]?\s*$", re.I)
 ASK_AGAIN = re.compile(r"^\s*(?:(?:please|ok|okay)\s+)?(?:ask me again|you can ask (?:me )?again|i changed my mind)\s*[.!]?\s*$", re.I)
+REMEMBER = re.compile(r"^\s*(?:please\s+|(?:hey\s+)?s[,:]?\s+)?remember(?:\s+that)?\s+(?!to\b)(?P<fact>[^?]{3,300}?)\s*[.!]?\s*$",
+                      re.I)
 ASLEEP_NOTE = "The crew is asleep, so nothing runs (routines wait too). Say \"S wake up\" to wake us."
 
 
@@ -52,6 +54,13 @@ async def handle(crew: "Crew", chat: dict, text: str) -> str | None:
         crew.router.dead_models.clear()
         return " ".join(sentences + [r.sentence() for r in results])
 
+    remembered = REMEMBER.match(text)
+    if remembered:
+        from teamloop.crew.memory import remember_fact
+
+        fact = remembered.group("fact").strip()
+        remember_fact(crew.store, fact, "user")
+        return f"Got it, the crew will remember: {fact}"
     if ASK_AGAIN.match(text):
         n = crew.gate.forget_denials(chat["id"])
         return ("Okay: the next time a bot needs your OK for something you turned down, it will ask again."
@@ -93,6 +102,9 @@ async def handle(crew: "Crew", chat: dict, text: str) -> str | None:
             else:
                 models.pop(bot.id, None)
             crew.store.set_setting("bot_models", models)
+            if target and not P.keys_for(P.PROVIDERS[pid]):
+                return (f"{bot.name} will use {target}, but there's no {P.PROVIDERS[pid].name} key yet, so it falls "
+                        "back to the automatic choice until you paste one here.")
             return f"{bot.name} now uses {target or 'the automatic choice'}."
         crew.store.set_setting("crew_model", target or None)
         if target and not P.keys_for(P.PROVIDERS[target.partition(':')[0]]):
