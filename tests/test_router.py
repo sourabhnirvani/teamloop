@@ -1,6 +1,6 @@
 import pytest
 
-from teamloop.models.router import AllModelsBusy, BadKey, ModelGone, RateLimited, Reply, Router, Transient
+from teamloop.models.router import START_RPM, AllModelsBusy, BadKey, ModelGone, RateLimited, Reply, Router, Transient
 
 ENV = {"TEAMLOOP_CHAIN": "gemini,groq", "GEMINI_API_KEY": "g1", "GEMINI_API_KEY_2": "g2",
        "GROQ_API_KEY": "q1", "GEMINI_MODELS": "gm", "GROQ_MODELS": "qm"}
@@ -32,7 +32,7 @@ async def test_rate_limit_rests_key_and_moves_on():
     reply = await router.chat([])
     assert reply.text == "gemini:g2"
     st = router.state("gemini", "g1")
-    assert st.rpm == 5.0 and st.rest_until > router.clock()
+    assert st.rpm == START_RPM / 2 and st.rest_until > router.clock()
     assert (await router.chat([])).text == "gemini:g2"
     assert router.tried.count(("gemini", "g1", "gm")) == 1
 
@@ -87,7 +87,7 @@ async def test_success_streak_raises_pace():
     router = make(lambda p, k, m: k)
     for _ in range(10):
         await router.chat([])
-    assert router.state("gemini", "g1").rpm == 12.0
+    assert router.state("gemini", "g1").rpm == START_RPM + 2
 
 
 async def test_usage_hook_records_tokens():

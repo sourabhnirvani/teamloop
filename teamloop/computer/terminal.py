@@ -53,8 +53,14 @@ def shell() -> str | None:
 
 
 def here(chat_id: str) -> Path:
+    """Where this chat's terminal is. It starts in the workspace, so files a command drops (a report, a log)
+    land there instead of on the Desktop or in the home folder."""
     cwd = _cwd.get(chat_id)
-    return cwd if cwd and cwd.is_dir() else Path.home()
+    if cwd and cwd.is_dir():
+        return cwd
+    start = config.workspace() / "files"
+    start.mkdir(parents=True, exist_ok=True)
+    return start
 
 
 def _script(command: str, cwd: Path) -> str:

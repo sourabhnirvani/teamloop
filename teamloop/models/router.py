@@ -7,6 +7,7 @@ key is never held back by a guessed free-tier number.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -21,7 +22,8 @@ from teamloop.models import textcalls
 
 log = logging.getLogger(__name__)
 
-MIN_RPM, START_RPM, MAX_RPM = 2.0, 10.0, 60.0
+MIN_RPM, START_RPM, MAX_RPM = 2.0, 30.0, 60.0  # our own pace per key; a real 429 halves it
+PACE_WAIT_MAX = 60.0  # seconds worth waiting for a cloud key's own pace slot instead of going local
 DAILY_REST = 6 * 3600
 
 
@@ -113,6 +115,7 @@ class Router:
         self._env = env
         self.on_usage = on_usage
         self.clock = clock
+        self.sleep: Callable[[float], Any] = asyncio.sleep
         self.keys: dict[tuple[str, str], KeyState] = {}
         self.dead_models: set[tuple[str, str]] = set()
         self.last_doctor: list[dict] = []  # the latest model doctor results
@@ -136,14 +139,29 @@ class Router:
             out.sort(key=lambda s: not (s[0].id == pid and (not model or s[2] == model)))
         return out
 
+    def pace_wait(self, slots: list[tuple[P.Provider, str, str]], now: float) -> float | None:
+        """Seconds until the soonest cloud key that is held back only by our own pace (no 429, not bad,
+        not resting) gets a free slot; None when there is no such key."""
+        waits = []
+        for provider, key, _ in slots:
+            if provider.id == "ollama":
+                continue
+            st = self.state(provider.id, key)
+            st.ready(now)  # drops calls older than a minute
+            if not st.bad and now >= st.rest_until and st.calls and len(st.calls) >= st.rpm:
+                waits.append(max(0.0, 60 - (now - st.calls[0])) + 0.05)
+        return min(waits) if waits else None
+
     def available(self) -> list[str]:
         """Provider ids that have at least one key configured (Ollama counts as configured)."""
         return [p.id for p in P.chain(self._env) if P.keys_for(p, self._env)]
 
     # ---- calling --------------------------------------------------------------------------
     async def chat(self, messages: list[dict], tools: list[dict] | None = None, prefer: str | None = None,
-                   purpose: str = "", max_tokens: int | None = None, only: bool = False) -> Reply:
+                   purpose: str = "", max_tokens: int | None = None, only: bool = False, _waited: bool = False) -> Reply:
         """`only=True` tries just the preferred provider/model, with no fallback (the doctor uses it)."""
+        again = dict(messages=messages, tools=tools, prefer=prefer, purpose=purpose, max_tokens=max_tokens,
+                     only=only, _waited=True)
         errors: list[str] = []
         tried_any = False
         slots = self.slots(prefer)
@@ -155,6 +173,13 @@ class Router:
             now = self.clock()
             if not st.ready(now):
                 continue
+            if provider.id == "ollama" and not _waited:
+                # A cloud key that is only pacing itself frees up within a minute; that beats a slow local model.
+                wait = self.pace_wait(slots, now)
+                if wait is not None and wait <= PACE_WAIT_MAX:
+                    log.info("waiting %.0fs for a cloud model's pace slot instead of the local model", wait)
+                    await self.sleep(wait)
+                    return await self.chat(**again)
             tried_any = True
             st.calls.append(now)
             try:
@@ -191,6 +216,11 @@ class Router:
                 except Exception:  # usage is bookkeeping; never fail a reply over it
                     log.exception("usage hook failed")
             return reply
+        if not tried_any and not _waited:  # every key is just pacing itself: wait for the first free slot
+            wait = self.pace_wait(slots, self.clock())
+            if wait is not None and wait <= PACE_WAIT_MAX:
+                await self.sleep(wait)
+                return await self.chat(**again)
         if errors:
             log.warning("no model answered: %s", "; ".join(errors))
         if not tried_any and not errors:

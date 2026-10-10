@@ -107,3 +107,50 @@ def test_ollama_models_come_from_what_is_installed(monkeypatch):
     monkeypatch.setattr(httpx, "get", down)
     assert P.models_for(P.PROVIDERS["ollama"], {"OLLAMA_URL": "http://local:11434/v1"}) == ["qwen2.5:7b"]
     P._ollama_seen.clear()
+
+
+async def test_a_paced_cloud_key_is_waited_for_instead_of_the_slow_local_model(monkeypatch):
+    now = [1000.0]
+    slept = []
+    used = []
+
+    async def create(**kwargs):
+        used.append(kwargs["model"])
+        message = SimpleNamespace(content="ok", tool_calls=None)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=None)
+
+    env = {"TEAMLOOP_CHAIN": "groq,ollama", "GROQ_API_KEY": "gsk_" + "k" * 52, "GROQ_MODELS": "cloud",
+           "OLLAMA_MODELS": "local"}
+    router = Router(env=env, clock=lambda: now[0])
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    monkeypatch.setattr(router, "_client", lambda provider, key: client)
+
+    async def fake_sleep(seconds):
+        slept.append(round(seconds))
+        now[0] += seconds
+
+    router.sleep = fake_sleep
+    st = router.state("groq", env["GROQ_API_KEY"])
+    st.rpm = 3
+    for t in (980.0, 990.0, 995.0):  # three calls in the last minute: the key is pacing itself
+        st.calls.append(t)
+    await router.chat([{"role": "user", "content": "hi"}])
+    assert used == ["cloud"] and slept == [40]  # waited ~40 s for the oldest call to age out, never used local
+
+
+async def test_a_resting_cloud_key_still_falls_back_to_local(monkeypatch):
+    used = []
+
+    async def create(**kwargs):
+        used.append(kwargs["model"])
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="ok", tool_calls=None))],
+                               usage=None)
+
+    env = {"TEAMLOOP_CHAIN": "groq,ollama", "GROQ_API_KEY": "gsk_" + "k" * 52, "GROQ_MODELS": "cloud",
+           "OLLAMA_MODELS": "local"}
+    router = Router(env=env)
+    monkeypatch.setattr(router, "_client", lambda provider, key: SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=create))))
+    router.state("groq", env["GROQ_API_KEY"]).rest_until = router.clock() + 300  # a real 429 earlier
+    await router.chat([{"role": "user", "content": "hi"}])
+    assert used == ["local"]
