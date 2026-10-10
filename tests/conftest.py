@@ -13,4 +13,13 @@ def workspace(tmp_path, monkeypatch):
     ws = tmp_path / "ws"
     monkeypatch.setenv("TEAMLOOP_WORKSPACE", str(ws))
     monkeypatch.setenv("TEAMLOOP_DB", str(ws / "test.db"))
+    monkeypatch.setenv("TEAMLOOP_VAULT", str(ws / "keys.vault"))
     return ws
+
+
+@pytest.fixture(autouse=True)
+def restore_environ():
+    saved = dict(os.environ)
+    yield
+    os.environ.clear()
+    os.environ.update(saved)

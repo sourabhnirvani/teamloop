@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,6 +21,8 @@ from teamloop.crew.bots import BOTS, ROSTER
 from teamloop.crew.events import Bus
 from teamloop.crew.store import Store
 from teamloop.crew.team import Crew
+from teamloop.keys import vault, wallet
+from teamloop.models import doctor
 from teamloop.models import providers as P
 from teamloop.models.router import Router
 
@@ -39,6 +42,10 @@ class Answer(BaseModel):
     ok: bool
 
 
+class KeyText(BaseModel):
+    text: str
+
+
 def build_crew(db_path: Path | str | None = None, router: Any = None) -> Crew:
     store = Store(db_path or config.db_path())
     crew = Crew(store, router or Router(on_usage=store.add_usage), Bus())
@@ -52,6 +59,10 @@ def _mask(key: str) -> str:
 
 def create_app(crew: Crew | None = None) -> FastAPI:
     kits.load_all()
+    try:
+        vault.export_to_env()
+    except (OSError, ValueError) as e:
+        logging.getLogger(__name__).warning("key vault not loaded: %s", e)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -132,6 +143,19 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     def keys() -> list[dict]:
         return [{"id": p.id, "name": p.name, "needs_key": p.needs_key,
                  "keys": [_mask(k) for k in P.keys_for(p) if k]} for p in P.PROVIDERS.values()]
+
+    @app.post("/api/keys")
+    async def add_keys(body: KeyText) -> list[dict]:
+        found = await wallet.add_from_text(body.text)
+        if not found:
+            raise HTTPException(400, "No API key found in that text.")
+        get_crew().router.dead_models.clear()
+        return [{"provider": a.provider, "status": a.status, "text": a.sentence()} for a in found]
+
+    @app.post("/api/models/check")
+    async def check_models() -> dict:
+        results = await doctor.check_all(get_crew().router)
+        return {"results": results, "summary": doctor.summary(results)}
 
     @app.get("/api/models")
     def models() -> list[dict]:

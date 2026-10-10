@@ -1,28 +1,37 @@
-"""The crew at work: who answers a message, handoffs between bots, Stop, and the default chats."""
+"""The crew at work: who answers a message, group rounds, handoffs between bots, Stop, default chats."""
 
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import logging
 import re
 from typing import Any
 
 from teamloop import trace
 from teamloop.computer.gate import Gate
+from teamloop.crew import commands
 from teamloop.crew.bots import BOTS, LEAD, ROSTER, Bot, find_bot
 from teamloop.crew.context import Stopped, TurnCtx
 from teamloop.crew.events import Bus
-from teamloop.crew.runner import run_bot_turn
+from teamloop.crew.runner import MAX_STEPS, run_bot_turn
 from teamloop.crew.store import Store
+from teamloop.keys.redact import add_secret, redact
+from teamloop.models.providers import detect_keys
 from teamloop.models.router import AllModelsBusy
 from teamloop.tools.registry import ToolResult, tool
 
 log = logging.getLogger(__name__)
 
-HISTORY_LIMIT = 20
+HISTORY_LIMIT, SAVE_HISTORY_LIMIT = 20, 8
+SAVE_MAX_STEPS = 5
 MAX_HANDOFF_DEPTH = 2
 STOP_WORDS = {"stop", "stop it", "cancel", "stop now"}
 _MENTION = re.compile(r"@(\w+)|\bask (\w+) to\b", re.IGNORECASE)
+_TEAM_WORDS = re.compile(r"\b(everyone|everybody|team|all of you|guys|you all|y'all)\b", re.IGNORECASE)
+ROUND_NOTE = ("(Group round: the person asked the whole team. Add only something new and useful from your role, "
+              "in one or two sentences. If you have nothing new, reply exactly SKIP.)")
+WORKER_KITS = ("computer", "files", "web", "browser")
 
 
 class Crew:
@@ -44,12 +53,17 @@ class Crew:
         per_bot = self.store.get_setting("bot_models", {}) or {}
         return per_bot.get(bot_id) or self.store.get_setting("crew_model")
 
+    def saving(self) -> bool:
+        return bool(self.store.get_setting("save_tokens", False))
+
     # ---- messages -------------------------------------------------------------------------
     async def post(self, chat_id: str, text: str) -> dict:
         chat = self.store.get_chat(chat_id)
         if chat is None:
             raise KeyError(chat_id)
-        msg = self.store.add_message(chat_id, "user", text)
+        for _, key in detect_keys(text):
+            add_secret(key)  # a pasted key is never stored, shown or sent to a model
+        msg = self.store.add_message(chat_id, "user", redact(text))
         await self.bus.emit("message", chat_id=chat_id, message=msg)
         if text.strip().lower().rstrip("!.") in STOP_WORDS:
             await self.stop(chat_id)
@@ -63,22 +77,27 @@ class Crew:
         if task:
             await asyncio.gather(task, return_exceptions=True)
 
-    def responders(self, chat: dict, text: str) -> list[Bot]:
+    def mentioned(self, chat: dict, text: str) -> list[Bot]:
         members = [m for m in chat["members"] if m in BOTS]
-        mentioned: list[Bot] = []
+        found: list[Bot] = []
         for at_name, ask_name in _MENTION.findall(text):
             bot = find_bot(at_name or ask_name)
-            if bot and bot.id in members and bot not in mentioned:
-                mentioned.append(bot)
+            if bot and bot.id in members and bot not in found:
+                found.append(bot)
+        return found
+
+    def lead_of(self, chat: dict) -> Bot:
+        return BOTS[LEAD] if LEAD in chat["members"] else BOTS[chat["members"][0]]
+
+    def responders(self, chat: dict, text: str) -> list[Bot]:
+        mentioned = self.mentioned(chat, text)
         if mentioned:
             return mentioned
-        if len(members) == 1:
-            return [BOTS[members[0]]]
-        return [BOTS[LEAD] if LEAD in members else BOTS[members[0]]]
+        return [self.lead_of(chat)]
 
-    def history(self, chat_id: str, bot_id: str) -> list[dict]:
+    def history(self, chat_id: str, bot_id: str, limit: int = HISTORY_LIMIT) -> list[dict]:
         """Recent chat as the model sees it: its own lines as assistant, everyone else's as user."""
-        rows = self.store.messages(chat_id, HISTORY_LIMIT + 1)[:-1]  # the newest is the message being answered
+        rows = self.store.messages(chat_id, limit + 1)[:-1]  # the newest is the message being answered
         out = []
         for m in rows:
             if m["sender"] == bot_id:
@@ -95,25 +114,58 @@ class Crew:
             await asyncio.gather(previous, return_exceptions=True)  # replies stay in order
         stop = self._stops.setdefault(chat["id"], asyncio.Event())
         stop.clear()
+        lead = self.lead_of(chat)
         try:
             with trace.span("chat message", "workflow", session_id=chat["id"], chat=chat["id"]):
-                for bot in self.responders(chat, text):
-                    ctx = TurnCtx(chat["id"], bot.id, self, stop)
-                    await self._turn(bot, chat, text, ctx)
+                quick = await commands.handle(self, chat, text)
+                if quick is not None:
+                    await self.say(chat["id"], lead.id, quick)
+                    return
+                order = self.responders(chat, text)
+                is_round = (not self.mentioned(chat, text) and len(chat["members"]) > 1
+                            and _TEAM_WORDS.search(text) and not self.saving())
+                if is_round:
+                    order = [lead] + [BOTS[m] for m in chat["members"] if m in BOTS and m != lead.id]
+                for i, bot in enumerate(order):
+                    reply = await self._turn(bot, chat, text, TurnCtx(chat["id"], bot.id, self, stop),
+                                             note=ROUND_NOTE if is_round and i > 0 else None)
+                    if reply is not None and len(chat["members"]) > 1:
+                        await self._follow_up(chat, bot, reply, text, stop)
         except (Stopped, asyncio.CancelledError):
-            await self.say(chat["id"], LEAD if LEAD in chat["members"] else chat["members"][0], "Stopped.")
+            await self.say(chat["id"], lead.id, "Stopped.")
 
-    async def _turn(self, bot: Bot, chat: dict, text: str, ctx: TurnCtx) -> str:
+    async def _turn(self, bot: Bot, chat: dict, text: str, ctx: TurnCtx, note: str | None = None) -> str | None:
+        saving = self.saving()
+        if bot.id == LEAD and self.store.get_setting("solo", False):
+            bot = dataclasses.replace(bot, kits=WORKER_KITS)  # "one bot" mode for before/after numbers
+        prompt = f"{text}\n\n{note}" if note else text
         await self.bus.emit("typing", chat_id=chat["id"], bot=bot.id, on=True)
         try:
-            reply = await run_bot_turn(bot, self.router, self.history(chat["id"], bot.id), text, ctx,
-                                       prefer=self.model_for(bot.id), members=chat["members"])
+            reply = await run_bot_turn(bot, self.router,
+                                       self.history(chat["id"], bot.id, SAVE_HISTORY_LIMIT if saving else HISTORY_LIMIT),
+                                       prompt, ctx, prefer=self.model_for(bot.id), members=chat["members"],
+                                       max_steps=SAVE_MAX_STEPS if saving else MAX_STEPS)
         except AllModelsBusy as e:
             reply = f"Failed: {e}"
         finally:
             await self.bus.emit("typing", chat_id=chat["id"], bot=bot.id, on=False)
+        if note and reply.strip().upper().startswith("SKIP"):
+            return None
         await self.say(chat["id"], bot.id, reply)
         return reply
+
+    async def _follow_up(self, chat: dict, bot: Bot, reply: str, original: str, stop: asyncio.Event) -> None:
+        """One visible handoff in group chats: a bot @mentions a teammate, or says the job isn't theirs."""
+        if reply.lower().startswith("not mine:") and bot.id != LEAD and LEAD in chat["members"]:
+            ask = (f"The person asked: {original}\n{bot.name} said it isn't theirs: {reply}\n"
+                   f"Hand the job to the right teammate.")
+            await self._turn(BOTS[LEAD], chat, ask, TurnCtx(chat["id"], LEAD, self, stop))
+            return
+        for target in self.mentioned(chat, reply):
+            if target.id != bot.id:
+                ask = f"{bot.name} asked you in the group: {reply}\n(The person's message was: {original})"
+                await self._turn(target, chat, ask, TurnCtx(chat["id"], target.id, self, stop))
+                return
 
     async def say(self, chat_id: str, sender: str, text: str, kind: str = "chat") -> dict:
         msg = self.store.add_message(chat_id, sender, text, kind)
@@ -134,7 +186,8 @@ class Crew:
         sub = ctx.for_bot(bot.id, depth=ctx.depth + 1)
         await self.bus.emit("typing", chat_id=ctx.chat_id, bot=bot.id, on=True)
         try:
-            reply = await run_bot_turn(bot, self.router, [], instruction, sub, prefer=self.model_for(bot.id))
+            reply = await run_bot_turn(bot, self.router, [], instruction, sub, prefer=self.model_for(bot.id),
+                                       max_steps=SAVE_MAX_STEPS if self.saving() else MAX_STEPS)
         except AllModelsBusy as e:
             reply = f"Failed: {e}"
         finally:

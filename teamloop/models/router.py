@@ -136,10 +136,15 @@ class Router:
 
     # ---- calling --------------------------------------------------------------------------
     async def chat(self, messages: list[dict], tools: list[dict] | None = None, prefer: str | None = None,
-                   purpose: str = "", max_tokens: int | None = None) -> Reply:
+                   purpose: str = "", max_tokens: int | None = None, only: bool = False) -> Reply:
+        """`only=True` tries just the preferred provider/model, with no fallback (the doctor uses it)."""
         errors: list[str] = []
         tried_any = False
-        for provider, key, model in self.slots(prefer):
+        slots = self.slots(prefer)
+        if only and prefer:
+            pid, _, want = prefer.partition(":")
+            slots = [s for s in slots if s[0].id == pid and (not want or s[2] == want)]
+        for provider, key, model in slots:
             st = self.state(provider.id, key)
             now = self.clock()
             if not st.ready(now):
