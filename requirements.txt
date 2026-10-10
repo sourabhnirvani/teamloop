@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+fastmcp
+neatlogs[mcp]
+httpx
+python-dotenv
+pytest

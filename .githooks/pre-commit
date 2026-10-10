@@ -1,0 +1,7 @@
+#!/bin/sh
+# Block Python changes that mention old Agent S module names: rewrite, don't copy.
+if git diff --cached -U0 -- '*.py' | grep '^+' | grep -v '^+++' | grep -qiE 'agent_s|model_gateway|computer\.pilot|crew\.engine'; then
+  echo "pre-commit: staged Python mentions old Agent S module names. Rewrite it from PLAN.md instead."
+  exit 1
+fi
+exit 0
