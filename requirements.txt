@@ -1,7 +1,8 @@
 fastapi
 uvicorn
-fastmcp
-neatlogs[mcp]
 httpx
+openai
+neatlogs
 python-dotenv
 pytest
+pytest-asyncio

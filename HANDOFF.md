@@ -1,11 +1,14 @@
 # @JrKrishh (Yang): start here
 
-You build the **hub** (`hub/`, `clients/`). Sourabh builds the **lead** (`lead/`, `demo/`).
-The full plan is in [PLAN.md](PLAN.md), and the rules for your coding agent are in [CLAUDE.md](CLAUDE.md).
+We're rebuilding **Agent S** (same features) as **TeamLoop**, with all new code written during the
+event. Sourabh builds the backend core. You build the **UI, browser kit, Telegram, phone and
+desktop app**. The full plan is in [PLAN.md](PLAN.md), and your agent's rules are in [CLAUDE.md](CLAUDE.md).
+You've seen the old Agent S, so build the same things, but **write new code**. Don't copy old
+files or show them to your coding agent.
 
 ## 1. Setup (about 20 min)
 
-1. Accept the GitHub invite: https://github.com/sourabhnirvani/teamloop/invitations
+1. Accept the invite: https://github.com/sourabhnirvani/teamloop/invitations
 2. Clone and install:
    ```
    git clone https://github.com/sourabhnirvani/teamloop
@@ -15,43 +18,36 @@ The full plan is in [PLAN.md](PLAN.md), and the rules for your coding agent are 
    pip install -r requirements.txt
    git config core.hooksPath .githooks
    ```
-3. Copy `.env.example` to `.env` and fill in your own keys. Sourabh sends the neatlogs project key
-   privately. Never commit `.env`.
-4. **Entire:** install it (Windows: `irm https://entire.io/install.ps1 | iex`), then in `teamloop/`
-   run `entire enable`, `entire plugin install graph` and `entire graph init-agents`.
-5. **ccbridge** (so your agent and Sourabh's agent can talk):
+3. Copy `.env.example` to `.env` and add your own free keys (Gemini/Groq/OpenRouter). Sourabh sends
+   the neatlogs key privately. Never commit `.env`.
+4. **Entire:** install it (Windows: `irm https://entire.io/install.ps1 | iex`), then `entire enable`
+   inside `teamloop/`.
+5. **ccbridge** (lets your Claude Code talk to Sourabh's):
    ```
    git clone https://github.com/sourabhnirvani/ccbridge ../ccbridge
    pip install -r ../ccbridge/requirements.txt
    python ../ccbridge/bridge.py join <INVITE FROM SOURABH> jrkrishh --allow sourabh
    ```
-   Run it **from inside `teamloop/`**. It writes `.mcp.json` there, and git ignores that file.
-   Restart Claude Code in `teamloop/`, approve the `ccbridge` server, then ask: *"check the bridge,
-   who's online?"* If the relay can't be reached, set your DNS to 1.1.1.1 (some ISPs block
-   `*.trycloudflare.com`).
-6. Set up a **named cloudflared tunnel** for the hub (the hub runs on your laptop). Keep the laptop
-   plugged in and set it to never sleep.
+   Run it **from inside `teamloop/`**. Then restart Claude Code in `teamloop/`, approve `ccbridge`,
+   and ask: *"check the bridge, who's online?"* If it can't connect, set your DNS to 1.1.1.1.
 
 ## 2. Your checkpoints
 
 | When (IST) | Build | Check |
 |---|---|---|
-| Sat 21:00–02:00 | `hub/store.py` (schema in PLAN.md §3), `hub/mcp_tools.py` (the 9 tools, §4), `hub/app.py` mounting `/mcp`, neatlogs `@span(kind="MCP_TOOL")` | your Claude Code joins → claims → submits a task; the trace shows in neatlogs |
-| Sun 09:00–13:00 | `hub/github.py` (branch on claim, PR on submit, merge), `/api` for the lead (§5), `clients/cursor.mcp.json` + `claude.mcp.json` | 2 clients, 2 tasks, 2 PRs; Sourabh's lead merges one green |
-| Sun 13:00–17:00 | `hub/telegram.py`: `/goal`, push, approve buttons | a goal sent from the phone gets merged |
-| Sun 17:00–21:00 | `hub/board.html` + `/board/stream` SSE; fixes from traces | board updates live on the phone |
+| Sat 21:00–02:00 | `ui/` React + Vite: chat list, chat view, live SSE events, approval card, typing dots. Use the API in PLAN.md §4 (mock it until Sourabh's server lands) | you chat with S in the browser |
+| Sun 09:00–14:00 | `teamloop/browser/`: Chrome with its own profile over CDP (Playwright), one window per chat, tools `browser_open/snapshot/act/read` registered in the tool registry; UI Settings: keys, models | "search X and read it" works from the UI |
+| Sun 14:00–20:00 | `teamloop/server/telegram.py` bridge; `phone/` PWA (manifest, service worker) over a tunnel; bot avatars with moves | the demo goal works from the phone |
+| Sun 20:00–24:00 | `desktop/` Electron wrapper (starts the server, opens the UI) | double-click opens the app |
 | Mon 09:00–13:00 | README "Start here", `hackathon.md`, screenshots in `evidence/` | evidence complete |
-| Mon 13:00–18:00 | record the video | uploaded |
-
-Each reply from an MCP tool ends with `⟳ N messages, M tasks ready`.
-The lead talks to you only through the `/api` calls in PLAN.md §5. If you need to change one, message
-Sourabh's agent on ccbridge first.
+| Mon 13:00–18:00 | edit the video (≤ 3 min) | uploaded |
 
 ## 3. Paste this into your Claude Code (inside `teamloop/`)
 
-> Read CLAUDE.md, PLAN.md and HANDOFF.md. You are JrKrishh's (Yang's) agent and you own `hub/`
-> and `clients/`. Check ccbridge messages first. Then build the Sat 21:00–02:00 checkpoint:
-> `hub/store.py` with the PLAN.md §3 schema, `hub/mcp_tools.py` with the 9 MCP tools from §4, and
-> `hub/app.py` (FastAPI mounting FastMCP at `/mcp`), with neatlogs spans on every tool and pytest
-> tests. Write all code fresh. Commit and push small steps. When the check passes (Claude Code joins
-> → claims → submits, and the trace shows in neatlogs), tell Sourabh's agent on ccbridge.
+> Read CLAUDE.md, PLAN.md and HANDOFF.md. You are JrKrishh's (Yang's) agent. You own `ui/`,
+> `teamloop/browser/`, `teamloop/server/telegram.py`, `phone/` and `desktop/`. Check ccbridge
+> messages first and say hi to Sourabh's agent. Then build the Sat 21:00–02:00 checkpoint: a
+> React + Vite app in `ui/` with a chat list, chat view, live updates from `GET /api/events` (SSE),
+> approval cards and typing dots, using exactly the API in PLAN.md §4 (mock it until the server is
+> up). Write all code fresh. Commit and push small steps. When it works, tell Sourabh's agent on
+> ccbridge.
