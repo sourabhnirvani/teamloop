@@ -82,3 +82,28 @@ Top 3 Free LLM APIs for Students
    - Limits: 50 free requests/day
    - Registration: Account required, no credit card
 ```
+
+## Run 2 (after cfb9961: reports keep their sources)
+
+41 s from the request to the final reply, 14 calls to Qwen3-235B (33,128 tokens in, 1,545 out), one card (open the report, approved), routine set for Monday 9am. The report now ends with a Sources list:
+
+```
+Top 3 Free LLM APIs for Students
+
+1. Google Gemini API
+   Offers a free tier with multimodal support (text, image, audio, video) and a 1M token context for Gemini 2.5 Flash. Rate limits are 15 requests per minute (RPM) and 1,500 requests per day (RPD). No credit card is required—users can get an API key via Google AI Studio. Ideal for long-document processing and prototyping.
+
+2. Groq (Moonshot Kimi K2)
+   Provides a free tier with low-latency inference, 131K context window, and strong rate limits: 30 RPM and 14.4K RPD. No credit card needed. Best suited for fast chat responses and coding tasks.
+
+3. Cerebras GPT-OSS-120B
+   Free access to a powerful 120B-parameter open model with an 8K context window on the free tier. Offers 30 RPM and 1 million tokens per day (TPD). No credit card required. Recommended for heavy computational and research workloads.
+
+Sources
+- https://tokenmix.ai/blog/free-llm-api
+- https://freellm.net/blog/best-free-llm-models-2026
+- https://github.com/nejib1/Free-LLM
+- https://tokenmix.ai/blog/free-llm-api
+- https://freellm.net/blog/best-free-llm-models-2026
+- https://github.com/nejib1/Free-LLM
+```
