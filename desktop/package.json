@@ -1,0 +1,23 @@
+{
+  "name": "teamloop-desktop",
+  "productName": "TeamLoop",
+  "version": "0.1.0",
+  "description": "TeamLoop: a crew of AI bots that work on your laptop.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "dev.teamloop.desktop",
+    "productName": "TeamLoop",
+    "files": ["main.js", "icon.png"],
+    "win": { "icon": "icon.png", "target": "portable" },
+    "portable": { "artifactName": "TeamLoop.exe" }
+  }
+}
