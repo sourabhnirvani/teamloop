@@ -66,7 +66,7 @@ async def test_fast_path_runs_one_tool_with_no_model_call(tmp_path, fake_volume)
     await crew.post("team", "volume 30")
     await crew.wait_idle("team")
     last = crew.store.messages("team")[-1]
-    assert (last["sender"], last["text"]) == ("desk", "Volume is now 30%.")
+    assert (last["sender"], last["text"], last["kind"]) == ("desk", "Volume is now 30%.", "fast")
     assert fake_volume == [({"level": 30}, "desk")] and crew.router.calls == []
 
 

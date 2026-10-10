@@ -136,5 +136,5 @@ async def handle(crew: "Crew", chat: dict, text: str, stop: "asyncio.Event") -> 
     await ctx.emit("step", bot=sender, tool=name, status="done" if result.ok else "fail", text=result.text)
     if not result.ok and not result.text.lower().startswith(_FINAL):
         return False  # "open everything" isn't an app: let the bots work out what was meant
-    await crew.say(chat["id"], sender, _reply(result))
+    await crew.say(chat["id"], sender, _reply(result), kind="fast")  # the UI can badge it: no model used
     return True

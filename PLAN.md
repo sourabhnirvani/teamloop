@@ -104,7 +104,7 @@ Server: `http://127.0.0.1:8790`. All JSON.
 |---|---|
 | `GET /api/bots` | `[{id, name, role, emoji, model}]` |
 | `GET /api/chats` · `POST /api/chats {title, members:[bot ids]}` | list / create (1 member = 1:1, more = group) |
-| `GET /api/chats/{id}/messages` | `[{id, chat_id, sender, text, ts, kind}]` (sender = "user" or bot id) |
+| `GET /api/chats/{id}/messages` | `[{id, chat_id, sender, text, ts, kind}]` (sender = "user" or bot id; kind = `chat` · `handoff` · `routine` · `fast` = answered by the no-model fast path) |
 | `POST /api/chats/{id}/messages {text}` | 202; replies arrive as events |
 | `GET /api/events` (SSE) | `{type, chat_id, ...}` with type = `message` · `typing` · `step` · `approval` · `approval_done` · `usage` · `error` |
 | `POST /api/approvals/{id} {ok}` | answer an approval card |
