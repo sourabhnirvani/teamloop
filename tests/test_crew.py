@@ -53,7 +53,7 @@ async def test_delegate_to_unknown_bot_explains(tmp_path):
 
 async def test_stop_cancels_running_work(tmp_path):
     crew = make_crew(tmp_path, [hang])
-    await crew.post("dm-desk", "open everything")
+    await crew.post("dm-desk", "tidy up everything")
     await asyncio.sleep(0.05)
     assert await crew.stop("dm-desk")
     assert crew.store.messages("dm-desk")[-1]["text"] == "Stopped."
@@ -61,7 +61,7 @@ async def test_stop_cancels_running_work(tmp_path):
 
 async def test_typed_stop_word_stops(tmp_path):
     crew = make_crew(tmp_path, [hang])
-    await crew.post("dm-desk", "open everything")
+    await crew.post("dm-desk", "tidy up everything")
     await asyncio.sleep(0.05)
     await crew.post("dm-desk", "stop")
     assert crew.store.messages("dm-desk")[-1]["text"] == "Stopped."

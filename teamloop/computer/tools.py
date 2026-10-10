@@ -312,6 +312,21 @@ async def set_brightness(args: dict, ctx) -> ToolResult:
     return ToolResult(True, f"Brightness is now {now}%.", {"brightness": now})
 
 
+@tool("set_wifi", "Turn Wi-Fi on or off. Off asks first: it cuts the crew off the internet too.",
+      {"on": {"type": "boolean"}, "required": ["on"]}, kit="computer")
+async def set_wifi(args: dict, ctx) -> ToolResult:
+    on = bool(args.get("on"))
+    if not on and not await ctx.approve("Turn Wi-Fi off",
+                                        "Wi-Fi goes off. The crew can't reach models or the web until it's back on."):
+        return ToolResult(False, "The person said no, so Wi-Fi stays on.")
+    state = await asyncio.to_thread(system.set_wifi, on)
+    if state == "none":
+        return ToolResult(False, "This laptop has no Wi-Fi radio Windows can switch.")
+    if state.lower() != ("on" if on else "off"):
+        return ToolResult(False, f"Tried to turn Wi-Fi {'on' if on else 'off'}, but it reads {state}.")
+    return ToolResult(True, f"Wi-Fi is now {'on' if on else 'off'}.", {"wifi": state})
+
+
 @tool("power", "Lock, sleep, restart or shut down the laptop (always asks the person first).",
       {"action": {"type": "string", "enum": ["lock", "sleep", "restart", "shutdown"]}, "required": ["action"]},
       kit="computer")

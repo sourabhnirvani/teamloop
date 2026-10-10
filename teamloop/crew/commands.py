@@ -24,6 +24,10 @@ SWITCH = re.compile(r"^\s*(?:please\s+)?(?:use|switch to|change to)\s+(?P<target
 SAVE_ON = re.compile(r"^\s*(?:turn on |switch to |use )?(?:save|saving) tokens?(?: mode)?(?: on)?\s*[.!]?\s*$", re.I)
 SAVE_OFF = re.compile(r"^\s*(?:turn off save tokens?(?: mode)?|(?:switch to |use )?normal mode|save tokens?(?: mode)? off)\s*[.!]?\s*$", re.I)
 DOCTOR = re.compile(r"^\s*(?:check (?:the )?models|which models (?:work|are working)|model doctor)\s*[.?!]?\s*$", re.I)
+SLEEP = re.compile(r"^\s*(?:(?:hey |ok )?(?:s|team|crew)[,:]?\s+)?(?:(?:it'?s |its )?time to sleep|go to sleep|"
+                   r"sleep now|so ja(?:o)?)\s*[.!]?\s*$", re.I)
+WAKE = re.compile(r"^\s*(?:(?:hey |ok )?(?:s|team|crew)[,:]?\s+)?(?:wake\s*up|wakeup|uth ja(?:o)?)\s*[.!]?\s*$", re.I)
+ASLEEP_NOTE = "The crew is asleep, so nothing runs (routines wait too). Say \"S wake up\" to wake us."
 
 
 def _target(word: str) -> str | None:
@@ -46,6 +50,14 @@ async def handle(crew: "Crew", chat: dict, text: str) -> str | None:
         results = await wallet.add_from_text(text)
         crew.router.dead_models.clear()
         return " ".join(sentences + [r.sentence() for r in results])
+
+    if SLEEP.match(text):
+        crew.store.set_setting("asleep", True)
+        return "Going to sleep: no bot will act and routines wait until you say \"S wake up\"."
+    if WAKE.match(text):
+        was = crew.store.get_setting("asleep", False)
+        crew.store.set_setting("asleep", False)
+        return "Awake and ready." if was else "Already awake."
 
     if SAVE_ON.match(text):
         crew.store.set_setting("save_tokens", True)

@@ -100,6 +100,8 @@ def cancel(crew: "Crew", routine_id: str) -> bool:
 
 async def run_due(crew: "Crew", now: float | None = None) -> int:
     now = now or time.time()
+    if crew.store.get_setting("asleep", False):
+        return 0  # due routines run once the crew wakes up
     due = crew.store._all("SELECT * FROM routines WHERE enabled=1 AND next_run<=?", (now,))
     for r in due:
         if is_repeating(r["schedule"]):

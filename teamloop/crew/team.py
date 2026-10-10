@@ -10,7 +10,7 @@ from typing import Any
 
 from teamloop import trace
 from teamloop.computer.gate import Gate
-from teamloop.crew import commands
+from teamloop.crew import commands, fastpath
 from teamloop.crew.bots import BOTS, LEAD, ROSTER, Bot, find_bot
 from teamloop.crew.context import Stopped, TurnCtx
 from teamloop.crew.events import Bus
@@ -130,6 +130,11 @@ class Crew:
                 quick = await commands.handle(self, chat, text)
                 if quick is not None:
                     await self.say(chat["id"], lead.id, quick)
+                    return
+                if self.store.get_setting("asleep", False):
+                    await self.say(chat["id"], lead.id, commands.ASLEEP_NOTE)
+                    return
+                if await fastpath.handle(self, chat, text, stop):
                     return
                 order = self.responders(chat, text)
                 is_round = (not self.mentioned(chat, text) and len(chat["members"]) > 1

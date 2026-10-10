@@ -85,6 +85,30 @@ def wifi() -> dict:
     return {"state": state.group(1).strip() if state else "unknown", "network": ssid.group(1).strip() if ssid else None}
 
 
+_RADIO = """
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+  $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and
+  $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' } | Select-Object -First 1
+function Wait-Op($op, [Type]$type) { $t = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); $t.Wait(-1) | Out-Null; $t.Result }
+[void][Windows.Devices.Radios.Radio, Windows.System.Devices, ContentType=WindowsRuntime]
+[void](Wait-Op ([Windows.Devices.Radios.Radio]::RequestAccessAsync()) ([Windows.Devices.Radios.RadioAccessStatus]))
+$radios = Wait-Op ([Windows.Devices.Radios.Radio]::GetRadiosAsync()) `
+  ([System.Collections.Generic.IReadOnlyList[Windows.Devices.Radios.Radio]])
+$wifi = $radios | Where-Object { $_.Kind -eq 'WiFi' } | Select-Object -First 1
+if (-not $wifi) { 'none'; exit }
+[void](Wait-Op ($wifi.SetStateAsync('__STATE__')) ([Windows.Devices.Radios.RadioAccessStatus]))
+$wifi.State.ToString()
+"""
+
+
+def set_wifi(on: bool) -> str:
+    """Turn the Wi-Fi radio on or off (no admin needed). Returns the radio state: On, Off or none."""
+    out = _ps(_RADIO.replace("__STATE__", "On" if on else "Off"), timeout=30)
+    lines = [ln.strip() for ln in (out.stdout or "").splitlines() if ln.strip()]
+    return lines[-1] if lines else "unknown"
+
+
 # ---- power --------------------------------------------------------------------------------------
 def lock() -> None:
     ctypes.windll.user32.LockWorkStation()
