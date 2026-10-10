@@ -21,6 +21,7 @@ class Provider:
     models: tuple[str, ...]
     key_pattern: str | None = None  # spots a pasted key of this provider
     needs_key: bool = True
+    aliases: tuple[str, ...] = ()   # other variable names people already use for this key
 
     @property
     def prefix(self) -> str:
@@ -30,7 +31,7 @@ class Provider:
 PROVIDERS: dict[str, Provider] = {p.id: p for p in [
     Provider("gemini", "Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/",
              "GEMINI_API_KEY", ("gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"),
-             r"AIza[0-9A-Za-z_\-]{35}"),
+             r"AIza[0-9A-Za-z_\-]{35}", aliases=("GOOGLE_API_KEY",)),
     Provider("groq", "Groq", "https://api.groq.com/openai/v1",
              "GROQ_API_KEY", ("llama-3.3-70b-versatile", "openai/gpt-oss-120b", "llama-3.1-8b-instant"),
              r"gsk_[0-9A-Za-z]{52}"),
@@ -39,10 +40,11 @@ PROVIDERS: dict[str, Provider] = {p.id: p for p in [
                                     "deepseek/deepseek-chat-v3.1:free"),
              r"sk-or-v1-[0-9a-f]{64}"),
     Provider("nvidia", "NVIDIA", "https://integrate.api.nvidia.com/v1",
-             "NVIDIA_API_KEY", ("meta/llama-3.3-70b-instruct", "nvidia/llama-3.3-nemotron-super-49b-v1"),
-             r"nvapi-[0-9A-Za-z_\-]{64}"),
+             "NVIDIA_API_KEY", ("nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-3.5-lightning-30b-a3b",
+                               "z-ai/glm-5.3-flash"),
+             r"nvapi-[0-9A-Za-z_\-]{64}", aliases=("NVIDIA_NIM_API_KEY",)),
     Provider("zai", "GLM (z.ai)", "https://api.z.ai/api/paas/v4",
-             "ZAI_API_KEY", ("glm-4.5-flash",),
+             "ZAI_API_KEY", ("glm-5.3-flash", "glm-4.5-flash"),
              r"[0-9a-f]{32}\.[0-9A-Za-z]{16}"),
     Provider("nebius", "Nebius", "https://api.studio.nebius.com/v1/",
              "NEBIUS_API_KEY", ("meta-llama/Llama-3.3-70B-Instruct",)),
@@ -63,7 +65,7 @@ def keys_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[s
     env = os.environ if env is None else env
     if not provider.needs_key:
         return [""]
-    names = [provider.env] + [f"{provider.env}_{i}" for i in range(2, 10)]
+    names = [provider.env] + [f"{provider.env}_{i}" for i in range(2, 10)] + list(provider.aliases)
     keys: list[str] = []
     for name in names:
         value = (env.get(name) or "").strip()

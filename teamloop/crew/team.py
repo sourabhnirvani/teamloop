@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 HISTORY_LIMIT = 20
 MAX_HANDOFF_DEPTH = 2
 STOP_WORDS = {"stop", "stop it", "cancel", "stop now"}
-_MENTION = re.compile(r"@(\w+)")
+_MENTION = re.compile(r"@(\w+)|\bask (\w+) to\b", re.IGNORECASE)
 
 
 class Crew:
@@ -66,8 +66,8 @@ class Crew:
     def responders(self, chat: dict, text: str) -> list[Bot]:
         members = [m for m in chat["members"] if m in BOTS]
         mentioned: list[Bot] = []
-        for name in _MENTION.findall(text):
-            bot = find_bot(name)
+        for at_name, ask_name in _MENTION.findall(text):
+            bot = find_bot(at_name or ask_name)
             if bot and bot.id in members and bot not in mentioned:
                 mentioned.append(bot)
         if mentioned:

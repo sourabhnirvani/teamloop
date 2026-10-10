@@ -76,7 +76,7 @@ evidence/ hackathon.md                                                          
 
 ## 4. API contract (UI ↔ server). Change it only after a ccbridge message + an edit here
 
-Server: `http://127.0.0.1:8765`. All JSON.
+Server: `http://127.0.0.1:8790`. All JSON.
 
 | Call | Does |
 |---|---|

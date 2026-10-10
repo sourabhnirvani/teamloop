@@ -22,4 +22,4 @@ def db_path() -> Path:
 
 
 def port() -> int:
-    return int(os.getenv("TEAMLOOP_PORT", "8765"))
+    return int(os.getenv("TEAMLOOP_PORT", "8790"))

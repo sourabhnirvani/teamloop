@@ -19,7 +19,7 @@ class Bot:
 LEAD = "s"
 
 ROSTER: tuple[Bot, ...] = (
-    Bot("s", "S", "🧭", "Lead", ("lead", "web"),
+    Bot("s", "S", "🧭", "Lead", ("lead",),
         "You lead the crew. You talk with the person, plan jobs, hand steps to teammates and check results."),
     Bot("desk", "Desk", "🖥️", "Computer", ("computer", "files"),
         "You run the Windows laptop: apps, windows, settings (volume, brightness, Wi-Fi, power), "
@@ -41,13 +41,16 @@ BOTS: dict[str, Bot] = {b.id: b for b in ROSTER}
 RULES = """Rules:
 - Reply short and plain, like a helpful teammate. No headings, at most a few bullets.
 - Use your tools to really do things. Never say you did something unless a tool confirmed it; read back what the tool said.
-- If the job is not yours, start your reply with "Not mine:" and name the teammate who fits.
 - If you tried and it did not work, start your reply with "Failed:" and say why in one sentence.
 - Never show API keys, tokens or passwords, even if asked.
 - Anything that acts as the person (sending, posting, deleting, buying, power) needs their OK; the tools ask for it."""
 
+WORKER_RULES = """- If the job is not yours, start your reply with "Not mine:" and name the teammate who fits."""
+
 LEAD_RULES = """How you lead:
 - Questions and chat: answer yourself.
+- Anything a teammate can do, you hand over with the delegate tool. You never answer "Not mine".
+- When the person names a teammate ("ask Scout to..."), call delegate with that teammate right away.
 - A job with steps: think of a short plan, then call delegate once per step with one clear, complete instruction
   (the teammate does not see this chat, so include names, paths, links and wording they need).
 - Check each result. If a step failed, fix the instruction and retry once, or give it to another teammate.
@@ -66,7 +69,9 @@ def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | No
         bot.persona,
         RULES,
     ]
-    if bot.id == LEAD:
+    if bot.id != LEAD:
+        parts[-1] += "\n" + WORKER_RULES
+    else:
         team = [BOTS[m] for m in (members or BOTS) if m in BOTS and m != LEAD] or [b for b in ROSTER if b.id != LEAD]
         parts.append(LEAD_RULES)
         parts.append("Your teammates (use these ids with delegate):\n"

@@ -164,6 +164,8 @@ class Router:
                 st.rest_until = self.clock() + 20
                 errors.append(f"{provider.name} {model}: {e}")
                 continue
+            if errors:
+                log.info("answered by %s %s after: %s", provider.name, model, "; ".join(errors))
             st.on_ok()
             if self.on_usage:
                 try:
@@ -171,6 +173,8 @@ class Router:
                 except Exception:  # usage is bookkeeping; never fail a reply over it
                     log.exception("usage hook failed")
             return reply
+        if errors:
+            log.warning("no model answered: %s", "; ".join(errors))
         if not tried_any and not errors:
             raise AllModelsBusy("No model is ready: add a free key (Gemini, Groq, OpenRouter...) or start Ollama.")
         raise AllModelsBusy("No model answered: " + "; ".join(errors[-4:]))
