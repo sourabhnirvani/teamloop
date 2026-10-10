@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import os
 import time
 
 from teamloop.models import providers as P
 from teamloop.models.router import AllModelsBusy, Router
+
+log = logging.getLogger(__name__)
+EVERY_HOURS = 6.0
 
 
 async def check_all(router: Router, per_provider: int = 2) -> list[dict]:
@@ -29,6 +34,23 @@ async def check_all(router: Router, per_provider: int = 2) -> list[dict]:
         models = [m for m in P.models_for(provider, router._env) if (provider.id, m) not in router.dead_models]
         jobs += [one(provider, m) for m in models[:per_provider]]
     return list(await asyncio.gather(*jobs))
+
+
+async def keep_checking(router: Router, hours: float | None = None, first_delay: float = 15.0) -> None:
+    """Check every model shortly after startup and then every few hours (TEAMLOOP_DOCTOR_HOURS, default 6,
+    0 = off), so retired models and rejected keys are skipped before a bot's turn runs into them."""
+    hours = float(os.getenv("TEAMLOOP_DOCTOR_HOURS", EVERY_HOURS)) if hours is None else hours
+    if hours <= 0:
+        return
+    await asyncio.sleep(first_delay)
+    while True:
+        router.dead_models.clear()  # a model that was down last time gets another chance
+        try:
+            router.last_doctor = await check_all(router)
+            log.info("model doctor: %s", summary(router.last_doctor))
+        except Exception:
+            log.exception("model doctor run failed")
+        await asyncio.sleep(hours * 3600)
 
 
 def summary(results: list[dict]) -> str:

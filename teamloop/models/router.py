@@ -17,6 +17,7 @@ from typing import Any, Callable, Mapping
 
 from teamloop import trace
 from teamloop.models import providers as P
+from teamloop.models import textcalls
 
 log = logging.getLogger(__name__)
 
@@ -110,6 +111,7 @@ class Router:
         self.clock = clock
         self.keys: dict[tuple[str, str], KeyState] = {}
         self.dead_models: set[tuple[str, str]] = set()
+        self.last_doctor: list[dict] = []  # the latest model doctor results
         self._clients: dict[tuple[str, str], Any] = {}
 
     # ---- choosing -------------------------------------------------------------------------
@@ -223,8 +225,12 @@ class Router:
         msg = resp.choices[0].message
         calls = [ToolCall(c.id or f"call_{i}", c.function.name, _parse_args(c.function.arguments))
                  for i, c in enumerate(msg.tool_calls or [])]
+        text = msg.content or ""
+        if not calls and tools and text:  # the model wrote its tool calls as text: run them anyway
+            found, text = textcalls.extract(text, [t["function"]["name"] for t in tools])
+            calls = [ToolCall(f"text_call_{i}", name, args) for i, (name, args) in enumerate(found)]
         usage = resp.usage
-        return Reply(text=msg.content or "", tool_calls=calls, provider=provider.id, model=model,
+        return Reply(text=text, tool_calls=calls, provider=provider.id, model=model,
                      tokens_in=getattr(usage, "prompt_tokens", 0) or 0,
                      tokens_out=getattr(usage, "completion_tokens", 0) or 0)
 

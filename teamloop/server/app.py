@@ -71,9 +71,11 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         trace.init()
         ticker = asyncio.create_task(routines.scheduler(app.state.crew))
         phone = asyncio.create_task(telegram.run(app.state.crew))
+        checker = asyncio.create_task(doctor.keep_checking(app.state.crew.router))
         yield
         ticker.cancel()
         phone.cancel()
+        checker.cancel()
         trace.flush()
 
     app = FastAPI(title="TeamLoop", lifespan=lifespan)
@@ -167,15 +169,19 @@ def create_app(crew: Crew | None = None) -> FastAPI:
 
     @app.post("/api/models/check")
     async def check_models() -> dict:
-        results = await doctor.check_all(get_crew().router)
+        router = get_crew().router
+        results = await doctor.check_all(router)
+        router.last_doctor = results
         return {"results": results, "summary": doctor.summary(results)}
 
     @app.get("/api/models")
     def models() -> list[dict]:
         router = get_crew().router
         dead = getattr(router, "dead_models", set())
+        checked = {(r["provider"], r["model"]): r["ok"] for r in getattr(router, "last_doctor", [])}
         return [{"provider": p.id, "name": p.name, "has_key": bool(P.keys_for(p)),
-                 "models": [{"id": m, "dead": (p.id, m) in dead} for m in P.models_for(p)]}
+                 "models": [{"id": m, "dead": (p.id, m) in dead, "ok": checked.get((p.id, m))}
+                            for m in P.models_for(p)]}
                 for p in P.chain()]
 
     @app.get("/api/settings")

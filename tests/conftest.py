@@ -6,6 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 os.environ["TEAMLOOP_TRACE"] = "0"
+os.environ["TEAMLOOP_DOCTOR_HOURS"] = "0"  # no background model checks in tests
 
 
 @pytest.fixture(autouse=True)
