@@ -14,7 +14,10 @@ from teamloop.tools import registry
 log = logging.getLogger(__name__)
 
 MAX_STEPS = 8
+MAX_SAME_CALL = 2  # one retry of the exact same call is fine (a glitch may pass); a third is a loop
 WRAP_UP = "Stop using tools now. Reply to the person: what you did and the real result."
+REPEATED = ("SKIPPED: you already made this exact call twice and the result won't change. Use what you have, "
+            "try something different, or reply to the person.")
 
 
 async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: str, ctx: TurnCtx,
@@ -24,6 +27,7 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
     tool_schemas = registry.schemas(tools) or None
     messages: list[dict] = [{"role": "system", "content": system_prompt(bot, members, facts=_facts(ctx))}, *history,
                             {"role": "user", "content": user_text}]
+    seen: dict[tuple[str, str], int] = {}
     with trace.span(f"{bot.name} turn", "agent", bot=bot.id, chat=ctx.chat_id, depth=ctx.depth) as sp:
         sp.set("input.value", user_text)
         for _ in range(max_steps):
@@ -35,6 +39,11 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
             messages.append(reply.message)
             for call in reply.tool_calls:
                 ctx.check_stop()
+                key = (call.name, json.dumps(call.args, sort_keys=True, default=str))
+                seen[key] = seen.get(key, 0) + 1
+                if seen[key] > MAX_SAME_CALL:  # free models loop; a third identical call won't change anything
+                    messages.append({"role": "tool", "tool_call_id": call.id, "content": REPEATED})
+                    continue
                 await ctx.emit("step", bot=bot.id, tool=call.name, args=call.args, status="start")
                 result = await registry.run(call.name, call.args, ctx.for_bot(bot.id))
                 await ctx.emit("step", bot=bot.id, tool=call.name, status="done" if result.ok else "fail",
