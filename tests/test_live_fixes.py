@@ -47,3 +47,9 @@ def test_bots_are_told_not_to_ask_in_chat_and_citations_are_cleaned():
     assert 'never ask "may I...?" in chat' in system_prompt(BOTS["desk"])
     assert clean_reply("Groq is free 【fetch_page†0】 and fast【web_search†2】.") == "Groq is free and fast."
     assert clean_reply("") == "Done."
+
+
+def test_sources_travel_from_scout_to_the_report():
+    assert "source links too" in system_prompt(BOTS["s"])
+    assert "Sources list" in system_prompt(BOTS["writer"])
+    assert "newest sources" in system_prompt(BOTS["scout"])
