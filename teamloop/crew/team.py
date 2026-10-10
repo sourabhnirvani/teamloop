@@ -29,6 +29,7 @@ SAVE_MAX_STEPS = 5
 MAX_HANDOFF_DEPTH = 2
 STOP_WORDS = {"stop", "stop it", "cancel", "stop now"}
 _MENTION = re.compile(r"@(\w+)|\bask (\w+) to\b", re.IGNORECASE)
+_ADDRESS = re.compile(r"^\s*(?:hey\s+|ok\s+)?(\w+)\s*[,:]\s+\S", re.IGNORECASE)
 _TEAM_WORDS = re.compile(r"\b(everyone|everybody|team|all of you|guys|you all|y'all)\b", re.IGNORECASE)
 ROUND_NOTE = ("(Group round: the person asked the whole team. Add only something new and useful from your role, "
               "in one or two sentences. If you have nothing new, reply exactly SKIP.)")
@@ -96,14 +97,29 @@ class Crew:
                 found.append(bot)
         return found
 
+    @staticmethod
+    def _named_teammate(reply: str) -> Bot | None:
+        for word in re.findall(r"@?(\w+)", reply[len("not mine:"):]):
+            bot = find_bot(word)
+            if bot and bot.id != LEAD:
+                return bot
+        return None
+
     def lead_of(self, chat: dict) -> Bot:
         return BOTS[LEAD] if LEAD in chat["members"] else BOTS[chat["members"][0]]
+
+    def addressed(self, chat: dict, text: str) -> Bot | None:
+        """"Scout, look up X" / "Desk: open Paint": the person talks to one bot by name (person's messages only)."""
+        match = _ADDRESS.match(text)
+        bot = find_bot(match.group(1)) if match else None
+        return bot if bot and bot.id in chat["members"] else None
 
     def responders(self, chat: dict, text: str) -> list[Bot]:
         mentioned = self.mentioned(chat, text)
         if mentioned:
             return mentioned
-        return [self.lead_of(chat)]
+        addressed = self.addressed(chat, text)
+        return [addressed or self.lead_of(chat)]
 
     def history(self, chat_id: str, bot_id: str, limit: int = HISTORY_LIMIT) -> list[dict]:
         """Recent chat as the model sees it: its own lines as assistant, everyone else's as user."""
@@ -145,6 +161,12 @@ class Crew:
                 for i, bot in enumerate(order):
                     reply = await self._turn(bot, chat, text, TurnCtx(chat["id"], bot.id, self, stop),
                                              note=ROUND_NOTE if is_round and i > 0 else None)
+                    if bot.id == LEAD and reply and reply.lower().startswith("not mine:"):
+                        # S must never stop at "Not mine": hand the request to the teammate it named.
+                        target = self._named_teammate(reply)
+                        if target:
+                            await self.delegate(TurnCtx(chat["id"], LEAD, self, stop), target.id, text)
+                        continue
                     if reply is not None and len(chat["members"]) > 1:
                         await self._follow_up(chat, bot, reply, text, stop)
         except (Stopped, asyncio.CancelledError):

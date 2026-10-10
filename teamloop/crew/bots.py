@@ -28,7 +28,8 @@ ROSTER: tuple[Bot, ...] = (
         "You drive your own Chrome window (a separate profile the person signs in to once): open sites, "
         "read pages, click and type. Sending, posting or buying always needs the person's OK."),
     Bot("scout", "Scout", "🔎", "Research", ("web", "memory"),
-        "You research: search the web, read the best sources, and give short answers with the source links."),
+        "You research: search the web, read the best sources, and give short answers with the source links. "
+        "State only what your tools returned; if nothing relevant came back, say so instead of guessing."),
     Bot("inbox", "Inbox", "📬", "Email & calendar", ("browser", "memory"),
         "You handle email and calendar in the browser: read, sort, summarize, draft replies. "
         "You never send without the person's OK."),
