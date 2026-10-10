@@ -65,7 +65,7 @@ teamloop/tools/      registry, web search/fetch, files                          
 teamloop/computer/   system, apps, windows, uia, screen, risk, gate (approvals)     → Sourabh
 teamloop/server/     app.py (FastAPI API below)                                     → Sourabh
 teamloop/trace.py    neatlogs                                                       → Sourabh
-teamloop/browser/    host (Chrome + CDP), kit (open/snapshot/act/read)              → Yang
+teamloop/browser/    host (Chrome + CDP), kit (open/snapshot/act/read)              → Sourabh (done)
 teamloop/server/telegram.py   Telegram bridge                                       → Yang
 ui/                  React + Vite app                                               → Yang
 desktop/             Electron wrapper                                               → Yang
@@ -107,7 +107,7 @@ Sourabh sends privately. Use it for: "pushed X", "contract changed", "is /api/ev
 |---|---|---|---|
 | Sat 20:00–21:00 | repo, plan, ccbridge host, Entire | accept invite, clone, `.env`, hooks, Entire, ccbridge join | both push; agents see each other on ccbridge |
 | Sat 21:00–02:00 | models + tools registry + crew runner + server API + neatlogs | React UI: chat list, chat view, SSE, approval card (mock until API lands) | chat with S in the UI on a free model; trace in neatlogs. **Post 1 + 2** |
-| Sun 09:00–14:00 | computer kit + risk + approvals + Stop | browser kit; Settings (keys, models) | "open calculator and set volume to 30" and "search X and read it" work from the UI. **Post 3** |
+| Sun 09:00–14:00 | computer kit + risk + approvals + Stop, browser kit | Settings (keys, models) | "open calculator and set volume to 30" and "search X and read it" work from the UI. **Post 3** |
 | Sun 14:00–20:00 | group chats + handoffs, key wallet + vault, save-tokens, routines | Telegram bridge, phone PWA over tunnel, avatars | demo goal works in a group chat, also from the phone. **Post 4** |
 | Sun 20:00–24:00 | recovery (retry/re-plan) + before/after (1 bot vs crew) | Electron wrapper | forced failure fixes itself (traced); numbers saved. **Post 5** |
 | Mon 09:00–13:00 | cfo.ai plan | README "Start here", hackathon.md, evidence | `evidence/` complete |

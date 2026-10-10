@@ -1,0 +1,31 @@
+{
+  "goal": "Check my battery and Wi-Fi, then save a one-line status note to workspace/status.txt",
+  "runs": [
+    {
+      "mode": "one bot",
+      "seconds": 11.7,
+      "model_requests": 3,
+      "tokens": 8915,
+      "tool_calls": 2,
+      "tool_failures": 0,
+      "bots_involved": [
+        "s"
+      ],
+      "final_reply": "Battery 79% charging, Wi-Fi connected on JioFiber-5FC9G. Saved one-line status note to workspace/status.txt. All done."
+    },
+    {
+      "mode": "crew",
+      "seconds": 15.7,
+      "model_requests": 10,
+      "tokens": 18218,
+      "tool_calls": 6,
+      "tool_failures": 0,
+      "bots_involved": [
+        "desk",
+        "s",
+        "writer"
+      ],
+      "final_reply": "Battery: 79% charging. Wi‑Fi: connected to JioFiber‑5FC9G. Saved one‑line status to workspace/status.txt."
+    }
+  ]
+}
