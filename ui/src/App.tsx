@@ -126,7 +126,7 @@ export default function App() {
         {c.members.length === 1 ? (
           <Avatar bot={first} move={moves[first?.id ?? ""]} size={34} />
         ) : (
-          <span className="group-badge">{c.members.slice(0, 3).map((m) => bots[m]?.emoji).join("")}</span>
+          <span className="group-badge">{c.members.slice(0, 3).map((m) => <Avatar key={m} bot={bots[m]} size={20} />)}</span>
         )}
         <span className="row-text">
           <b>{c.title}</b>

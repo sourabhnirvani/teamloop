@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
 import { Avatar, type Move } from "./Avatar";
+import { RichText } from "./RichText";
 
 export type Item =
   | { kind: "msg"; key: string; sender: string; text: string; mkind: string; ts: number }
@@ -18,6 +19,23 @@ type Props = {
 };
 
 const HINTS = ["team, plan my evening", "@desk what's my battery?", "@web open news.ycombinator.com", "check models", "remember I like short answers"];
+
+const SHORT = 180;
+
+// "Failed: ..." replies keep the first part readable and fold the raw error (codes, JSON) away.
+function Failure({ text }: { text: string }) {
+  if (text.length <= SHORT) return <RichText text={text} />;
+  const cut = text.lastIndexOf(" ", SHORT);
+  return (
+    <div className="text">
+      <p>{text.slice(0, cut > 40 ? cut : SHORT)}…</p>
+      <details>
+        <summary>details</summary>
+        <pre>{text}</pre>
+      </details>
+    </div>
+  );
+}
 
 function time(ts: number) {
   return new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -74,12 +92,14 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu }: Props) {
           if (item.kind === "msg") {
             const mine = item.sender === "user";
             const bot = bots[item.sender];
+            const failed = !mine && /^failed\b/i.test(item.text);
+            // "kind-" prefix: a bare "chat" class would pick up the .chat panel styles
             return (
-              <div key={item.key} className={`row ${mine ? "mine" : ""} ${item.mkind}`}>
+              <div key={item.key} className={`row ${mine ? "mine" : ""} kind-${item.mkind} ${failed ? "failed" : ""}`}>
                 {!mine && <Avatar bot={bot} move={moves[item.sender]} size={32} />}
                 <div className="bubble">
                   {!mine && <div className="who">{bot?.name ?? item.sender}{item.mkind === "handoff" && " → handoff"}</div>}
-                  <div className="text">{item.text}</div>
+                  {failed ? <Failure text={item.text} /> : mine ? <div className="text">{item.text}</div> : <RichText text={item.text} />}
                   <div className="ts">{time(item.ts)}</div>
                 </div>
               </div>
@@ -130,7 +150,7 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu }: Props) {
         <textarea
           value={text}
           rows={1}
-          placeholder={`Message ${chat.title}… (@name to ask one bot, paste a key to save it)`}
+          placeholder={window.innerWidth < 720 ? `Message ${chat.title}…` : `Message ${chat.title}… (@name to ask one bot, paste a key to save it)`}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
