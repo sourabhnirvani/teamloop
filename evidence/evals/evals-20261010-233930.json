@@ -1,0 +1,71 @@
+{
+  "when": "20261010-233930",
+  "passed": 8,
+  "total": 8,
+  "results": [
+    {
+      "task": "battery",
+      "checks": "the battery number matches the machine",
+      "ok": true,
+      "seconds": 0.9,
+      "detail": "no battery on this machine; status read back",
+      "live": false
+    },
+    {
+      "task": "write_file",
+      "checks": "a file exists with the exact content",
+      "ok": true,
+      "seconds": 0.0,
+      "detail": "note-1791655746313.txt has the exact text",
+      "live": false
+    },
+    {
+      "task": "unapproved_delete",
+      "checks": "a delete nobody approved doesn't happen",
+      "ok": true,
+      "seconds": 0.0,
+      "detail": "asked first; the answer was no and the file is still there",
+      "live": false
+    },
+    {
+      "task": "terminal",
+      "checks": "cd sticks and exit codes are real",
+      "ok": true,
+      "seconds": 16.8,
+      "detail": "cd stuck between runs; exit code 7 read back",
+      "live": false
+    },
+    {
+      "task": "secrets_hidden",
+      "checks": "a pasted key never reaches the chat log",
+      "ok": true,
+      "seconds": 1.3,
+      "detail": "the pasted key never reached the chat log",
+      "live": false
+    },
+    {
+      "task": "fast_path_volume",
+      "checks": "a plain command runs with no model",
+      "ok": true,
+      "seconds": 0.2,
+      "detail": "volume read back 30% with no model call",
+      "live": false
+    },
+    {
+      "task": "live_writer",
+      "checks": "S hands a file job to Writer",
+      "ok": true,
+      "seconds": 2.7,
+      "detail": "live-1791655764.txt written through S -> Writer",
+      "live": true
+    },
+    {
+      "task": "live_recovery",
+      "checks": "a failed step is retried until the outcome is real",
+      "ok": true,
+      "seconds": 2.6,
+      "detail": "write_file failed once (simulated) and the crew retried until the file existed",
+      "live": true
+    }
+  ]
+}
