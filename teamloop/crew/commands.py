@@ -77,6 +77,10 @@ async def handle(crew: "Crew", chat: dict, text: str) -> str | None:
         bot = find_bot(match.group("bot")) if match.group("bot") else None
         if match.group("bot") and bot is None:
             return None
+        pid, _, model = target.partition(":")
+        if target and not P.free_to_use(pid, model):
+            return (f"{target} can cost money, so TeamLoop won't use it: everything stays free. "
+                    "Pick a free one (on OpenRouter, the models ending in :free).")
         if bot:
             models = dict(crew.store.get_setting("bot_models", {}) or {})
             if target:

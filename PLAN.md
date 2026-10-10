@@ -47,7 +47,7 @@ team. Everything runs on free models, and every step is traced in neatlogs.
 
 ## 2. Features: same as Agent S, rebuilt
 
-1. **Models:** free providers (Gemini, Groq, OpenRouter, NVIDIA, z.ai GLM, Nebius, local Ollama),
+1. **Models:** free providers only (Gemini, Groq, OpenRouter :free models, NVIDIA, z.ai GLM, local Ollama; paid ones like Nebius are skipped unless TEAMLOOP_ALLOW_PAID=1),
    a fallback chain, key pools, cooldowns, per-minute limits that adapt (lower on 429, higher again
    when calls succeed), a model doctor (which models answer), a per-bot model choice, and switching
    by chat ("use gemini").

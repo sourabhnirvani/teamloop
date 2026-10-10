@@ -55,10 +55,31 @@ PROVIDERS: dict[str, Provider] = {p.id: p for p in [
 DEFAULT_CHAIN: tuple[str, ...] = ("gemini", "groq", "openrouter", "nvidia", "zai", "nebius", "ollama")
 
 
+# Free only, always, unless TEAMLOOP_ALLOW_PAID=1: Nebius bills per token once its trial credit runs out,
+# and on OpenRouter only the ":free" models cost nothing. (Gemini and Groq keys are free unless billing is
+# switched on for that account; use keys from accounts without billing.)
+PAID_PROVIDERS = {"nebius"}
+
+
+def paid_allowed(env: Mapping[str, str] | None = None) -> bool:
+    env = os.environ if env is None else env
+    return (env.get("TEAMLOOP_ALLOW_PAID") or "").strip() == "1"
+
+
+def free_to_use(provider_id: str, model: str = "", env: Mapping[str, str] | None = None) -> bool:
+    if paid_allowed(env):
+        return True
+    if provider_id in PAID_PROVIDERS:
+        return False
+    if provider_id == "openrouter" and model:
+        return model.endswith(":free")
+    return True
+
+
 def chain(env: Mapping[str, str] | None = None) -> list[Provider]:
     env = os.environ if env is None else env
     order = [p.strip() for p in env.get("TEAMLOOP_CHAIN", "").split(",") if p.strip()] or DEFAULT_CHAIN
-    return [PROVIDERS[p] for p in order if p in PROVIDERS]
+    return [PROVIDERS[p] for p in order if p in PROVIDERS and free_to_use(p, env=env)]
 
 
 def keys_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[str]:
@@ -77,8 +98,8 @@ def keys_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[s
 def models_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[str]:
     env = os.environ if env is None else env
     override = env.get(f"{provider.prefix}_MODELS", "")
-    models = [m.strip() for m in override.split(",") if m.strip()]
-    return models or list(provider.models)
+    models = [m.strip() for m in override.split(",") if m.strip()] or list(provider.models)
+    return [m for m in models if free_to_use(provider.id, m, env)]
 
 
 def base_url_for(provider: Provider, env: Mapping[str, str] | None = None) -> str:
