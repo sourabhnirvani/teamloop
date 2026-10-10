@@ -83,14 +83,17 @@ async def run(name: str, args: dict, ctx: Any) -> ToolResult:
     glitch = _demo_glitch(name)
     if glitch is not None:
         return glitch
-    with trace.span(name, "tool", tool=name, bot=getattr(ctx, "bot_id", ""), chat=getattr(ctx, "chat_id", "")):
+    with trace.span(name, "tool", tool=name, bot=getattr(ctx, "bot_id", ""), chat=getattr(ctx, "chat_id", "")) as sp:
+        sp.set("input.value", args or {})
         try:
             result = await found.handler(args or {}, ctx)
         except Exception as e:  # a broken tool must not kill the bot's turn
             if type(e).__name__ == "Stopped":
                 raise
             log.exception("tool %s failed", name)
-            return ToolResult(False, f"{name} failed: {e}")
-    if not isinstance(result, ToolResult):
-        return ToolResult(False, f"{name} returned nothing usable.")
+            result = ToolResult(False, f"{name} failed: {e}")
+        if not isinstance(result, ToolResult):
+            result = ToolResult(False, f"{name} returned nothing usable.")
+        sp.set("output.value", ("OK: " if result.ok else "FAILED: ") + result.text)
+        sp.set("tool.ok", result.ok)
     return result

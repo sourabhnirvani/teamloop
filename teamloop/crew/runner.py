@@ -24,11 +24,13 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
     tool_schemas = registry.schemas(tools) or None
     messages: list[dict] = [{"role": "system", "content": system_prompt(bot, members, facts=_facts(ctx))}, *history,
                             {"role": "user", "content": user_text}]
-    with trace.span(f"{bot.name} turn", "agent", bot=bot.id, chat=ctx.chat_id, depth=ctx.depth):
+    with trace.span(f"{bot.name} turn", "agent", bot=bot.id, chat=ctx.chat_id, depth=ctx.depth) as sp:
+        sp.set("input.value", user_text)
         for _ in range(max_steps):
             ctx.check_stop()
             reply = await router.chat(messages, tools=tool_schemas, prefer=prefer, purpose=f"turn:{bot.id}")
             if not reply.tool_calls:
+                sp.set("output.value", reply.text.strip() or "Done.")
                 return reply.text.strip() or "Done."
             messages.append(reply.message)
             for call in reply.tool_calls:
@@ -41,6 +43,7 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
         ctx.check_stop()
         final = await router.chat(messages + [{"role": "user", "content": WRAP_UP}], prefer=prefer,
                                   purpose=f"wrapup:{bot.id}")
+        sp.set("output.value", final.text.strip() or "Done.")
         return final.text.strip() or "Done."
 
 

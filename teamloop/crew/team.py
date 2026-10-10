@@ -126,7 +126,8 @@ class Crew:
         stop.clear()
         lead = self.lead_of(chat)
         try:
-            with trace.span("chat message", "workflow", session_id=chat["id"], chat=chat["id"]):
+            with trace.span("chat message", "workflow", session_id=chat["id"], chat=chat["id"]) as sp:
+                sp.set("input.value", text)
                 quick = await commands.handle(self, chat, text)
                 if quick is not None:
                     await self.say(chat["id"], lead.id, quick)
