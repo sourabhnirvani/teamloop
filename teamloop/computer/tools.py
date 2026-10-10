@@ -107,6 +107,7 @@ async def open_app(args: dict, ctx) -> ToolResult:
                       {"app": app["name"], "window": win.title})
 
 
+HOST_PROCESSES = {"applicationframehost.exe", "explorer.exe"}
 RUNNABLE = {".exe", ".bat", ".cmd", ".com", ".ps1", ".psm1", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh", ".msi",
             ".msp", ".scr", ".lnk", ".url", ".reg", ".hta", ".cpl", ".jar", ".py", ".pyw", ".appref-ms"}
 
@@ -151,7 +152,9 @@ async def close_app(args: dict, ctx) -> ToolResult:
         return ToolResult(False, f"No open window matches {name!r}.")
     target = [w for w in found if w.process == found[0].process]
     titles = "; ".join(w.title for w in target[:5])
-    if not await ctx.approve(f"Close {found[0].process.removesuffix('.exe')}",
+    # Store apps all run under one host program; their window title is the name people know.
+    label = found[0].title if found[0].process.lower() in HOST_PROCESSES else found[0].process.removesuffix(".exe")
+    if not await ctx.approve(f"Close {label}",
                              f"Close {len(target)} window(s): {titles}. Unsaved work in them could be lost.",
                              _shot_url(target[0].hwnd)):
         return ToolResult(False, "The person said no, so nothing was closed.")
@@ -165,7 +168,7 @@ async def close_app(args: dict, ctx) -> ToolResult:
         return _busy()
     if left:
         return ToolResult(False, f"{left[0].title} is still open; it may be asking to save. I left it for the person.")
-    return ToolResult(True, f"Closed {len(target)} window(s) of {found[0].process}.")
+    return ToolResult(True, f"Closed {len(target)} window{'s' if len(target) != 1 else ''} of {label}.")
 
 
 @tool("focus_window", "Bring a window to the front.", {"name": {"type": "string"}, "required": ["name"]},

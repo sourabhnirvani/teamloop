@@ -134,3 +134,16 @@ async def test_wifi_off_asks_first(monkeypatch):
     assert off.ok and off.text == "Wi-Fi is now off." and switched == [False]
     on = await tool({"on": True}, Ctx(answer=False))  # turning it on never asks
     assert on.ok and switched == [False, True]
+
+
+async def test_window_list_names_the_windows(tmp_path, monkeypatch):
+    async def windows(args, ctx):
+        return ToolResult(True, "2 windows are open.", {"windows": ["Calculator [ApplicationFrameHost.exe]",
+                                                                    "notes.txt - Notepad [notepad.exe]"]})
+
+    monkeypatch.setattr(registry.REGISTRY["list_windows"], "handler", windows)
+    crew = make_crew(tmp_path, [])
+    await crew.post("dm-desk", "what apps are open")
+    await crew.wait_idle("dm-desk")
+    text = crew.store.messages("dm-desk")[-1]["text"]
+    assert text == "2 windows are open.\n- Calculator [ApplicationFrameHost.exe]\n- notes.txt - Notepad [notepad.exe]"

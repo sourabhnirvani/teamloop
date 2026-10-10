@@ -106,8 +106,8 @@ def match(text: str) -> Match | None:
 def _reply(result: registry.ToolResult) -> str:
     text = result.text
     if result.ok and result.data.get("windows"):
-        titles = [w.get("title") or w.get("app") for w in result.data["windows"] if isinstance(w, dict)]
-        text += " " + "; ".join(t for t in titles[:12] if t) + "."
+        titles = [w if isinstance(w, str) else w.get("title") or w.get("app") for w in result.data["windows"]]
+        text += "\n" + "\n".join(f"- {t}" for t in titles[:12] if t)
     if result.ok and result.data.get("results"):
         top = [r for r in result.data["results"][:3] if isinstance(r, dict)]
         text += "\n" + "\n".join(f"- {r.get('title', '')}: {r.get('url', '')}" for r in top)
