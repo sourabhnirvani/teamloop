@@ -27,6 +27,7 @@ DOCTOR = re.compile(r"^\s*(?:check (?:the )?models|which models (?:work|are work
 SLEEP = re.compile(r"^\s*(?:(?:hey |ok )?(?:s|team|crew)[,:]?\s+)?(?:(?:it'?s |its )?time to sleep|go to sleep|"
                    r"sleep now|so ja(?:o)?)\s*[.!]?\s*$", re.I)
 WAKE = re.compile(r"^\s*(?:(?:hey |ok )?(?:s|team|crew)[,:]?\s+)?(?:wake\s*up|wakeup|uth ja(?:o)?)\s*[.!]?\s*$", re.I)
+ASK_AGAIN = re.compile(r"^\s*(?:(?:please|ok|okay)\s+)?(?:ask me again|you can ask (?:me )?again|i changed my mind)\s*[.!]?\s*$", re.I)
 ASLEEP_NOTE = "The crew is asleep, so nothing runs (routines wait too). Say \"S wake up\" to wake us."
 
 
@@ -51,6 +52,10 @@ async def handle(crew: "Crew", chat: dict, text: str) -> str | None:
         crew.router.dead_models.clear()
         return " ".join(sentences + [r.sentence() for r in results])
 
+    if ASK_AGAIN.match(text):
+        n = crew.gate.forget_denials(chat["id"])
+        return ("Okay: the next time a bot needs your OK for something you turned down, it will ask again."
+                if n else "Nothing was being held back; bots ask whenever they need your OK.")
     if SLEEP.match(text):
         crew.store.set_setting("asleep", True)
         return "Going to sleep: no bot will act and routines wait until you say \"S wake up\"."

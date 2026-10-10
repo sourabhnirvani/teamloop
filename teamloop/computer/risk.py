@@ -31,7 +31,6 @@ def normalize_keys(keys: str) -> str:
 
 
 # TeamLoop's own window (its app, or its UI in a browser tab): a bot must never press Approve for itself.
-OWN_WINDOW = re.compile(r"\bteamloop\b", re.IGNORECASE)
 # Desktop titles come as "title [process.exe]". Enter in a terminal or the Run box runs a command: that's
 # what Desk's run_command (with its own rules) is for. Explorer's address bar can run commands too.
 TERMINAL_WINDOWS = re.compile(
@@ -43,8 +42,21 @@ CODE_FIELD = re.compile(r"\b(otp|one[- ]?time|verification|security code|2fa|two
 _CARD = re.compile(r"(?<!\d)\d(?:[ -]?\d){12,18}(?!\d)")
 
 
+_PROCESS = re.compile(r"\s*\[[^\]]*\]\s*$")
+_BROWSER = re.compile(r"\s+[-–—]\s+((google\s+)?chrome|microsoft\W{0,3}edge|chromium|brave|opera|(mozilla\s+)?firefox)\s*$",
+                      re.IGNORECASE)
+
+
 def own_window(window_title: str) -> bool:
-    return bool(OWN_WINDOW.search(window_title or ""))
+    """TeamLoop's own app window or browser tab: titled exactly "TeamLoop", or showing its local address.
+    Not any title that merely contains the word, like "teamloop-notes.txt - Notepad"."""
+    title = _PROCESS.sub("", window_title or "")
+    from teamloop import config
+
+    if re.search(rf"(localhost|127\.0\.0\.1):{config.port()}\b", title):
+        return True
+    title = _BROWSER.sub("", title).split(" http", 1)[0].strip()
+    return title.lower() == "teamloop"
 
 
 def _luhn(digits: str) -> bool:

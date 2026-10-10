@@ -76,6 +76,21 @@ def _demo_glitch(name: str) -> ToolResult | None:
     return None
 
 
+SAID_NO = "The person said no"
+
+
+def _say_how_the_card_ended(result: ToolResult, answer: str) -> ToolResult:
+    """Tools say "The person said no..."; tell the model what really happened with the card."""
+    if result.ok or not result.text.startswith(SAID_NO):
+        return result
+    if answer == "expired":
+        result.text = "No one answered the approval card in time" + result.text[len(SAID_NO):]
+    elif answer == "denied_before":
+        result.text = ("The person already said no to this a few minutes ago (not asked again)"
+                       + result.text[len(SAID_NO):] + " Don't try it again unless they ask for it.")
+    return result
+
+
 async def run(name: str, args: dict, ctx: Any) -> ToolResult:
     found = REGISTRY.get(name)
     if found is None:
@@ -94,6 +109,7 @@ async def run(name: str, args: dict, ctx: Any) -> ToolResult:
             result = ToolResult(False, f"{name} failed: {e}")
         if not isinstance(result, ToolResult):
             result = ToolResult(False, f"{name} returned nothing usable.")
+        result = _say_how_the_card_ended(result, getattr(ctx, "last_answer", ""))
         sp.set("output.value", ("OK: " if result.ok else "FAILED: ") + result.text)
         sp.set("tool.ok", result.ok)
     return result

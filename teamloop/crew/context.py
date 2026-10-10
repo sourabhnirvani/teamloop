@@ -21,6 +21,7 @@ class TurnCtx:
     crew: "Crew"
     stop: asyncio.Event
     depth: int = 0  # how many handoffs deep this turn is
+    last_answer: str = ""  # how this turn's latest approval card ended: approved, denied, expired, denied_before
 
     async def emit(self, type: str, **data: Any) -> None:
         await self.crew.bus.emit(type, chat_id=self.chat_id, **data)
@@ -28,6 +29,7 @@ class TurnCtx:
     async def approve(self, title: str, details: str, screenshot: str | None = None) -> bool:
         self.check_stop()
         ok = await self.crew.gate.ask(self.chat_id, self.bot_id, title, details, screenshot)
+        self.last_answer = self.crew.gate.last.get(self.chat_id, "")
         self.check_stop()
         return ok
 
