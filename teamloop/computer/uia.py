@@ -165,11 +165,65 @@ def shots_dir() -> Path:
     return path
 
 
+def _window_image(hwnd: int):
+    """The window's own pixels via PrintWindow, even when other windows cover it. None if it can't."""
+    import ctypes
+    from ctypes import wintypes
+
+    from PIL import Image
+
+    left, top, right, bottom = winapi.rect(hwnd)
+    width, height = right - left, bottom - top
+    if width <= 0 or height <= 0:
+        return None
+    user32, gdi32 = ctypes.windll.user32, ctypes.windll.gdi32
+    user32.GetWindowDC.restype = gdi32.CreateCompatibleDC.restype = ctypes.c_void_p
+    gdi32.CreateCompatibleBitmap.restype = gdi32.SelectObject.restype = ctypes.c_void_p
+    user32.GetWindowDC.argtypes = [wintypes.HWND]
+    user32.PrintWindow.argtypes = [wintypes.HWND, ctypes.c_void_p, wintypes.UINT]
+    user32.ReleaseDC.argtypes = [wintypes.HWND, ctypes.c_void_p]
+    gdi32.CreateCompatibleDC.argtypes = [ctypes.c_void_p]
+    gdi32.CreateCompatibleBitmap.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+    gdi32.SelectObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    gdi32.GetDIBits.argtypes = [ctypes.c_void_p, ctypes.c_void_p, wintypes.UINT, wintypes.UINT, ctypes.c_void_p,
+                                ctypes.c_void_p, wintypes.UINT]
+    gdi32.DeleteObject.argtypes = [ctypes.c_void_p]
+    gdi32.DeleteDC.argtypes = [ctypes.c_void_p]
+
+    class Header(ctypes.Structure):
+        _fields_ = [("biSize", wintypes.DWORD), ("biWidth", wintypes.LONG), ("biHeight", wintypes.LONG),
+                    ("biPlanes", wintypes.WORD), ("biBitCount", wintypes.WORD), ("biCompression", wintypes.DWORD),
+                    ("biSizeImage", wintypes.DWORD), ("biXPelsPerMeter", wintypes.LONG),
+                    ("biYPelsPerMeter", wintypes.LONG), ("biClrUsed", wintypes.DWORD), ("biClrImportant", wintypes.DWORD)]
+
+    window_dc = user32.GetWindowDC(hwnd)
+    memory_dc = gdi32.CreateCompatibleDC(window_dc)
+    bitmap = gdi32.CreateCompatibleBitmap(window_dc, width, height)
+    gdi32.SelectObject(memory_dc, bitmap)
+    try:
+        if not user32.PrintWindow(hwnd, memory_dc, 2):  # 2 = PW_RENDERFULLCONTENT (works for GPU-drawn apps)
+            return None
+        header = Header(ctypes.sizeof(Header), width, -height, 1, 32, 0, 0, 0, 0, 0, 0)
+        buffer = ctypes.create_string_buffer(width * height * 4)
+        if not gdi32.GetDIBits(memory_dc, bitmap, 0, height, buffer, ctypes.byref(header), 0):
+            return None
+        return Image.frombuffer("RGB", (width, height), buffer, "raw", "BGRX", 0, 1)
+    finally:
+        gdi32.DeleteObject(bitmap)
+        gdi32.DeleteDC(memory_dc)
+        user32.ReleaseDC(hwnd, window_dc)
+
+
 def screenshot(hwnd: int | None = None) -> Path:
     from PIL import ImageGrab
 
-    bbox = winapi.rect(hwnd) if hwnd else None
-    image = ImageGrab.grab(bbox=bbox, all_screens=bbox is None)
+    if hwnd:
+        # Never fall back to grabbing the screen area: whatever covers the window would leak into the card.
+        image = _window_image(hwnd)
+        if image is None:
+            raise RuntimeError("could not capture that window")
+    else:
+        image = ImageGrab.grab(all_screens=True)
     image.thumbnail((1600, 1600))
     path = shots_dir() / f"{uuid.uuid4().hex[:12]}.png"
     image.save(path, "PNG")

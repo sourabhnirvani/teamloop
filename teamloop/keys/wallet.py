@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 
 import httpx
@@ -45,6 +46,30 @@ def _free_name(provider: P.Provider) -> str:
         if not os.environ.get(name):
             return name
     return f"{provider.env}_9"
+
+
+_SERVICES = {
+    "NEATLOGS_API_KEY": ("neatlogs", re.compile(r"neatlogs[^\n]{0,24}?[:=\s]\s*([A-Za-z0-9_\-.]{20,})", re.I)),
+    "TELEGRAM_TOKEN": ("Telegram", re.compile(r"(?<![\d:])(\d{8,10}:[A-Za-z0-9_\-]{35})(?![A-Za-z0-9_\-])")),
+}
+
+
+def service_keys(text: str) -> list[tuple[str, str, str]]:
+    """(env name, service name, value) for non-model secrets: a labelled neatlogs key, a Telegram bot token."""
+    found = []
+    for env, (label, pattern) in _SERVICES.items():
+        for match in pattern.finditer(text):
+            found.append((env, label, match.group(1)))
+    return found
+
+
+def add_services(text: str) -> list[str]:
+    sentences = []
+    for env, label, value in service_keys(text):
+        add_secret(value)
+        vault.put(env, value)
+        sentences.append(f"Saved your {label} key.")
+    return sentences
 
 
 async def add_from_text(text: str, live_check: bool = True) -> list[Added]:

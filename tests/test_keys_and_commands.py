@@ -106,3 +106,16 @@ async def test_solo_mode_gives_s_the_worker_tools(tmp_path):
     await crew.wait_idle("dm-s")
     names = {t["function"]["name"] for t in crew.router.calls[0]["tools"]}
     assert "delegate" not in names and "write_file" in names
+
+
+async def test_neatlogs_and_telegram_keys_are_saved_and_hidden(tmp_path):
+    crew = make_crew(tmp_path, [])
+    neat = "nl_" + "k" * 30
+    tg = "1234567890:" + "A" * 35
+    await crew.post("dm-s", f"neatlogs key: {neat} and my bot token {tg}")
+    await crew.wait_idle("dm-s")
+    msgs = crew.store.messages("dm-s")
+    assert neat not in msgs[0]["text"] and tg not in msgs[0]["text"]
+    assert "Saved your neatlogs key." in msgs[-1]["text"] and "Saved your Telegram key." in msgs[-1]["text"]
+    assert vault.load() == {"NEATLOGS_API_KEY": neat, "TELEGRAM_TOKEN": tg}
+    assert crew.router.calls == []

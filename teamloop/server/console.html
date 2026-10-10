@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamLoop console</title>
+<style>
+  :root { --bg:#f6f7f9; --panel:#fff; --text:#1d2330; --muted:#6b7385; --line:#e3e6ec; --accent:#3b6cf6; --me:#e8efff; --warn:#fff6e0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171d; --panel:#1c2028; --text:#e6e9ef; --muted:#9097a6; --line:#2b313c; --accent:#7c9cff; --me:#26304a; --warn:#3a3220; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; }
+  aside { width:220px; border-right:1px solid var(--line); background:var(--panel); overflow:auto; flex-shrink:0; }
+  aside h1 { font-size:16px; margin:14px 16px; }
+  .chat { padding:10px 16px; cursor:pointer; border-left:3px solid transparent; }
+  .chat.on { background:var(--bg); border-left-color:var(--accent); font-weight:600; }
+  .chat small { display:block; color:var(--muted); font-weight:400; }
+  main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  header { padding:12px 18px; border-bottom:1px solid var(--line); background:var(--panel); display:flex; gap:10px; align-items:center; }
+  header b { flex:1; }
+  #log { flex:1; overflow:auto; padding:16px 18px; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:760px; padding:8px 12px; border-radius:10px; background:var(--panel); border:1px solid var(--line); white-space:pre-wrap; overflow-wrap:anywhere; }
+  .msg.user { align-self:flex-end; background:var(--me); }
+  .msg.handoff { color:var(--muted); font-style:italic; }
+  .msg .who { font-size:12px; color:var(--muted); margin-bottom:2px; }
+  .step { font-size:12.5px; color:var(--muted); padding-left:6px; }
+  .card { max-width:760px; background:var(--warn); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .card img { max-width:100%; border-radius:6px; margin-top:6px; }
+  .card .btns { margin-top:8px; display:flex; gap:8px; }
+  #typing { color:var(--muted); font-size:13px; padding:0 18px 6px; min-height:20px; }
+  form { display:flex; gap:8px; padding:12px 18px; border-top:1px solid var(--line); background:var(--panel); }
+  input { flex:1; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font:inherit; }
+  button { padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--text); cursor:pointer; font:inherit; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  @media (max-width: 640px) { aside { width:120px; } aside h1 { font-size:14px; } }
+</style>
+</head>
+<body>
+<aside><h1>TeamLoop</h1><div id="chats"></div></aside>
+<main>
+  <header><b id="title">…</b><button id="stop">Stop</button></header>
+  <div id="log"></div>
+  <div id="typing"></div>
+  <form id="send"><input id="text" placeholder="Message the crew… (paste a key, 'check models', 'use groq', 'team, …')" autocomplete="off"><button class="primary">Send</button></form>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let bots = {}, chatId = "team", typing = {};
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function who(sender) { if (sender === "user") return "You"; const b = bots[sender]; return b ? `${b.emoji} ${b.name}` : sender; }
+function scroll() { $("log").scrollTop = $("log").scrollHeight; }
+
+function addMessage(m) {
+  const box = el("div", "msg" + (m.sender === "user" ? " user" : "") + (m.kind === "handoff" ? " handoff" : ""));
+  if (m.sender !== "user") box.appendChild(el("div", "who", who(m.sender)));
+  box.appendChild(document.createTextNode(m.text));
+  $("log").appendChild(box); scroll();
+}
+
+function addStep(e) {
+  const mark = e.status === "start" ? "…" : e.status === "done" ? "✓" : "✗";
+  const text = e.status === "start" ? `${who(e.bot)} → ${e.tool}` : `${mark} ${e.tool}: ${e.text || ""}`;
+  $("log").appendChild(el("div", "step", text)); scroll();
+}
+
+function addApproval(e) {
+  const card = el("div", "card"); card.id = "ap-" + e.id;
+  card.appendChild(el("b", null, `${who(e.bot)} asks: ${e.title}`));
+  card.appendChild(el("div", null, e.details));
+  if (e.screenshot) { const img = el("img"); img.src = e.screenshot; card.appendChild(img); }
+  const btns = el("div", "btns");
+  for (const [label, ok] of [["Approve", true], ["Deny", false]]) {
+    const b = el("button", ok ? "primary" : "", label);
+    b.onclick = () => fetch(`/api/approvals/${e.id}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ok }) });
+    btns.appendChild(b);
+  }
+  card.appendChild(btns); $("log").appendChild(card); scroll();
+}
+
+function showTyping() {
+  const names = Object.keys(typing).filter((k) => typing[k]).map(who);
+  $("typing").textContent = names.length ? `${names.join(", ")} typing…` : "";
+}
+
+async function openChat(id) {
+  chatId = id; typing = {}; showTyping();
+  document.querySelectorAll(".chat").forEach((c) => c.classList.toggle("on", c.dataset.id === id));
+  const chats = await (await fetch("/api/chats")).json();
+  const chat = chats.find((c) => c.id === id);
+  $("title").textContent = chat ? `${chat.title} · ${chat.members.map(who).join(", ")}` : id;
+  $("log").innerHTML = "";
+  for (const m of await (await fetch(`/api/chats/${id}/messages`)).json()) addMessage(m);
+}
+
+async function start() {
+  for (const b of await (await fetch("/api/bots")).json()) bots[b.id] = b;
+  const chats = await (await fetch("/api/chats")).json();
+  for (const c of chats) {
+    const row = el("div", "chat", c.title); row.dataset.id = c.id;
+    row.appendChild(el("small", null, c.members.length > 1 ? `${c.members.length} bots` : bots[c.members[0]]?.role || ""));
+    row.onclick = () => openChat(c.id); $("chats").appendChild(row);
+  }
+  await openChat(chatId);
+  const events = new EventSource("/api/events");
+  events.onmessage = (msg) => {
+    const e = JSON.parse(msg.data);
+    if (e.chat_id !== chatId) return;
+    if (e.type === "message") addMessage(e.message);
+    else if (e.type === "step") addStep(e);
+    else if (e.type === "approval") addApproval(e);
+    else if (e.type === "approval_done") { const c = $("ap-" + e.id); if (c) c.querySelector(".btns").replaceWith(el("div", "step", e.status)); }
+    else if (e.type === "typing") { typing[e.bot] = e.on; showTyping(); }
+    else if (e.type === "screenshot") { const img = el("img"); img.src = e.url; img.style.maxWidth = "420px"; $("log").appendChild(img); scroll(); }
+  };
+}
+
+$("send").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const text = $("text").value.trim(); if (!text) return;
+  $("text").value = "";
+  await fetch(`/api/chats/${chatId}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+};
+$("stop").onclick = () => fetch(`/api/chats/${chatId}/stop`, { method: "POST" });
+start();
+</script>
+</body>
+</html>

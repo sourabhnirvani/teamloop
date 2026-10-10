@@ -16,6 +16,7 @@ from teamloop.crew.context import Stopped, TurnCtx
 from teamloop.crew.events import Bus
 from teamloop.crew.runner import MAX_STEPS, run_bot_turn
 from teamloop.crew.store import Store
+from teamloop.keys import wallet
 from teamloop.keys.redact import add_secret, redact
 from teamloop.models.providers import detect_keys
 from teamloop.models.router import AllModelsBusy
@@ -65,6 +66,8 @@ class Crew:
             raise KeyError(chat_id)
         for _, key in detect_keys(text):
             add_secret(key)  # a pasted key is never stored, shown or sent to a model
+        for _, _, key in wallet.service_keys(text):
+            add_secret(key)
         msg = self.store.add_message(chat_id, "user", redact(text))
         await self.bus.emit("message", chat_id=chat_id, message=msg)
         if text.strip().lower().rstrip("!.") in STOP_WORDS:

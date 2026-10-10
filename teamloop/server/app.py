@@ -12,7 +12,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -205,6 +205,11 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         if not path.is_file():
             raise HTTPException(404, "No such screenshot.")
         return FileResponse(path, media_type="image/png")
+
+    @app.get("/console", response_class=HTMLResponse)
+    def console() -> str:
+        """A plain test page for the API (the real app is ui/)."""
+        return (Path(__file__).parent / "console.html").read_text(encoding="utf-8")
 
     ui = config.ROOT / "ui" / "dist"
     if ui.is_dir():

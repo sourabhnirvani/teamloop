@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from teamloop import trace
 from teamloop.crew.bots import find_bot
 from teamloop.keys import wallet
 from teamloop.models import doctor
@@ -38,10 +39,13 @@ def _target(word: str) -> str | None:
 
 
 async def handle(crew: "Crew", chat: dict, text: str) -> str | None:
-    if P.detect_keys(text):
+    if P.detect_keys(text) or wallet.service_keys(text):
+        sentences = wallet.add_services(text)
+        if any(env == "NEATLOGS_API_KEY" for env, _, _ in wallet.service_keys(text)):
+            sentences.append("Tracing is on." if trace.init() else "Tracing will start after a restart.")
         results = await wallet.add_from_text(text)
         crew.router.dead_models.clear()
-        return " ".join(r.sentence() for r in results)
+        return " ".join(sentences + [r.sentence() for r in results])
 
     if SAVE_ON.match(text):
         crew.store.set_setting("save_tokens", True)
