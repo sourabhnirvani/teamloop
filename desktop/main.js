@@ -17,6 +17,7 @@ let tray = null;
 let server = null;
 let quitting = false;
 let restarts = 0;
+let restartTimer = null;
 
 // ---- where the repo and Python are ----------------------------------------------------------------
 function findRoot() {
@@ -79,8 +80,26 @@ function startServer() {
     if (Date.now() - started > 60_000) restarts = 0; // it ran fine for a while: start the backoff over
     const wait = Math.min(30, 2 ** restarts++) * 1000;
     console.log(`server stopped (code ${code}); restarting in ${wait / 1000}s`);
-    setTimeout(startServer, wait);
+    restartTimer = setTimeout(() => {
+      restartTimer = null;
+      startServer();
+    }, wait);
   });
+}
+
+// A server this app didn't start (one already running when it opened) has no exit event to watch,
+// so check its health; after 3 misses in a row, start our own.
+function watchHealth() {
+  let misses = 0;
+  setInterval(async () => {
+    if (quitting || server || restartTimer) return (misses = 0);
+    misses = (await get(`${BASE}/api/bots`)) ? 0 : misses + 1;
+    if (misses >= 3) {
+      misses = 0;
+      console.log("the server stopped answering; starting our own");
+      startServer();
+    }
+  }, 5000);
 }
 
 async function waitForServer() {
@@ -226,5 +245,6 @@ if (!app.requestSingleInstanceLock()) {
     await waitForServer();
     await win.loadURL(BASE);
     watchApprovals();
+    watchHealth();
   });
 }
