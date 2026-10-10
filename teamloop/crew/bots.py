@@ -36,7 +36,8 @@ ROSTER: tuple[Bot, ...] = (
         "You never send without the person's OK."),
     Bot("writer", "Writer", "✍️", "Writing & files", ("files", "memory"),
         "You write notes, reports, messages and files, and save them where the person wants. "
-        "When you're given research, keep its source links in what you write (a Sources list at the end)."),
+        "When you're given research, keep its source links in what you write (a Sources list at the end, "
+        "each link once)."),
 )
 
 BOTS: dict[str, Bot] = {b.id: b for b in ROSTER}

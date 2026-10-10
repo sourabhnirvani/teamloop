@@ -7,6 +7,7 @@ Overwriting an existing file asks the person first.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from teamloop import config
@@ -28,6 +29,26 @@ def roots() -> dict[str, Path]:
     files.mkdir(parents=True, exist_ok=True)
     return {"desktop": known_folder("Desktop"), "documents": known_folder("Documents"),
             "downloads": known_folder("Downloads"), "workspace": files}
+
+
+_URL = re.compile(r"https?://[^\s)\]>]+")
+_LIST_ITEM = re.compile(r"^\s*([-*•]|\d+[.)])\s+|^\s*(\[[^\]]*\]\()?https?://")
+
+
+def dedupe_link_lines(text: str) -> str:
+    """Drop a list line that only repeats a link already listed (S and Writer both adding the same sources).
+    Sentences in the text are never touched."""
+    seen: set[str] = set()
+    out = []
+    for line in text.split("\n"):
+        urls = _URL.findall(line)
+        if len(urls) == 1 and _LIST_ITEM.match(line) and len(line.strip()) < 300:
+            url = urls[0].rstrip(".,;").rstrip("/").lower()
+            if url in seen:
+                continue
+            seen.add(url)
+        out.append(line)
+    return "\n".join(out)
 
 
 def resolve(raw: str) -> Path:
@@ -67,7 +88,7 @@ async def write_file(args: dict, ctx) -> ToolResult:
         if not await ctx.approve("Replace a file", f"Overwrite {path} ({path.stat().st_size} bytes) with new text."):
             return ToolResult(False, f"The person said no, so {path.name} was left as it was.")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    path.write_text(dedupe_link_lines(content), encoding="utf-8")
     size = path.stat().st_size
     return ToolResult(True, f"Saved {path} ({size} bytes).", {"path": str(path), "bytes": size})
 

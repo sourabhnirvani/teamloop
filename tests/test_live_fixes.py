@@ -53,3 +53,14 @@ def test_sources_travel_from_scout_to_the_report():
     assert "source links too" in system_prompt(BOTS["s"])
     assert "Sources list" in system_prompt(BOTS["writer"])
     assert "newest sources" in system_prompt(BOTS["scout"])
+
+
+def test_a_report_lists_each_source_once():
+    from teamloop.tools.files import dedupe_link_lines
+
+    report = ("# Free LLM APIs\nGemini: see https://ai.google.dev (free tier).\n\nSources\n"
+              "- https://ai.google.dev\n- https://groq.com/pricing\n- https://groq.com/pricing/\n"
+              "- [Groq](https://groq.com/pricing)\nCompare https://a.example and https://b.example on one line.\n")
+    assert dedupe_link_lines(report) == ("# Free LLM APIs\nGemini: see https://ai.google.dev (free tier).\n\nSources\n"
+                                         "- https://ai.google.dev\n- https://groq.com/pricing\n"
+                                         "Compare https://a.example and https://b.example on one line.\n")
