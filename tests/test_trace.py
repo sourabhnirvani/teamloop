@@ -30,7 +30,7 @@ from pathlib import Path
 
 async def main():
     crew = make_crew(Path(sys.argv[3]), [call("remember", fact="likes tea, key gsk_" + "s" * 40), "Noted."])
-    await crew.post("dm-s", "remember that I like tea")
+    await crew.post("dm-s", "note that I like tea")
     await crew.wait_idle("dm-s")
 
 asyncio.run(main())
@@ -57,6 +57,6 @@ def test_turns_and_tools_are_visible_spans_with_inputs_and_outputs(tmp_path):
     assert (flow["kind"], turn["kind"], tool["kind"]) == ("WORKFLOW", "AGENT", "TOOL")
     assert turn["parent"] == flow["id"] and tool["parent"] == turn["id"]
     assert flow["internal"] is False and turn["internal"] is False and tool["internal"] is False
-    assert flow["input"] == "remember that I like tea" and turn["output"] == "Noted."
+    assert flow["input"] == "note that I like tea" and turn["output"] == "Noted."
     assert "likes tea" in tool["input"] and tool["output"].startswith("OK: ")
     assert "gsk_" not in json.dumps(spans)  # keys are hidden before they reach neatlogs

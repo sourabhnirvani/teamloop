@@ -8,7 +8,7 @@ from teamloop.tools.registry import ToolResult
 async def test_one_task_prints_steps_and_the_reply(tmp_path):
     crew = make_crew(tmp_path, [call("remember", fact="likes tea"), "Noted: you like tea."])
     lines = []
-    assert await cli.run("remember I like tea", "dm-s", crew=crew, out=lines.append) == 0
+    assert await cli.run("note that I like tea", "dm-s", crew=crew, out=lines.append) == 0
     assert any("remember" in ln and "→" in ln for ln in lines)
     assert lines[-1].endswith("S: Noted: you like tea.")
 

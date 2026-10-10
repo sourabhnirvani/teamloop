@@ -5,7 +5,7 @@ from fakes import call, make_crew
 
 async def test_remembered_facts_reach_every_bot(tmp_path):
     crew = make_crew(tmp_path, [call("remember", fact="My sister is called Riya."), "Got it.", "Hi!"])
-    await crew.post("dm-s", "remember my sister is called Riya")
+    await crew.post("dm-s", "keep in mind that my sister is called Riya")
     await crew.wait_idle("dm-s")
     await crew.post("dm-writer", "hello")
     await crew.wait_idle("dm-writer")
