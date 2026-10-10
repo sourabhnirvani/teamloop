@@ -9,6 +9,7 @@ log = logging.getLogger(__name__)
 
 MODULES = (
     "teamloop.crew.team",       # delegate
+    "teamloop.crew.routines",   # schedule_routine, list_routines, cancel_routine
     "teamloop.tools.web",
     "teamloop.tools.files",
     "teamloop.computer.tools",  # Desk (Windows)

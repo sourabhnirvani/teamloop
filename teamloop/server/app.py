@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from teamloop import config, kits, trace
+from teamloop.crew import routines
 from teamloop.crew.bots import BOTS, ROSTER
 from teamloop.crew.events import Bus
 from teamloop.crew.store import Store
@@ -67,7 +68,9 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         trace.init()
+        ticker = asyncio.create_task(routines.scheduler(app.state.crew))
         yield
+        ticker.cancel()
         trace.flush()
 
     app = FastAPI(title="TeamLoop", lifespan=lifespan)
@@ -183,6 +186,16 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     @app.get("/api/usage")
     def usage() -> list[dict]:
         return get_crew().store.usage()
+
+    @app.get("/api/routines")
+    def list_routines() -> list[dict]:
+        return routines.listing(get_crew())
+
+    @app.delete("/api/routines/{routine_id}")
+    def cancel_routine(routine_id: str) -> dict:
+        if not routines.cancel(get_crew(), routine_id):
+            raise HTTPException(404, "No such routine.")
+        return {"ok": True}
 
     @app.get("/api/shots/{name}")
     def shot(name: str) -> FileResponse:
