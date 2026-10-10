@@ -125,3 +125,6 @@ input, textarea, select { font: inherit; color: var(--text); background: var(--b
   .step, .shot, .approval { margin-left: 0; padding-left: 0; }
   .approval { padding: 10px 12px; }
 }
+.pairing { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.pairing .qr svg { display: block; width: 180px; height: 180px; border-radius: 8px; }
+.pairing .code { font-size: 22px; letter-spacing: 0.12em; }

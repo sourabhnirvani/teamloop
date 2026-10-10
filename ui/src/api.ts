@@ -8,6 +8,8 @@ export type ModelInfo = { provider: string; name: string; has_key: boolean; mode
 export type Settings = { save_tokens: boolean; crew_model: string | null; bot_models: Record<string, string> };
 export type Usage = { day: string; provider: string; model: string; requests: number; tokens_in: number; tokens_out: number };
 export type Routine = { id: string; chat_id: string; text: string; schedule: string; next_run: number };
+export type Phone = { id: string; name: string; paired: number; last_seen: number };
+export type Pairing = { code: string; link: string; expires: number; qr: string };
 
 export type ServerEvent =
   | { type: "message"; chat_id: string; message: Message }
@@ -20,6 +22,7 @@ export type ServerEvent =
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
+  if (res.status === 401) window.location.assign("/pair"); // a phone that isn't paired (or was removed)
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -52,6 +55,9 @@ export const api = {
   usage: () => call<Usage[]>("/api/usage"),
   routines: () => call<Routine[]>("/api/routines"),
   cancelRoutine: (id: string) => call<{ ok: boolean }>(`/api/routines/${id}`, { method: "DELETE" }),
+  phones: () => call<Phone[]>("/api/phones"),
+  pairPhone: () => post<Pairing>("/api/phones/pair"),
+  removePhone: (id: string) => call<{ ok: boolean }>(`/api/phones/${id}`, { method: "DELETE" }),
 };
 
 export function listen(onEvent: (e: ServerEvent) => void, onState: (live: boolean) => void): () => void {

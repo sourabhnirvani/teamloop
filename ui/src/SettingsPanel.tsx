@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { api, type Bot, type KeyInfo, type ModelInfo, type Routine, type Settings, type Usage } from "./api";
+import { api, type Bot, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 
-type Section = "keys" | "models" | "usage" | "routines";
+type Section = "keys" | "models" | "usage" | "routines" | "phone";
 
 export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; onClose: () => void }) {
   const [section, setSection] = useState<Section>("keys");
@@ -10,6 +10,8 @@ export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; on
   const [settings, setSettings] = useState<Settings | null>(null);
   const [usage, setUsage] = useState<Usage[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [phones, setPhones] = useState<Phone[]>([]);
+  const [pairing, setPairing] = useState<Pairing | null>(null);
   const [paste, setPaste] = useState("");
   const [note, setNote] = useState("");
   const [checking, setChecking] = useState(false);
@@ -20,8 +22,14 @@ export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; on
     api.settings().then(setSettings).catch(() => {});
     api.usage().then(setUsage).catch(() => {});
     api.routines().then(setRoutines).catch(() => {});
+    api.phones().then(setPhones).catch(() => {});
   };
   useEffect(refresh, []);
+  useEffect(() => {
+    if (!pairing) return;
+    const t = window.setInterval(() => api.phones().then(setPhones).catch(() => {}), 3000); // show the phone as soon as it pairs
+    return () => window.clearInterval(t);
+  }, [pairing]);
 
   async function saveKeys() {
     try {
@@ -45,6 +53,16 @@ export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; on
     }
   }
 
+  async function pair() {
+    setNote("Opening a secure link to this laptop…");
+    try {
+      setPairing(await api.pairPhone());
+      setNote("");
+    } catch (e) {
+      setNote(String((e as Error).message));
+    }
+  }
+
   async function update(patch: Partial<Settings>) {
     setSettings(await api.setSettings(patch));
   }
@@ -59,9 +77,9 @@ export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; on
           <button className="icon" onClick={onClose} aria-label="Close">✕</button>
         </header>
         <nav>
-          {(["keys", "models", "usage", "routines"] as Section[]).map((s) => (
+          {(["keys", "models", "usage", "routines", "phone"] as Section[]).map((s) => (
             <button key={s} className={section === s ? "on" : ""} onClick={() => setSection(s)}>
-              {{ keys: "API keys", models: "Models", usage: "Usage today", routines: "Routines" }[s]}
+              {{ keys: "API keys", models: "Models", usage: "Usage today", routines: "Routines", phone: "Phone" }[s]}
             </button>
           ))}
         </nav>
@@ -153,6 +171,29 @@ export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; on
                   <b>{r.schedule}</b>
                   <span>{r.text} · next {new Date(r.next_run * 1000).toLocaleString()}</span>
                   <button onClick={() => api.cancelRoutine(r.id).then(refresh)}>Cancel</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {section === "phone" && (
+          <div className="pane">
+            <p>Use TeamLoop from your phone while this laptop is on. Scan the code with the phone camera, or open the link and type the code. Then "Add to Home screen".</p>
+            <button className="primary" onClick={pair}>{pairing ? "New code" : "Pair a phone"}</button>
+            {pairing && (
+              <div className="pairing">
+                {/* the QR is an SVG made by our own server */}
+                <div className="qr" dangerouslySetInnerHTML={{ __html: pairing.qr }} />
+                <p><b className="code">{pairing.code}</b><br />Works once, for 10 minutes.<br /><a href={pairing.link}>{pairing.link.split("/pair")[0]}</a></p>
+              </div>
+            )}
+            <ul className="list">
+              {phones.length === 0 && <li><span>No phones paired.</span></li>}
+              {phones.map((p) => (
+                <li key={p.id}>
+                  <b>{p.name}</b>
+                  <span>paired {new Date(p.paired * 1000).toLocaleDateString()} · last seen {new Date(p.last_seen * 1000).toLocaleString()}</span>
+                  <button onClick={() => api.removePhone(p.id).then(refresh)}>Remove</button>
                 </li>
               ))}
             </ul>

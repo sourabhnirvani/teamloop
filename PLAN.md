@@ -75,7 +75,7 @@ teamloop/browser/    host (Chrome + CDP), kit (open/snapshot/act/read)          
 teamloop/server/telegram.py   Telegram bridge                                       → Yang
 ui/                  React + Vite app                                               → Yang
 desktop/             Electron wrapper                                               → Yang
-phone/               PWA manifest + service worker, tunnel setup                    → Yang
+ui/public/ + teamloop/server/phones.py   PWA (manifest, service worker), pairing, tunnel → Yang
 tests/               pytest, each owner tests their own parts                       → both
 evidence/ hackathon.md                                                              → both
 ```
@@ -97,6 +97,8 @@ Server: `http://127.0.0.1:8790`. All JSON.
 | `GET /api/models` · `POST /api/models/check` | models and health / run the doctor |
 | `GET /api/settings` · `POST /api/settings {...}` | save_tokens, per-bot model |
 | `GET /api/usage` | today's tokens and requests per provider |
+| `POST /api/phones/pair` · `GET /api/phones` · `DELETE /api/phones/{id}` | laptop only: start the tunnel + one-use code `{code, link, expires, qr}` / paired phones / remove one |
+| `GET /pair` · `POST /pair` (form `code`) | phone pairing page; sets the phone's cookie. Through the tunnel, every `/api` call needs that cookie (else 401) |
 
 Approval event: `{type:"approval", id, chat_id, bot, title, details, screenshot?}`.
 

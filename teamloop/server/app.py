@@ -26,7 +26,7 @@ from teamloop.keys import vault, wallet
 from teamloop.models import doctor
 from teamloop.models import providers as P
 from teamloop.models.router import Router
-from teamloop.server import telegram
+from teamloop.server import phones, telegram
 
 PING_SECONDS = 15
 
@@ -75,6 +75,7 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         yield
         ticker.cancel()
         phone.cancel()
+        app.state.phones.stop()
         checker.cancel()
         trace.flush()
 
@@ -82,6 +83,8 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     app.add_middleware(CORSMiddleware, allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
                        allow_methods=["*"], allow_headers=["*"])
     app.state.crew = crew or build_crew()
+    app.state.phones = phones.Phones(app.state.crew.store)
+    phones.install(app, app.state.phones)
 
     def get_crew() -> Crew:
         return app.state.crew
