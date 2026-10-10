@@ -72,6 +72,7 @@ input, textarea, select { font: inherit; color: var(--text); background: var(--b
 .row.kind-handoff .bubble { background: transparent; border-style: dashed; color: var(--muted); }
 .row.kind-routine .bubble { background: var(--warn); }
 .who { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+.tag { margin-left: 6px; font-weight: 500; font-size: 11px; padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 .text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .text p { margin: 0 0 6px; }
 .text p:last-child, .text ul:last-child, .text ol:last-child { margin-bottom: 0; }

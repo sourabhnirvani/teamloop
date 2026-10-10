@@ -98,7 +98,8 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu }: Props) {
               <div key={item.key} className={`row ${mine ? "mine" : ""} kind-${item.mkind} ${failed ? "failed" : ""}`}>
                 {!mine && <Avatar bot={bot} move={moves[item.sender]} size={32} />}
                 <div className="bubble">
-                  {!mine && <div className="who">{bot?.name ?? item.sender}{item.mkind === "handoff" && " → handoff"}</div>}
+                  {!mine && <div className="who">{bot?.name ?? item.sender}{item.mkind === "handoff" && " → handoff"}
+                    {item.mkind === "fast" && <span className="tag" title="Done directly, without calling an AI model">⚡ no model</span>}</div>}
                   {failed ? <Failure text={item.text} /> : mine ? <div className="text">{item.text}</div> : <RichText text={item.text} />}
                   <div className="ts">{time(item.ts)}</div>
                 </div>
