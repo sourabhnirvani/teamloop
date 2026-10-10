@@ -35,6 +35,19 @@ def test_keys_risk(keys, title, expected):
 
 def test_type_and_power_risk():
     assert risk.type_risk("hunter2", "Login", is_password=True) == risk.NEVER
+    assert risk.type_risk("4111 1111 1111 1111", "Checkout - Chrome") == risk.NEVER  # card (Luhn)
+    assert risk.type_risk("1234 5678 9012 3456", "Notepad") == risk.SAFE  # not a card number
+    assert risk.type_risk("gsk_" + "a" * 52, "Notepad") == risk.NEVER  # API key
+    assert risk.type_risk("482913", "Sign in", field="Verification code") == risk.NEVER
+    assert risk.type_risk("482913", "Calculator") == risk.SAFE
+    assert risk.type_risk("dir\n", "Windows PowerShell [powershell.exe]") == risk.NEVER
+    assert risk.type_risk("hello", "TeamLoop - Chrome [chrome.exe]") == risk.NEVER
+    assert risk.click_risk("Approve", "TeamLoop [electron.exe]") == risk.NEVER
+    assert risk.keys_risk("win+r", "Notepad [notepad.exe]") == risk.NEVER
+    assert risk.keys_risk("enter", "Command Prompt [cmd.exe]") == risk.NEVER
+    assert risk.keys_risk("enter", "Run [explorer.exe]") == risk.NEVER
+    assert risk.keys_risk("enter", "Downloads [explorer.exe]") == risk.ASK
+    assert risk.refusal("keys", "win+r").startswith("Refused: Windows-key")
     assert risk.type_risk("hi there\n", "Telegram") == risk.ASK
     assert risk.type_risk("hi there", "Telegram") == risk.SAFE
     assert risk.type_risk("line one\nline two", "Notepad") == risk.SAFE

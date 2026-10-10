@@ -16,6 +16,12 @@ from teamloop.tools.registry import ToolResult, tool
 
 READ_CHARS = 6000
 MAX_ITEMS = 60
+# Pages on this computer or the home network, and payment pages, open only after the person's OK.
+LOCAL = re.compile(r"^https?://(localhost|127\.|0\.0\.0\.0|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|"
+                   r"\[::1\]|[^/:]+\.local\b)", re.IGNORECASE)
+PAYMENT = re.compile(r"checkout|payment|/pay(/|\b)|billing|/cart\b|purchase", re.IGNORECASE)
+LABEL_JS = """el => (el.getAttribute('aria-label') || el.innerText || el.value || el.placeholder || el.title || '')
+  .trim().replace(/\\s+/g, ' ').slice(0, 80)"""
 
 SNAPSHOT_JS = """(max) => {
   const sel = 'a[href],button,input:not([type=hidden]),textarea,select,[role=button],[role=link],[role=tab],' +
@@ -30,8 +36,13 @@ SNAPSHOT_JS = """(max) => {
       .trim().replace(/\\s+/g, ' ').slice(0, 80);
     const i = out.length;
     el.setAttribute('data-tl', String(i));
+    const form = el.form || null;
+    const searchForm = !!form && (form.matches('[role=search]') || !!form.querySelector('input[type=search]'));
+    const hint = [el.name, el.placeholder, el.getAttribute('aria-label'), el.id].join(' ');
     out.push({i, kind: el.tagName.toLowerCase() + (el.type ? ':' + el.type : ''), label,
-              href: el.href ? String(el.href).slice(0, 120) : undefined, password: el.type === 'password'});
+              href: el.href ? String(el.href).slice(0, 120) : undefined, password: el.type === 'password',
+              search: el.type === 'search' || searchForm || /search|query|\\bq\\b|find/i.test(hint),
+              submits: !!form && !searchForm && (el.type === 'submit' || el.type === 'image')});
     if (out.length >= max) break;
   }
   return {title: document.title, url: location.href, items: out};
@@ -78,6 +89,19 @@ def _where(page_title: str, url: str) -> str:
     return f"{page_title} {url}"
 
 
+def _act_risk(action: str, text: str, item: dict, where: str, label: str) -> str:
+    if action == "type":
+        return risk.type_risk(text, where, item["password"], field=label)
+    if action == "click":
+        level = risk.click_risk(label, where)
+        return risk.ASK if level == risk.SAFE and item.get("submits") else level
+    if action == "press":
+        level = risk.keys_risk(text or "Enter", where)
+        enter_in_field = risk.normalize_keys(text or "Enter") == "enter" and item["kind"].startswith("input")
+        return risk.ASK if level == risk.SAFE and enter_in_field and not item.get("search") else level
+    return risk.SAFE
+
+
 @tool("browser_open", "Open a web page in the crew's Chrome (the person's sign-ins live there).",
       {"url": {"type": "string"}, "required": ["url"]}, kit="browser")
 async def browser_open(args: dict, ctx) -> ToolResult:
@@ -90,6 +114,11 @@ async def browser_open(args: dict, ctx) -> ToolResult:
         url = "https://" + url
     if not url.startswith(("http://", "https://")):
         return ToolResult(False, "Refused: only http(s) pages can be opened.")
+    if LOCAL.match(url) and not await ctx.approve(
+            "Open a local address", f"Open {url}? It's on this computer or your home network."):
+        return ToolResult(False, f"The person said no, so I didn't open {url}.")
+    if PAYMENT.search(url) and not await ctx.approve("Open a checkout page", f"Open {url}? It looks like a payment page."):
+        return ToolResult(False, f"The person said no, so I didn't open {url}.")
     page = await _page(ctx)
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=30000)
@@ -122,15 +151,24 @@ async def browser_act(args: dict, ctx) -> ToolResult:
         return ToolResult(False, "That number isn't on the page any more; take a new browser_snapshot.")
     where = _where(await page.title(), page.url)
     label = item["label"] or item["kind"]
-    if action == "type" and risk.type_risk(text, where, item["password"]) == risk.NEVER:
-        return ToolResult(False, "Refused: that is a password field. The person types passwords themselves.")
-    needs_ok = (action == "click" and risk.click_risk(label, where) == risk.ASK) or \
-               (action == "type" and risk.type_risk(text, where) == risk.ASK) or \
-               (action == "press" and risk.keys_risk(text, where) == risk.ASK)
-    if needs_ok and not await ctx.approve(f"{action.capitalize()} \"{label}\"",
-                                          f"On {page.url}: {action} \"{label}\"" + (f" with: {text[:300]}" if text else ""),
-                                          await _shot(page)):
-        return ToolResult(False, f"The person said no, so I didn't {action} \"{label}\".")
+    if item["kind"] == "input:file":
+        return ToolResult(False, "Refused: bots don't upload files; the person attaches files themselves.")
+    level = _act_risk(action, text, item, where, label)
+    if level == risk.NEVER:
+        return ToolResult(False, risk.refusal("keys" if action == "press" else action, text or "Enter", where,
+                                              item["password"], label))
+    if level == risk.ASK:
+        url_before = page.url
+        note = " (this submits a form)" if item.get("submits") else ""
+        if not await ctx.approve(f"{action.capitalize()} \"{label}\"",
+                                 f"On {page.url}: {action} \"{label}\"{note}" + (f" with: {text[:300]}" if text else ""),
+                                 await _shot(page)):
+            return ToolResult(False, f"The person said no, so I didn't {action} \"{label}\".")
+        # The page may have moved on while the person decided: act only on what they saw.
+        if page.url != url_before or await locator.count() == 0 or \
+                (await locator.evaluate(LABEL_JS) or item["kind"]) != label:
+            return ToolResult(False, "The page changed while waiting for the OK, so I didn't act; "
+                                     "take a new browser_snapshot.")
     try:
         if action == "click":
             await locator.click(timeout=8000)

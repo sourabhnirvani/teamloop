@@ -30,7 +30,48 @@ def normalize_keys(keys: str) -> str:
     return "+".join(mods + rest)
 
 
+# TeamLoop's own window (its app, or its UI in a browser tab): a bot must never press Approve for itself.
+OWN_WINDOW = re.compile(r"\bteamloop\b", re.IGNORECASE)
+# Desktop titles come as "title [process.exe]". Enter in a terminal or the Run box runs a command: that's
+# what Desk's run_command (with its own rules) is for. Explorer's address bar can run commands too.
+TERMINAL_WINDOWS = re.compile(
+    r"\[(cmd|powershell|pwsh|windowsterminal|wt|conhost|bash|mintty|wsl)(\.exe)?\]|windows powershell|"
+    r"command prompt|^run\s*\[explorer\.exe\]", re.IGNORECASE)
+EXPLORER = re.compile(r"\[explorer\.exe\]", re.IGNORECASE)
+CODE_FIELD = re.compile(r"\b(otp|one[- ]?time|verification|security code|2fa|two[- ]factor|passcode|"
+                        r"auth(?:entication)? code|pin)\b", re.IGNORECASE)
+_CARD = re.compile(r"(?<!\d)\d(?:[ -]?\d){12,18}(?!\d)")
+
+
+def own_window(window_title: str) -> bool:
+    return bool(OWN_WINDOW.search(window_title or ""))
+
+
+def _luhn(digits: str) -> bool:
+    total = 0
+    for i, d in enumerate(reversed(digits)):
+        n = int(d) * (2 if i % 2 else 1)
+        total += n - 9 if n > 9 else n
+    return total % 10 == 0
+
+
+def secret_kind(text: str, field: str = "") -> str | None:
+    """What secret this text is (an API key, a card number, a one-time code), or None."""
+    from teamloop.keys.redact import redact
+
+    if text and redact(text) != text:
+        return "an API key or token"
+    for m in _CARD.finditer(text or ""):
+        if _luhn(re.sub(r"\D", "", m.group(0))):
+            return "a card number"
+    if CODE_FIELD.search(field or "") and re.fullmatch(r"\s*\d{4,8}\s*", text or ""):
+        return "a one-time code"
+    return None
+
+
 def click_risk(control_name: str, window_title: str = "") -> str:
+    if own_window(window_title):
+        return NEVER
     if COMMIT_WORDS.search(control_name or ""):
         return ASK
     return SAFE
@@ -38,19 +79,39 @@ def click_risk(control_name: str, window_title: str = "") -> str:
 
 def keys_risk(keys: str, window_title: str = "") -> str:
     k = normalize_keys(keys)
+    if own_window(window_title) or "win" in k.split("+"):
+        return NEVER
+    if k in SEND_KEYS and TERMINAL_WINDOWS.search(window_title or ""):
+        return NEVER
     if k in DESTRUCTIVE_KEYS:
         return ASK
-    if k in SEND_KEYS and MESSAGING.search(window_title or ""):
+    if k in SEND_KEYS and (MESSAGING.search(window_title or "") or EXPLORER.search(window_title or "")):
         return ASK
     return SAFE
 
 
-def type_risk(text: str, window_title: str = "", is_password: bool = False) -> str:
-    if is_password:
+def type_risk(text: str, window_title: str = "", is_password: bool = False, field: str = "") -> str:
+    if is_password or own_window(window_title) or secret_kind(text, field):
+        return NEVER
+    if "\n" in text.rstrip(" ") and TERMINAL_WINDOWS.search(window_title or ""):
         return NEVER
     if "\n" in text.rstrip(" ") and MESSAGING.search(window_title or ""):
         return ASK
     return SAFE
+
+
+def refusal(action: str, text: str = "", window_title: str = "", is_password: bool = False, field: str = "") -> str:
+    """The one plain sentence a tool returns when a rule above says NEVER."""
+    if own_window(window_title):
+        return "Refused: that's TeamLoop's own window; bots never act on it (approvals are the person's)."
+    if action == "type":
+        kind = "a password" if is_password else secret_kind(text, field)
+        if kind:
+            return f"Refused: that looks like {kind}. The person types those themselves."
+        return "Refused: typing a new line into a terminal runs it; use Desk's run_command instead."
+    if action == "keys" and "win" in normalize_keys(text).split("+"):
+        return "Refused: Windows-key shortcuts can open anything (Win+R runs commands), so bots don't press them."
+    return "Refused: pressing Enter in a terminal or the Run box runs a command; use Desk's run_command instead."
 
 
 def power_risk(action: str) -> str:

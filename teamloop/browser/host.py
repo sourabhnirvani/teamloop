@@ -34,6 +34,10 @@ def find_chrome() -> str | None:
     return next((c for c in candidates if c and Path(c).is_file()), None)
 
 
+def _cancel(download) -> None:
+    asyncio.ensure_future(download.cancel())
+
+
 def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -51,6 +55,7 @@ class BrowserHost:
         self._proc: subprocess.Popen | None = None
         self._pages: dict[str, object] = {}
         self._lock = asyncio.Lock()
+        self.downloads_blocked = False
 
     @property
     def cdp_url(self) -> str:
@@ -93,6 +98,19 @@ class BrowserHost:
             self._pw = self._pw or await async_playwright().start()
             self.browser = await self._pw.chromium.connect_over_cdp(self.cdp_url)
             self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
+            await self._block_downloads()
+
+    async def _block_downloads(self) -> None:
+        """Bots never download files: Chrome is told to deny downloads, and any that start anyway are cancelled."""
+        try:
+            cdp = await self.browser.new_browser_cdp_session()
+            await cdp.send("Browser.setDownloadBehavior", {"behavior": "deny"})
+            self.downloads_blocked = True
+        except Exception:
+            self.downloads_blocked = False
+        self.context.on("page", lambda page: page.on("download", _cancel))
+        for page in self.context.pages:
+            page.on("download", _cancel)
 
     async def page_for(self, chat_id: str):
         await self.start()
@@ -100,6 +118,7 @@ class BrowserHost:
         if page is None or page.is_closed():
             blank = [p for p in self.context.pages if p.url == "about:blank" and p not in self._pages.values()]
             page = blank[0] if blank else await self.context.new_page()
+            page.on("download", _cancel)
             self._pages[chat_id] = page
         return page
 

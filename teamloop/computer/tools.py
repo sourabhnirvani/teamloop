@@ -47,6 +47,11 @@ async def _window(name: str | None) -> winapi.Win | None:
     return next((w for w in await asyncio.to_thread(winapi.windows) if w.hwnd == fg), None)
 
 
+def _where(win: winapi.Win) -> str:
+    """How risk.py sees a window: its title plus the program, e.g. 'Windows PowerShell [powershell.exe]'."""
+    return f"{win.title} [{win.process}]"
+
+
 def _shot_url(hwnd: int | None) -> str | None:
     try:
         return f"/api/shots/{uia.screenshot(hwnd).name}"
@@ -162,7 +167,9 @@ async def type_text(args: dict, ctx) -> ToolResult:
     win = await _window(args.get("window"))
     if win is None:
         return ToolResult(False, "I can't find that window.")
-    level = risk.type_risk(text, win.title)
+    level = risk.type_risk(text, _where(win))
+    if level == risk.NEVER:
+        return ToolResult(False, risk.refusal("type", text, _where(win)))
     if level == risk.ASK and not await ctx.approve("Type and send", f"Type into {win.title}:\n{text[:400]}",
                                                    _shot_url(win.hwnd)):
         return ToolResult(False, "The person said no, so nothing was typed.")
@@ -176,7 +183,7 @@ async def type_text(args: dict, ctx) -> ToolResult:
     return ToolResult(True, f"Typed {len(text)} characters into \"{win.title}\".")
 
 
-@tool("press_keys", "Press a key or shortcut, like ctrl+s, alt+tab, enter, win+d.",
+@tool("press_keys", "Press a key or shortcut, like ctrl+s, alt+tab, enter (Windows-key shortcuts are refused).",
       {"keys": {"type": "string"}, "window": {"type": "string"}, "required": ["keys"]}, kit="computer")
 async def press_keys(args: dict, ctx) -> ToolResult:
     keys = str(args.get("keys", "")).strip()
@@ -184,7 +191,10 @@ async def press_keys(args: dict, ctx) -> ToolResult:
         return ToolResult(False, "Which keys?")
     win = await _window(args.get("window"))
     title = win.title if win else ""
-    if risk.keys_risk(keys, title) == risk.ASK and not await ctx.approve(
+    level = risk.keys_risk(keys, _where(win) if win else "")
+    if level == risk.NEVER:
+        return ToolResult(False, risk.refusal("keys", keys, _where(win) if win else ""))
+    if level == risk.ASK and not await ctx.approve(
             f"Press {keys}", f"Press {keys} in {title or 'the front window'}.", _shot_url(win.hwnd if win else None)):
         return ToolResult(False, "The person said no, so no keys were pressed.")
     try:
@@ -222,11 +232,20 @@ async def ui_act(args: dict, ctx) -> ToolResult:
     info = await uia.describe(win.hwnd, index)
     if info is None:
         return ToolResult(False, "That number isn't in the last snapshot of this window; take a new ui_snapshot.")
-    if action == "type" and risk.type_risk(text, win.title, info["password"]) == risk.NEVER:
-        return ToolResult(False, "Refused: that is a password field. The person types passwords themselves.")
-    if action == "click" and risk.click_risk(info["name"], win.title) == risk.ASK:
-        if not await ctx.approve(f"Click \"{info['name']}\"", f"Click \"{info['name']}\" in {win.title}.",
-                                 _shot_url(win.hwnd)):
+    where = _where(win)
+    if action == "type":
+        level = risk.type_risk(text, where, info["password"], field=info["name"])
+        if level == risk.NEVER:
+            return ToolResult(False, risk.refusal("type", text, where, info["password"], info["name"]))
+        if level == risk.ASK and not await ctx.approve(
+                "Type and send", f"Type into {info['name'] or win.title}:\n{text[:400]}", _shot_url(win.hwnd)):
+            return ToolResult(False, "The person said no, so nothing was typed.")
+    if action == "click":
+        level = risk.click_risk(info["name"], where)
+        if level == risk.NEVER:
+            return ToolResult(False, risk.refusal("click", window_title=where))
+        if level == risk.ASK and not await ctx.approve(
+                f"Click \"{info['name']}\"", f"Click \"{info['name']}\" in {win.title}.", _shot_url(win.hwnd)):
             return ToolResult(False, f"The person said no, so \"{info['name']}\" was not clicked.")
     try:
         async with lease():
