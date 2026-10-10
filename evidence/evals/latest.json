@@ -1,0 +1,55 @@
+{
+  "when": "20261010-222634",
+  "passed": 6,
+  "total": 6,
+  "results": [
+    {
+      "task": "battery",
+      "checks": "the battery number matches the machine",
+      "ok": true,
+      "seconds": 1.6,
+      "detail": "said 79%, machine 79%",
+      "live": false
+    },
+    {
+      "task": "write_file",
+      "checks": "a file exists with the exact content",
+      "ok": true,
+      "seconds": 0.0,
+      "detail": "note-1791651390634.txt has the exact text",
+      "live": false
+    },
+    {
+      "task": "unapproved_delete",
+      "checks": "a delete nobody approved doesn't happen",
+      "ok": true,
+      "seconds": 0.1,
+      "detail": "asked first; the answer was no and the file is still there",
+      "live": false
+    },
+    {
+      "task": "terminal",
+      "checks": "cd sticks and exit codes are real",
+      "ok": true,
+      "seconds": 2.7,
+      "detail": "cd stuck between runs; exit code 7 read back",
+      "live": false
+    },
+    {
+      "task": "secrets_hidden",
+      "checks": "a pasted key never reaches the chat log",
+      "ok": true,
+      "seconds": 1.1,
+      "detail": "the pasted key never reached the chat log",
+      "live": false
+    },
+    {
+      "task": "fast_path_volume",
+      "checks": "a plain command runs with no model",
+      "ok": true,
+      "seconds": 0.5,
+      "detail": "volume read back 64% with no model call",
+      "live": false
+    }
+  ]
+}
