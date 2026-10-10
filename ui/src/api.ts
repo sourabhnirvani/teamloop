@@ -60,7 +60,35 @@ export const api = {
   removePhone: (id: string) => call<{ ok: boolean }>(`/api/phones/${id}`, { method: "DELETE" }),
 };
 
+const onLaptop = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+
+// Phones come in over a Cloudflare quick tunnel, which doesn't carry SSE, so they long-poll instead.
+function poll(onEvent: (e: ServerEvent) => void, onState: (live: boolean) => void): () => void {
+  let closed = false;
+  (async () => {
+    let after = -1;
+    while (!closed) {
+      try {
+        const res = await fetch(`/api/events/poll?after=${after}`);
+        if (res.status === 401) return window.location.assign("/pair");
+        if (!res.ok) throw new Error(res.statusText);
+        const data = (await res.json()) as { seq: number; events: ServerEvent[] };
+        onState(true);
+        after = data.seq;
+        if (!closed) data.events.forEach(onEvent);
+      } catch {
+        onState(false);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+  })();
+  return () => {
+    closed = true;
+  };
+}
+
 export function listen(onEvent: (e: ServerEvent) => void, onState: (live: boolean) => void): () => void {
+  if (!onLaptop) return poll(onEvent, onState);
   let source: EventSource | null = null;
   let closed = false;
   let retry: number | undefined;

@@ -1,3 +1,5 @@
+import asyncio
+
 from fakes import FakeRouter
 from fastapi.testclient import TestClient
 
@@ -60,3 +62,35 @@ def test_bad_code_shows_the_page_again(tmp_path):
     with client:
         res = client.post("/pair", content="code=<b>", headers={**TUNNEL, "content-type": "application/x-www-form-urlencoded"})
         assert res.status_code == 400 and "wrong or expired" in res.text and "<b>" not in res.text
+
+
+async def test_event_log_long_poll_returns_new_events():
+    from teamloop.crew.events import Bus
+
+    bus = Bus()
+    log = phones.EventLog(bus)
+    log.start()
+    await asyncio.sleep(0)
+    assert await log.after(0, 0.05) == []  # nothing new: the poll just times out
+    waiting = asyncio.create_task(log.after(0, 5))
+    await asyncio.sleep(0)
+    await bus.emit("typing", chat_id="team", bot="s", on=True)
+    [event] = await waiting
+    assert event["type"] == "typing" and log.seq == 1
+
+
+async def test_first_poll_brings_cards_still_waiting(tmp_path):
+    import httpx
+
+    crew = build_crew(tmp_path / "p.db", router=FakeRouter([]))
+    app = create_app(crew)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://127.0.0.1") as client:
+        assert (await client.get("/api/events/poll", params={"after": -1})).json() == {"seq": 0, "events": []}
+        asked = asyncio.create_task(crew.gate.ask("team", "desk", "Lock", "Lock the laptop now."))
+        await asyncio.sleep(0.05)
+        first = (await client.get("/api/events/poll", params={"after": -1})).json()
+        assert [e["title"] for e in first["events"]] == ["Lock"]
+        later = (await client.get("/api/events/poll", params={"after": 99, "wait": 0.05})).json()
+        assert later["seq"] == first["seq"]  # a stale number from before a restart starts over
+        crew.gate.answer(first["events"][0]["id"], False)
+        assert await asked is False

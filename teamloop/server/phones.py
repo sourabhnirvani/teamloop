@@ -17,6 +17,7 @@ import subprocess
 import threading
 import time
 import uuid
+from collections import deque
 from urllib.parse import parse_qs
 
 import segno
@@ -129,6 +130,37 @@ class Phones:
         self._proc, self.url = None, None
 
 
+class EventLog:
+    """Recent crew events with numbers, for phones: Cloudflare quick tunnels don't carry SSE, so phones long-poll."""
+
+    def __init__(self, bus, size: int = 300):
+        self.bus, self.seq = bus, 0
+        self.events: deque[tuple[int, dict]] = deque(maxlen=size)
+        self._new = asyncio.Event()
+        self._task: asyncio.Task | None = None
+
+    def start(self) -> None:
+        if self._task is None:
+            self._task = asyncio.create_task(self._record())
+
+    async def _record(self) -> None:
+        with self.bus.subscribe() as queue:
+            while True:
+                event = await queue.get()
+                self.seq += 1
+                self.events.append((self.seq, event))
+                self._new.set()
+                self._new = asyncio.Event()
+
+    async def after(self, seq: int, wait: float) -> list[dict]:
+        if not any(n > seq for n, _ in self.events):
+            try:
+                await asyncio.wait_for(self._new.wait(), wait)
+            except asyncio.TimeoutError:
+                return []
+        return [e for n, e in self.events if n > seq]
+
+
 PAIR_PAGE = """<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Pair phone · TeamLoop</title>
 <style>body{{font-family:system-ui,sans-serif;max-width:22rem;margin:3rem auto;padding:0 1rem;text-align:center}}
@@ -146,8 +178,11 @@ def _page(code: str = "", error: str = "") -> str:
 
 
 def install(app: FastAPI, phones: Phones) -> None:
+    log = EventLog(app.state.crew.bus)
+
     @app.middleware("http")
     async def guard(request: Request, call_next):
+        log.start()  # needs the running loop, so it starts with the first request
         path = request.url.path
         if path in API_PAGES and is_remote(request):  # the API's shape stays on the laptop
             return JSONResponse({"detail": "Not Found"}, 404)
@@ -157,6 +192,19 @@ def install(app: FastAPI, phones: Phones) -> None:
             if phones.check(request.cookies.get(COOKIE, "")) is None:
                 return JSONResponse({"detail": "Pair this phone first."}, 401)
         return await call_next(request)
+
+    @app.get("/api/events/poll")
+    async def poll(after: int = -1, wait: float = 20) -> dict:
+        """Long-poll version of /api/events. after=-1 starts now and returns the cards still waiting for an answer."""
+        if after > log.seq:  # the server restarted since the last poll: start over from now
+            after = -1
+        if after < 0:
+            crew = app.state.crew
+            waiting = {aid for chat in crew.store.chats() for aid in crew.gate.pending_in(chat["id"])}
+            cards = [e for _, e in log.events if e["type"] == "approval" and e.get("id") in waiting]
+            return {"seq": log.seq, "events": cards}
+        events = await log.after(after, min(wait, 25))
+        return {"seq": log.seq, "events": events}
 
     @app.post("/api/phones/pair")
     async def pair() -> dict:
