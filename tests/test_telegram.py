@@ -34,7 +34,7 @@ def text_update(text, sender=OWNER, age=0):
 async def started(tmp_path, script, owner=OWNER):
     crew = make_crew(tmp_path, script)
     tg = FakeTelegram()
-    bridge = Bridge(crew, "TOKEN", owner, tg)
+    bridge = Bridge(crew, "TOKEN", [owner] if owner else [], tg)
     task = asyncio.create_task(bridge.forward())
     await asyncio.sleep(0)
     return crew, tg, bridge, task
@@ -54,6 +54,17 @@ async def test_owner_message_reaches_crew_and_reply_comes_back(tmp_path):
     assert [m["text"] for m in crew.store.messages("team")] == ["hello", "Hi from S."]
     assert any(t.endswith("S: Hi from S.") for t in tg.texts())
     assert not any("hello" in t for t in tg.texts())  # the person's own words are not echoed back
+
+
+async def test_every_allowed_person_can_talk_and_hears_replies(tmp_path):
+    crew, tg, bridge, task = await started(tmp_path, ["On it."])
+    bridge.owners.append("666")
+    await bridge.handle(text_update("hello", sender="666"))
+    await crew.wait_idle("team")
+    await settle()
+    task.cancel()
+    assert [m["text"] for m in crew.store.messages("team")] == ["hello", "On it."]
+    assert sorted(p["chat_id"] for m, p in tg.sent if m == "sendMessage") == ["555", "666"]
 
 
 async def test_strangers_and_old_messages_are_ignored(tmp_path):

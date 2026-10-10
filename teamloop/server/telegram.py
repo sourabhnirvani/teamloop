@@ -1,5 +1,5 @@
-"""Telegram bridge: talk to the crew from your phone. Only the one owner chat is listened to,
-because this bot can drive the laptop. Runs in-process next to the server (long polling, no webhook)."""
+"""Telegram bridge: talk to the crew from your phone. Only the allowed chats (TELEGRAM_CHAT_ID, comma-separated)
+are listened to, because this bot can drive the laptop. Runs in-process next to the server (long polling, no webhook)."""
 
 from __future__ import annotations
 
@@ -25,8 +25,8 @@ HELP = ("Talk to the crew here. /chat to see chats, /chat scout to talk to one b
 
 
 class Bridge:
-    def __init__(self, crew, token: str, owner: str | None, client: httpx.AsyncClient):
-        self.crew, self.token, self.owner, self.client = crew, token, owner, client
+    def __init__(self, crew, token: str, owners: list[str], client: httpx.AsyncClient):
+        self.crew, self.token, self.owners, self.client = crew, token, list(owners), client
         self.chat = "team"
         self.offset = 0
 
@@ -68,16 +68,16 @@ class Bridge:
         sender, text = str(msg.get("chat", {}).get("id", "")), (msg.get("text") or "").strip()
         if not sender or not text:
             return
-        if not self.owner:  # first run: tell the person their chat id so they can lock the bot to it
+        if not self.owners:  # first run: tell the person their chat id so they can lock the bot to it
             await self.send(sender, f"Set TELEGRAM_CHAT_ID={sender} in .env and restart TeamLoop.")
             return
-        if sender != self.owner or time.time() - msg.get("date", 0) > MAX_AGE:
+        if sender not in self.owners or time.time() - msg.get("date", 0) > MAX_AGE:
             return
         if text.startswith("/"):
-            return await self.command(text)
+            return await self.command(text, sender)
         await self.crew.post(self.chat, text)
 
-    async def command(self, text: str) -> None:
+    async def command(self, text: str, to: str) -> None:
         name, _, arg = text[1:].partition(" ")
         name, arg = name.split("@")[0].lower(), arg.strip().lower()
         if name == "stop":
@@ -86,18 +86,18 @@ class Bridge:
             chat = next((c for c in self.crew.store.chats()
                          if arg in (c["id"], c["title"].lower(), f"dm-{arg}")), None)
             if chat is None:
-                await self.send(self.owner, f"No chat called {arg}.")
+                await self.send(to, f"No chat called {arg}.")
             else:
                 self.chat = chat["id"]
-                await self.send(self.owner, f"Now talking in {chat['title']}.")
+                await self.broadcast(f"Now talking in {chat['title']}.")
         elif name == "chat":
             titles = ", ".join(c["title"] for c in self.crew.store.chats())
-            await self.send(self.owner, f"Chats: {titles}.")
+            await self.send(to, f"Chats: {titles}.")
         else:
-            await self.send(self.owner, HELP)
+            await self.send(to, HELP)
 
     async def on_button(self, query: dict) -> None:
-        if str(query.get("from", {}).get("id", "")) != self.owner:
+        if str(query.get("from", {}).get("id", "")) not in self.owners:
             return
         verdict, _, approval_id = (query.get("data") or "").partition(":")
         taken = self.crew.gate.answer(approval_id, verdict == "ok")
@@ -113,7 +113,7 @@ class Bridge:
         with self.crew.bus.subscribe() as queue:
             while True:
                 event = await queue.get()
-                if not self.owner:
+                if not self.owners:
                     continue
                 try:
                     await self.deliver(event)
@@ -127,20 +127,26 @@ class Bridge:
         elif event.get("chat_id") != self.chat:
             return
         elif kind == "message" and event["message"]["sender"] != "user":
-            await self.send(self.owner, f"{_name(event['message']['sender'])}: {event['message']['text']}")
+            await self.broadcast(f"{_name(event['message']['sender'])}: {event['message']['text']}")
         elif kind == "typing" and event.get("on"):
-            await self.call("sendChatAction", chat_id=self.owner, action="typing")
+            for chat_id in self.owners:
+                await self.call("sendChatAction", chat_id=chat_id, action="typing")
 
     async def send_card(self, event: dict) -> None:
         text = f"{_name(event['bot'])} asks: {event['title']}\n{event['details']}"[:1000]
         buttons = {"inline_keyboard": [[{"text": "Approve", "callback_data": f"ok:{event['id']}"},
                                         {"text": "Deny", "callback_data": f"no:{event['id']}"}]]}
         shot = config.workspace() / "shots" / (event.get("screenshot") or "").rsplit("/", 1)[-1]
-        if event.get("screenshot") and shot.is_file():
-            await self.call("sendPhoto", files={"photo": (shot.name, shot.read_bytes(), "image/png")},
-                            chat_id=self.owner, caption=text, reply_markup=json.dumps(buttons))
-        else:
-            await self.call("sendMessage", chat_id=self.owner, text=text, reply_markup=buttons)
+        for chat_id in self.owners:
+            if event.get("screenshot") and shot.is_file():
+                await self.call("sendPhoto", files={"photo": (shot.name, shot.read_bytes(), "image/png")},
+                                chat_id=chat_id, caption=text, reply_markup=json.dumps(buttons))
+            else:
+                await self.call("sendMessage", chat_id=chat_id, text=text, reply_markup=buttons)
+
+    async def broadcast(self, text: str) -> None:
+        for chat_id in self.owners:
+            await self.send(chat_id, text)
 
     async def send(self, chat_id: str, text: str) -> None:
         for start in range(0, len(text), LIMIT):
@@ -153,12 +159,12 @@ def _name(bot_id: str) -> str:
 
 
 async def run(crew) -> None:
-    """Start the bridge when TELEGRAM_TOKEN is set; TELEGRAM_CHAT_ID locks it to one person."""
+    """Start the bridge when TELEGRAM_TOKEN is set; TELEGRAM_CHAT_ID (comma-separated) locks it to those people."""
     token = os.environ.get("TELEGRAM_TOKEN", "").strip()
     if not token:
         return
-    owner = os.environ.get("TELEGRAM_CHAT_ID", "").strip() or None
-    if not owner:
+    owners = [c.strip() for c in os.environ.get("TELEGRAM_CHAT_ID", "").split(",") if c.strip()]
+    if not owners:
         log.warning("TELEGRAM_CHAT_ID is not set: the bot only replies with your chat id until it is")
     async with httpx.AsyncClient(timeout=POLL_SECONDS + 10) as client:
-        await Bridge(crew, token, owner, client).run()
+        await Bridge(crew, token, owners, client).run()

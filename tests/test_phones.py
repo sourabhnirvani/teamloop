@@ -19,6 +19,9 @@ def test_tunnel_requests_need_a_paired_phone(tmp_path):
         assert client.get("/api/chats", headers=TUNNEL).status_code == 401
         assert client.get("/api/chats", headers={**TUNNEL, "cookie": f"{phones.COOKIE}=guess"}).status_code == 401
         assert client.get("/pair", headers=TUNNEL).status_code == 200  # the pairing page itself is open
+        for page in ("/docs", "/redoc", "/openapi.json"):
+            assert client.get(page, headers=TUNNEL).status_code == 404
+            assert client.get(page).status_code == 200  # still there on the laptop
 
 
 def test_pair_with_code_then_remove(tmp_path):

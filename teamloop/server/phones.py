@@ -30,6 +30,7 @@ CODE_SECONDS = 600
 MAX_FAILS = 10
 LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"  # no I or O, so a typed code can't be misread
 PROXY_HEADERS = ("cf-connecting-ip", "x-forwarded-for", "forwarded")
+API_PAGES = {"/docs", "/docs/oauth2-redirect", "/redoc", "/openapi.json"}
 LOCAL_HOSTS = {"127.0.0.1", "::1", "testclient"}  # the server only listens on loopback
 TUNNEL_URL = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
 mimetypes.add_type("application/manifest+json", ".webmanifest")
@@ -148,6 +149,8 @@ def install(app: FastAPI, phones: Phones) -> None:
     @app.middleware("http")
     async def guard(request: Request, call_next):
         path = request.url.path
+        if path in API_PAGES and is_remote(request):  # the API's shape stays on the laptop
+            return JSONResponse({"detail": "Not Found"}, 404)
         if path.startswith("/api") and is_remote(request):
             if path.startswith("/api/phones"):
                 return JSONResponse({"detail": "Phones are managed on the laptop."}, 403)
