@@ -53,6 +53,12 @@ team. Everything runs on free models, and every step is traced in neatlogs.
    keys/models/usage/security/phone), an Electron desktop app, a phone PWA over a tunnel, and a
    Telegram bridge.
 10. **Tracing:** neatlogs AGENT / LLM / TOOL spans on every turn.
+11. **Agent S parity extras** (from Agent S's README, rebuilt fresh): Desk's terminal (PowerShell per
+    chat, `cd` sticks, exit code + output, background jobs, risky commands ask); a direct fast path
+    (plain commands run one tool with no model call); tool calls a model writes as text still run;
+    model doctor at startup and every 6 h; Wi-Fi on/off; "sleep" / "wake up"; `python -m teamloop.cli`;
+    evals that check real outcomes. Yang: Telegram allowlist of IDs, phone pairing (QR / code,
+    per-phone token, revoke).
 
 ## 3. Code layout and owners
 
@@ -62,7 +68,7 @@ teamloop/keys/       wallet (detect/check/save), vault (DPAPI), redact          
 teamloop/crew/       bots, runner (tool loop), team (delegate, groups, handoffs),
                      store (SQLite), events, routines, budget (save-tokens/usage)   → Sourabh
 teamloop/tools/      registry, web search/fetch, files                              → Sourabh
-teamloop/computer/   system, apps, windows, uia, screen, risk, gate (approvals)     → Sourabh
+teamloop/computer/   system, apps, windows, uia, screen, terminal, risk, gate      → Sourabh
 teamloop/server/     app.py (FastAPI API below)                                     → Sourabh
 teamloop/trace.py    neatlogs                                                       → Sourabh
 teamloop/browser/    host (Chrome + CDP), kit (open/snapshot/act/read)              → Sourabh (done)

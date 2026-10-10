@@ -55,3 +55,29 @@ def type_risk(text: str, window_title: str = "", is_password: bool = False) -> s
 
 def power_risk(action: str) -> str:
     return ASK if action in POWER_ACTIONS else NEVER
+
+
+# Terminal: deleting, killing processes, registry, services, power, running downloaded code and touching
+# TeamLoop's own secrets ask first. Wiping disks or boot settings is refused.
+COMMAND_ASK = re.compile(
+    r"\b(remove-item|rm|rmdir|rd|del|erase|ri|clear-recyclebin|clear-content)\b"
+    r"|\b(stop-process|spps|kill|taskkill|pskill)\b"
+    r"|\breg(\.exe)?\s+(add|delete|import|load|unload|restore|copy)\b"
+    r"|\b(set|new|remove|rename)-itemproperty\b|\bhk(lm|cu|cr|u|cc):"
+    r"|\b(stop|start|restart|set|new|remove|suspend)-service\b|\bsc(\.exe)?\s+(stop|start|config|delete|create)\b"
+    r"|\b(stop|restart)-computer\b|\bshutdown(\.exe)?\b|\blogoff\b"
+    r"|\b(set-executionpolicy|invoke-expression|iex|start-process\s+.*-verb\s+runas)\b"
+    r"|\.env\b|keys\.vault|teamloop\.db",
+    re.IGNORECASE)
+COMMAND_NEVER = re.compile(
+    r"\bformat-volume\b|\bformat(\.com)?\s+[a-z]:|\bdiskpart\b|\bbcdedit\b|\bvssadmin\s+delete\b"
+    r"|\bcipher\s+/w\b|\bclear-disk\b|\binitialize-disk\b",
+    re.IGNORECASE)
+
+
+def command_risk(command: str) -> str:
+    if COMMAND_NEVER.search(command or ""):
+        return NEVER
+    if COMMAND_ASK.search(command or ""):
+        return ASK
+    return SAFE

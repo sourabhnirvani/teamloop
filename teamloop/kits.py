@@ -14,6 +14,7 @@ MODULES = (
     "teamloop.tools.web",
     "teamloop.tools.files",
     "teamloop.computer.tools",  # Desk (Windows)
+    "teamloop.computer.terminal",  # Desk: run_command, job_output, stop_job
     "teamloop.browser.kit",     # Web (Chrome)
 )
 

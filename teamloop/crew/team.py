@@ -32,7 +32,7 @@ _MENTION = re.compile(r"@(\w+)|\bask (\w+) to\b", re.IGNORECASE)
 _TEAM_WORDS = re.compile(r"\b(everyone|everybody|team|all of you|guys|you all|y'all)\b", re.IGNORECASE)
 ROUND_NOTE = ("(Group round: the person asked the whole team. Add only something new and useful from your role, "
               "in one or two sentences. If you have nothing new, reply exactly SKIP.)")
-WORKER_KITS = ("computer", "files", "web", "browser", "memory")
+WORKER_KITS = ("computer", "terminal", "files", "web", "browser", "memory")
 _YES_NO = {**{w: True for w in ("yes", "y", "ok", "okay", "approve", "approved", "go ahead", "do it", "haan", "ha")},
            **{w: False for w in ("no", "n", "deny", "denied", "don't", "dont", "nahi", "na", "cancel it")}}
 
