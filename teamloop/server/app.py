@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -158,6 +159,15 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     @app.get("/api/usage")
     def usage() -> list[dict]:
         return get_crew().store.usage()
+
+    @app.get("/api/shots/{name}")
+    def shot(name: str) -> FileResponse:
+        if not re.fullmatch(r"[0-9a-f]{12}\.png", name):
+            raise HTTPException(404, "No such screenshot.")
+        path = config.workspace() / "shots" / name
+        if not path.is_file():
+            raise HTTPException(404, "No such screenshot.")
+        return FileResponse(path, media_type="image/png")
 
     ui = config.ROOT / "ui" / "dist"
     if ui.is_dir():
