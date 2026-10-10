@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import os
 import time
 from typing import AsyncIterator
 
@@ -104,6 +105,41 @@ async def open_app(args: dict, ctx) -> ToolResult:
     where = "in front" if front else "open (Windows kept another window in front)"
     return ToolResult(True, f"Opened {app['name']}; its window \"{win.title}\" is {where}.",
                       {"app": app["name"], "window": win.title})
+
+
+RUNNABLE = {".exe", ".bat", ".cmd", ".com", ".ps1", ".psm1", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh", ".msi",
+            ".msp", ".scr", ".lnk", ".url", ".reg", ".hta", ".cpl", ".jar", ".py", ".pyw", ".appref-ms"}
+
+
+@tool("open_file", "Open a file (a report, PDF, picture...) in its usual app. Desktop, Documents, Downloads or "
+                   "workspace only; asks the person first.",
+      {"path": {"type": "string", "description": "e.g. Desktop/report.md"}, "required": ["path"]}, kit="computer")
+async def open_file(args: dict, ctx) -> ToolResult:
+    from teamloop.tools.files import resolve
+
+    try:
+        path = resolve(str(args.get("path", "")))
+    except ValueError as e:
+        return ToolResult(False, f"Refused: {e}")
+    if not path.is_file():
+        return ToolResult(False, f"There is no file at {path}.")
+    if path.suffix.lower() in RUNNABLE:
+        return ToolResult(False, "Refused: that file is a program or script, so opening it would run it.")
+    if not await ctx.approve("Open a file", f"Open {path.name} (in {path.parent}) with its usual app."):
+        return ToolResult(False, f"The person said no, so {path.name} stays closed.")
+    try:
+        async with lease():
+            before = {w.hwnd for w in await asyncio.to_thread(winapi.windows)}
+            await asyncio.to_thread(os.startfile, str(path))
+            win = await _wait_for_window(path.name, before)
+    except LeaseBusy:
+        return _busy()
+    except OSError as e:
+        return ToolResult(False, f"Windows couldn't open {path.name}: {e.strerror or e}.")
+    if win is None:
+        return ToolResult(True, f"Asked Windows to open {path.name}; no new window showed up yet.", {"path": str(path)})
+    return ToolResult(True, f"Opened {path.name}; its window \"{win.title}\" is in front.",
+                      {"path": str(path), "window": win.title})
 
 
 @tool("close_app", "Close an app's windows (asks the person first; unsaved work could be lost).",

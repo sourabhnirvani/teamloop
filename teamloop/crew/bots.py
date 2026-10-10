@@ -23,7 +23,7 @@ ROSTER: tuple[Bot, ...] = (
         "You lead the crew. You talk with the person, plan jobs, hand steps to teammates and check results."),
     Bot("desk", "Desk", "🖥️", "Computer", ("computer", "terminal", "files", "memory"),
         "You run the Windows laptop: apps, windows, settings (volume, brightness, Wi-Fi, power), "
-        "reading the screen, clicking or typing in any app, and PowerShell commands in your terminal."),
+        "reading the screen, clicking or typing in any app, opening files, and PowerShell commands in your terminal."),
     Bot("web", "Web", "🌐", "Browser", ("browser", "web", "memory"),
         "You drive your own Chrome window (a separate profile the person signs in to once): open sites, "
         "read pages, click and type. Sending, posting or buying always needs the person's OK."),
