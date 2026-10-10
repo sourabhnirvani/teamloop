@@ -149,11 +149,18 @@ def create_app(crew: Crew | None = None) -> FastAPI:
 
     @app.post("/api/keys")
     async def add_keys(body: KeyText) -> list[dict]:
+        # Service keys (neatlogs, Telegram) first, the same way pasting them in a chat does.
+        services = wallet.service_keys(body.text)
+        out = [{"provider": label.lower(), "status": "saved", "text": sentence}
+               for (_, label, _), sentence in zip(services, wallet.add_services(body.text))]
+        for item in out:
+            if item["provider"] == "neatlogs":
+                item["text"] += " Tracing is on." if trace.init() else " Tracing will start after a restart."
         found = await wallet.add_from_text(body.text)
-        if not found:
+        if not (found or out):
             raise HTTPException(400, "No API key found in that text.")
         get_crew().router.dead_models.clear()
-        return [{"provider": a.provider, "status": a.status, "text": a.sentence()} for a in found]
+        return out + [{"provider": a.provider, "status": a.status, "text": a.sentence()} for a in found]
 
     @app.post("/api/models/check")
     async def check_models() -> dict:

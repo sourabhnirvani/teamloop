@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from fakes import FakeRouter
 from fastapi.testclient import TestClient
 
+from teamloop.keys import vault
 from teamloop.server.app import build_crew, create_app
 from teamloop.tools import files
 
@@ -27,6 +28,17 @@ def test_api_roundtrip(tmp_path):
         assert client.post("/api/approvals/nope", json={"ok": True}).status_code == 404
         assert client.post("/api/settings", json={"save_tokens": True}).json()["save_tokens"] is True
         assert isinstance(client.get("/api/keys").json(), list)
+
+
+def test_settings_key_box_saves_telegram_and_neatlogs_keys(tmp_path):
+    crew = build_crew(tmp_path / "api.db", router=FakeRouter([]))
+    neat, tg = "nl_" + "k" * 30, "1234567890:" + "A" * 35
+    with TestClient(create_app(crew)) as client:
+        out = client.post("/api/keys", json={"text": f"neatlogs key: {neat}\n{tg}"}).json()
+        assert [o["provider"] for o in out] == ["neatlogs", "telegram"]
+        assert out[0]["text"].startswith("Saved your neatlogs key.") and out[1]["text"] == "Saved your Telegram key."
+        assert vault.load() == {"NEATLOGS_API_KEY": neat, "TELEGRAM_TOKEN": tg}
+        assert client.post("/api/keys", json={"text": "no key here"}).status_code == 400
 
 
 class Ctx(SimpleNamespace):
