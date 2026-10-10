@@ -48,6 +48,13 @@ class KeyText(BaseModel):
     text: str
 
 
+SIGN_IN_URL = "https://accounts.google.com"
+
+
+class SignIn(BaseModel):
+    url: str = SIGN_IN_URL
+
+
 def build_crew(db_path: Path | str | None = None, router: Any = None) -> Crew:
     store = Store(db_path or config.db_path())
     crew = Crew(store, router or Router(on_usage=store.add_usage), Bus())
@@ -215,6 +222,27 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         if not routines.cancel(get_crew(), routine_id):
             raise HTTPException(404, "No such routine.")
         return {"ok": True}
+
+    @app.post("/api/browser/signin")
+    async def browser_signin(body: SignIn) -> dict:
+        """Open a tab in the crew's Chrome on a sign-in page; the person signs in there once, the bots use it."""
+        from teamloop.browser import kit as browser_kit
+
+        url = body.url.strip() or SIGN_IN_URL
+        if not url.startswith("https://"):
+            raise HTTPException(400, "Only https:// sign-in pages.")
+        browser = browser_kit.host()
+        if browser.headless:
+            raise HTTPException(409, "The crew's Chrome runs hidden (TEAMLOOP_BROWSER_HEADLESS=1), so there's nothing to sign in to.")
+        try:
+            await browser.start()
+            page = await browser.context.new_page()
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await page.bring_to_front()
+        except Exception as e:
+            raise HTTPException(503, f"Couldn't open the crew's Chrome: {str(e).splitlines()[0][:160]}") from None
+        return {"ok": True, "url": page.url,
+                "text": "The crew's Chrome is open on the sign-in page. Sign in there yourself; the bots use it after."}
 
     @app.get("/api/shots/{name}")
     def shot(name: str) -> FileResponse:

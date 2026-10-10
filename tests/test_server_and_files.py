@@ -64,3 +64,40 @@ async def test_files_write_read_and_refuse_outside(workspace):
     assert not outside.ok and outside.text.startswith("Refused:")
     sneaky = await files.write_file({"path": "workspace/../../escape.txt", "content": "x"}, ctx)
     assert not sneaky.ok
+
+
+def test_sign_in_opens_a_tab_in_the_crews_chrome(tmp_path):
+    from teamloop.browser import kit as browser_kit
+
+    opened = []
+
+    class Page:
+        url = ""
+
+        async def goto(self, url, **kw):
+            self.url = url
+            opened.append(url)
+
+        async def bring_to_front(self):
+            pass
+
+    class Context:
+        async def new_page(self):
+            return Page()
+
+    class Host:
+        headless = False
+        context = Context()
+
+        async def start(self):
+            pass
+
+    browser_kit.set_host(Host())
+    try:
+        crew = build_crew(tmp_path / "api.db", router=FakeRouter([]))
+        with TestClient(create_app(crew)) as client:
+            out = client.post("/api/browser/signin", json={}).json()
+            assert out["ok"] and opened == ["https://accounts.google.com"]
+            assert client.post("/api/browser/signin", json={"url": "http://evil.example"}).status_code == 400
+    finally:
+        browser_kit.set_host(None)

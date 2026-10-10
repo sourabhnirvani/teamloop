@@ -115,6 +115,7 @@ Server: `http://127.0.0.1:8790`. All JSON.
 | `GET /api/usage` | today's tokens and requests per provider |
 | `POST /api/phones/pair` · `GET /api/phones` · `DELETE /api/phones/{id}` | laptop only: start the tunnel + one-use code `{code, link, expires, qr}` / paired phones / remove one |
 | `GET /pair` · `POST /pair` (form `code`) | phone pairing page; sets the phone's cookie. Through the tunnel, every `/api` call needs that cookie (else 401) |
+| `POST /api/browser/signin {url?}` | open a tab in the crew's Chrome on a sign-in page (default Google, https only) so the person signs in once → `{ok, url, text}` |
 
 Approval event: `{type:"approval", id, chat_id, bot, title, details, screenshot?}`.
 
