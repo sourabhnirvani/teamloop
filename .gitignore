@@ -7,3 +7,6 @@ __pycache__/
 *.log
 .mcp.json
 workspace/
+
+.mcp.json.*.bak
+.claude/settings.local.json
