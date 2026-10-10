@@ -26,6 +26,7 @@ from teamloop.keys import vault, wallet
 from teamloop.models import doctor
 from teamloop.models import providers as P
 from teamloop.models.router import Router
+from teamloop.server import telegram
 
 PING_SECONDS = 15
 
@@ -69,8 +70,10 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         trace.init()
         ticker = asyncio.create_task(routines.scheduler(app.state.crew))
+        phone = asyncio.create_task(telegram.run(app.state.crew))
         yield
         ticker.cancel()
+        phone.cancel()
         trace.flush()
 
     app = FastAPI(title="TeamLoop", lifespan=lifespan)
