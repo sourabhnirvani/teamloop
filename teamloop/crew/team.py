@@ -31,7 +31,9 @@ _MENTION = re.compile(r"@(\w+)|\bask (\w+) to\b", re.IGNORECASE)
 _TEAM_WORDS = re.compile(r"\b(everyone|everybody|team|all of you|guys|you all|y'all)\b", re.IGNORECASE)
 ROUND_NOTE = ("(Group round: the person asked the whole team. Add only something new and useful from your role, "
               "in one or two sentences. If you have nothing new, reply exactly SKIP.)")
-WORKER_KITS = ("computer", "files", "web", "browser")
+WORKER_KITS = ("computer", "files", "web", "browser", "memory")
+_YES_NO = {**{w: True for w in ("yes", "y", "ok", "okay", "approve", "approved", "go ahead", "do it", "haan", "ha")},
+           **{w: False for w in ("no", "n", "deny", "denied", "don't", "dont", "nahi", "na", "cancel it")}}
 
 
 class Crew:
@@ -67,6 +69,11 @@ class Crew:
         await self.bus.emit("message", chat_id=chat_id, message=msg)
         if text.strip().lower().rstrip("!.") in STOP_WORDS:
             await self.stop(chat_id)
+            return msg
+        waiting = self.gate.pending_in(chat_id)
+        answer = _YES_NO.get(text.strip().lower().rstrip("!."))
+        if waiting and answer is not None:  # typed answer to the newest approval card
+            self.gate.answer(waiting[-1], answer)
             return msg
         previous = self._tasks.get(chat_id)
         self._tasks[chat_id] = asyncio.create_task(self._handle(chat, text, previous))

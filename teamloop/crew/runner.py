@@ -22,7 +22,7 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
                        max_steps: int = MAX_STEPS) -> str:
     tools = registry.tools_for_kits(list(bot.kits))
     tool_schemas = registry.schemas(tools) or None
-    messages: list[dict] = [{"role": "system", "content": system_prompt(bot, members)}, *history,
+    messages: list[dict] = [{"role": "system", "content": system_prompt(bot, members, facts=_facts(ctx))}, *history,
                             {"role": "user", "content": user_text}]
     with trace.span(f"{bot.name} turn", "agent", bot=bot.id, chat=ctx.chat_id, depth=ctx.depth):
         for _ in range(max_steps):
@@ -42,6 +42,15 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
         final = await router.chat(messages + [{"role": "user", "content": WRAP_UP}], prefer=prefer,
                                   purpose=f"wrapup:{bot.id}")
         return final.text.strip() or "Done."
+
+
+def _facts(ctx: TurnCtx) -> list[str]:
+    try:
+        from teamloop.crew.memory import recall_facts
+
+        return [r["fact"] for r in recall_facts(ctx.crew.store, limit=10)]
+    except Exception:  # memory is a nice-to-have; a turn never fails over it
+        return []
 
 
 def _tool_content(result: registry.ToolResult) -> str:

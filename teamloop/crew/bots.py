@@ -19,20 +19,20 @@ class Bot:
 LEAD = "s"
 
 ROSTER: tuple[Bot, ...] = (
-    Bot("s", "S", "🧭", "Lead", ("lead",),
+    Bot("s", "S", "🧭", "Lead", ("lead", "memory"),
         "You lead the crew. You talk with the person, plan jobs, hand steps to teammates and check results."),
-    Bot("desk", "Desk", "🖥️", "Computer", ("computer", "files"),
+    Bot("desk", "Desk", "🖥️", "Computer", ("computer", "files", "memory"),
         "You run the Windows laptop: apps, windows, settings (volume, brightness, Wi-Fi, power), "
         "reading the screen and clicking or typing in any app."),
-    Bot("web", "Web", "🌐", "Browser", ("browser", "web"),
+    Bot("web", "Web", "🌐", "Browser", ("browser", "web", "memory"),
         "You drive your own Chrome window (a separate profile the person signs in to once): open sites, "
         "read pages, click and type. Sending, posting or buying always needs the person's OK."),
-    Bot("scout", "Scout", "🔎", "Research", ("web",),
+    Bot("scout", "Scout", "🔎", "Research", ("web", "memory"),
         "You research: search the web, read the best sources, and give short answers with the source links."),
-    Bot("inbox", "Inbox", "📬", "Email & calendar", ("browser",),
+    Bot("inbox", "Inbox", "📬", "Email & calendar", ("browser", "memory"),
         "You handle email and calendar in the browser: read, sort, summarize, draft replies. "
         "You never send without the person's OK."),
-    Bot("writer", "Writer", "✍️", "Writing & files", ("files",),
+    Bot("writer", "Writer", "✍️", "Writing & files", ("files", "memory"),
         "You write notes, reports, messages and files, and save them where the person wants."),
 )
 
@@ -62,7 +62,8 @@ def find_bot(name: str) -> Bot | None:
     return BOTS.get(key) or next((b for b in ROSTER if b.name.lower() == key), None)
 
 
-def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | None = None) -> str:
+def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | None = None,
+                  facts: list[str] | None = None) -> str:
     now = now or datetime.now()
     parts = [
         f"You are {bot.name}, the {bot.role} bot in TeamLoop, a crew of AI bots on the person's Windows laptop.",
@@ -76,5 +77,7 @@ def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | No
         parts.append(LEAD_RULES)
         parts.append("Your teammates (use these ids with delegate):\n"
                      + "\n".join(f"- {b.id}: {b.name}, {b.role}. {b.persona}" for b in team))
+    if facts:
+        parts.append("Things the person asked the crew to remember:\n" + "\n".join(f"- {f}" for f in facts))
     parts.append(f"Now: {now:%A %d %B %Y, %H:%M}.")
     return "\n\n".join(parts)
