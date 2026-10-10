@@ -6,6 +6,22 @@ Submit: **Mon 12 Oct 19:00 IST** (window 19:00–23:55), as a quote post of the 
 
 ## 0. Ground rules
 
+**Official rules (neatlogs.com/hackathon FAQ, checked Sat 10 Oct 22:45 IST):**
+- Teams of 1–4; every member registers on Luma with the **same team name** (ours: "Agent S").
+- All code written between the start on Oct 10 and the deadline on Oct 12. "Finished or half-built
+  projects cannot be brought into the event." Judges must be able to verify commit dates.
+- Must use **neatlogs, Entire and cfo.ai**, each with a clear role; the demo covers all three.
+- Submit: one public quote post of the official neatlogs submission post on X (team, name, project,
+  public repo, demo link), via the "Submit on X" button once live. Video ≤ 3 min; for **each** tool
+  it must cover architecture, implementation, runtime, reasoning and result. Evidence goes in the repo.
+  Window Mon 12 Oct 19:00 to ~23:55 IST; the final cutoff is announced on Discord; late = not judged.
+- Judging: agent 30% · use of neatlogs/Entire/cfo.ai 25% · demo video 20% · **building in public 15%**
+  (posts tagged **#neatHack** during the event, linked as evidence) · usefulness/originality 10%.
+- Evidence judges check: before/after neatlogs traces with numbers, neatlogs trace links or
+  screenshots, Entire checkpoints or entire-graph output, the cfo.ai business plan (pricing, costs,
+  revenue, runway), a failed action and what the agent did next, #neatHack post links, commit dates.
+- Conduct: harassment, spam or plagiarism means removal. Bought likes or bot activity disqualifies.
+
 - **Same product as our Agent S, all new code.** We rebuild every Agent S feature from scratch
   during the event. Never copy, import or paste old Agent S code, and don't point your coding agent
   at the old folder. Describe the feature in words instead. Judges check commit dates.
