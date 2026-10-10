@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import Mapping
 
@@ -98,8 +99,32 @@ def keys_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[s
 def models_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[str]:
     env = os.environ if env is None else env
     override = env.get(f"{provider.prefix}_MODELS", "")
-    models = [m.strip() for m in override.split(",") if m.strip()] or list(provider.models)
+    models = [m.strip() for m in override.split(",") if m.strip()]
+    if not models and provider.id == "ollama":
+        models = installed_ollama_models(base_url_for(provider, env))
+    models = models or list(provider.models)
     return [m for m in models if free_to_use(provider.id, m, env)]
+
+
+_ollama_seen: dict[str, tuple[float, list[str]]] = {}
+
+
+def installed_ollama_models(base_url: str, ttl: float = 60.0) -> list[str]:
+    """The chat models this Ollama really has (GET /api/tags), checked at most once a minute."""
+    now = time.monotonic()
+    cached = _ollama_seen.get(base_url)
+    if cached and now - cached[0] < ttl:
+        return cached[1]
+    models: list[str] = []
+    try:
+        import httpx
+
+        tags = httpx.get(base_url.rstrip("/").removesuffix("/v1") + "/api/tags", timeout=0.5).json()
+        models = [m["name"] for m in tags.get("models", []) if "embed" not in m.get("name", "")]
+    except Exception:
+        pass  # not running: the default model name stays, and a call fails fast
+    _ollama_seen[base_url] = (now, models)
+    return models
 
 
 def base_url_for(provider: Provider, env: Mapping[str, str] | None = None) -> str:

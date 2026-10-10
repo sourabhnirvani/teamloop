@@ -11,6 +11,9 @@ import httpx
 from teamloop.tools.registry import ToolResult, tool
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
+# Wikimedia refuses browser-looking agents from scripts; it wants an honest one with a contact link.
+BOT_UA = "TeamLoop/0.1 (https://github.com/sourabhnirvani/teamloop)"
+_WIKIMEDIA = re.compile(r"(^|\.)(wikipedia|wikimedia|wiktionary|wikidata)\.org$", re.I)
 PAGE_CHARS = 6000
 MAX_BYTES = 2_000_000
 
@@ -34,12 +37,24 @@ def _ddg_url(href: str) -> str:
     return href
 
 
+def _ua_for(url: str) -> str:
+    return BOT_UA if _WIKIMEDIA.search(urlparse(url).hostname or "") else UA
+
+
+def _client(**kw) -> httpx.AsyncClient:
+    return httpx.AsyncClient(headers={"User-Agent": UA}, timeout=20, follow_redirects=True, **kw)
+
+
 async def _duckduckgo(client: httpx.AsyncClient, query: str, n: int) -> list[dict]:
     resp = await client.post("https://html.duckduckgo.com/html/", data={"q": query})
-    if resp.status_code != 200:
+    if resp.status_code != 200:  # 202 is its "are you a bot?" page
         return []
-    links = _DDG_LINK.findall(resp.text)
-    snippets = _DDG_SNIPPET.findall(resp.text)
+    return _ddg_results(resp.text, n)
+
+
+def _ddg_results(page: str, n: int) -> list[dict]:
+    links = _DDG_LINK.findall(page)
+    snippets = _DDG_SNIPPET.findall(page)
     results = []
     for i, (href, title) in enumerate(links):
         url = _ddg_url(html.unescape(href))
@@ -52,13 +67,36 @@ async def _duckduckgo(client: httpx.AsyncClient, query: str, n: int) -> list[dic
 
 
 async def _wikipedia(client: httpx.AsyncClient, query: str, n: int) -> list[dict]:
-    resp = await client.get("https://en.wikipedia.org/w/api.php", params={
+    resp = await client.get("https://en.wikipedia.org/w/api.php", headers={"User-Agent": BOT_UA}, params={
         "action": "query", "list": "search", "srsearch": query, "format": "json", "srlimit": n})
     if resp.status_code != 200:
         return []
     hits = resp.json().get("query", {}).get("search", [])
     return [{"title": h["title"], "url": "https://en.wikipedia.org/wiki/" + quote(h["title"].replace(" ", "_")),
              "snippet": _clean(h.get("snippet", ""))} for h in hits]
+
+
+async def _browser_search(query: str, n: int) -> list[dict]:
+    """Search DuckDuckGo in the crew's own Chrome (free, no key). Empty if Chrome can't be used."""
+    try:
+        from teamloop.browser import kit as browser_kit
+
+        browser = browser_kit.host()
+        await browser.start()
+        page = await browser.context.new_page()
+    except Exception:
+        return []
+    try:
+        await page.goto("https://html.duckduckgo.com/html/?q=" + quote(query), wait_until="domcontentloaded",
+                        timeout=20000)
+        return _ddg_results(await page.content(), n)
+    except Exception:
+        return []
+    finally:
+        try:
+            await page.close()
+        except Exception:
+            pass
 
 
 @tool("web_search", "Search the web. Returns titles, links and short snippets.",
@@ -69,12 +107,14 @@ async def web_search(args: dict, ctx) -> ToolResult:
     if not query:
         return ToolResult(False, "Tell me what to search for.")
     n = max(1, min(10, int(args.get("max_results") or 5)))
-    async with httpx.AsyncClient(headers={"User-Agent": UA}, timeout=20, follow_redirects=True) as client:
+    async with _client() as client:
         results, source = [], "the web"
         try:
             results = await _duckduckgo(client, query, n)
         except httpx.HTTPError:
             results = []
+        if not results:  # DuckDuckGo challenges scripts after a few searches; a real browser isn't challenged
+            results = await _browser_search(query, n)
         if not results:
             source = "Wikipedia"
             try:
@@ -93,8 +133,8 @@ async def fetch_page(args: dict, ctx) -> ToolResult:
     if not re.match(r"^https?://", url):
         return ToolResult(False, "Give a full http(s) link.")
     try:
-        async with httpx.AsyncClient(headers={"User-Agent": UA}, timeout=20, follow_redirects=True) as client:
-            resp = await client.get(url)
+        async with _client() as client:
+            resp = await client.get(url, headers={"User-Agent": _ua_for(url)})
     except httpx.HTTPError as e:
         return ToolResult(False, f"Could not open {url}: {e.__class__.__name__}.")
     if resp.status_code >= 400:

@@ -7,6 +7,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 os.environ["TEAMLOOP_TRACE"] = "0"
 os.environ["TEAMLOOP_DOCTOR_HOURS"] = "0"  # no background model checks in tests
+os.environ["OLLAMA_URL"] = "http://127.0.0.1:9/v1"  # never ask a real local Ollama which models it has
 
 
 @pytest.fixture(autouse=True)

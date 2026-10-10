@@ -43,6 +43,10 @@ class ModelGone(Exception):
     pass
 
 
+class BadToolCall(Exception):
+    """The model tried to call a tool but its arguments weren't valid JSON (worth one retry)."""
+
+
 class Transient(Exception):
     pass
 
@@ -167,6 +171,13 @@ class Router:
                 self.dead_models.add((provider.id, model))
                 errors.append(f"{provider.name} {model}: model gone")
                 continue
+            except BadToolCall:
+                # Not the key's fault: ask the same model once more before moving on.
+                try:
+                    reply = await self._call(provider, key, model, messages, tools, max_tokens)
+                except (BadToolCall, Transient, RateLimited, BadKey, ModelGone) as e:
+                    errors.append(f"{provider.name} {model}: broken tool call ({type(e).__name__})")
+                    continue
             except Transient as e:
                 st.rest_until = self.clock() + 20
                 errors.append(f"{provider.name} {model}: {e}")
@@ -213,7 +224,15 @@ class Router:
         except openai.NotFoundError as e:
             raise ModelGone() from e
         except openai.BadRequestError as e:
-            raise Transient(_short(e)) from e
+            failed = _failed_tool_call(e)
+            if failed is None:
+                raise Transient(_short(e)) from e
+            # The model meant to call a tool but wrote broken JSON (Groq: tool_use_failed). Use what can be read.
+            found, text = textcalls.extract(failed, [t["function"]["name"] for t in tools or []])
+            if not found:
+                raise BadToolCall() from e
+            return Reply(text=text, tool_calls=[ToolCall(f"salvaged_{i}", n, a) for i, (n, a) in enumerate(found)],
+                         provider=provider.id, model=model)
         except (openai.APIConnectionError, openai.APITimeoutError, openai.InternalServerError) as e:
             raise Transient(_short(e)) from e
         except openai.APIStatusError as e:
@@ -233,6 +252,17 @@ class Router:
         return Reply(text=text, tool_calls=calls, provider=provider.id, model=model,
                      tokens_in=getattr(usage, "prompt_tokens", 0) or 0,
                      tokens_out=getattr(usage, "completion_tokens", 0) or 0)
+
+
+def _failed_tool_call(err: Exception) -> str | None:
+    """The text of a tool call the provider couldn't parse (Groq: code tool_use_failed), or None."""
+    body = getattr(err, "body", None)
+    detail = body.get("error", body) if isinstance(body, dict) else {}
+    code = (detail.get("code") if isinstance(detail, dict) else None) or getattr(err, "code", None)
+    if code != "tool_use_failed":
+        return None
+    failed = detail.get("failed_generation") if isinstance(detail, dict) else None
+    return failed if isinstance(failed, str) else ""
 
 
 def _parse_args(raw: str | None) -> dict:
