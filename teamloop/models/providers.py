@@ -1,0 +1,98 @@
+"""Free model providers. They all speak the OpenAI chat API, so one client type covers them.
+
+Keys come from the environment: GEMINI_API_KEY, GEMINI_API_KEY_2, ... form one pool.
+Model lists can be overridden per provider, e.g. GROQ_MODELS="llama-3.3-70b-versatile,...".
+"""
+
+from __future__ import annotations
+
+import os
+import re
+from dataclasses import dataclass
+from typing import Mapping
+
+
+@dataclass(frozen=True)
+class Provider:
+    id: str
+    name: str
+    base_url: str
+    env: str                      # key variable; NAME, NAME_2 ... NAME_9 form a pool
+    models: tuple[str, ...]
+    key_pattern: str | None = None  # spots a pasted key of this provider
+    needs_key: bool = True
+
+    @property
+    def prefix(self) -> str:
+        return self.env.removesuffix("_API_KEY")
+
+
+PROVIDERS: dict[str, Provider] = {p.id: p for p in [
+    Provider("gemini", "Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/",
+             "GEMINI_API_KEY", ("gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"),
+             r"AIza[0-9A-Za-z_\-]{35}"),
+    Provider("groq", "Groq", "https://api.groq.com/openai/v1",
+             "GROQ_API_KEY", ("llama-3.3-70b-versatile", "openai/gpt-oss-120b", "llama-3.1-8b-instant"),
+             r"gsk_[0-9A-Za-z]{52}"),
+    Provider("openrouter", "OpenRouter", "https://openrouter.ai/api/v1",
+             "OPENROUTER_API_KEY", ("openai/gpt-oss-20b:free", "meta-llama/llama-3.3-70b-instruct:free",
+                                    "deepseek/deepseek-chat-v3.1:free"),
+             r"sk-or-v1-[0-9a-f]{64}"),
+    Provider("nvidia", "NVIDIA", "https://integrate.api.nvidia.com/v1",
+             "NVIDIA_API_KEY", ("meta/llama-3.3-70b-instruct", "nvidia/llama-3.3-nemotron-super-49b-v1"),
+             r"nvapi-[0-9A-Za-z_\-]{64}"),
+    Provider("zai", "GLM (z.ai)", "https://api.z.ai/api/paas/v4",
+             "ZAI_API_KEY", ("glm-4.5-flash",),
+             r"[0-9a-f]{32}\.[0-9A-Za-z]{16}"),
+    Provider("nebius", "Nebius", "https://api.studio.nebius.com/v1/",
+             "NEBIUS_API_KEY", ("meta-llama/Llama-3.3-70B-Instruct",)),
+    Provider("ollama", "Local (Ollama)", "http://localhost:11434/v1",
+             "OLLAMA_API_KEY", ("qwen2.5:7b",), needs_key=False),
+]}
+
+DEFAULT_CHAIN: tuple[str, ...] = ("gemini", "groq", "openrouter", "nvidia", "zai", "nebius", "ollama")
+
+
+def chain(env: Mapping[str, str] | None = None) -> list[Provider]:
+    env = os.environ if env is None else env
+    order = [p.strip() for p in env.get("TEAMLOOP_CHAIN", "").split(",") if p.strip()] or DEFAULT_CHAIN
+    return [PROVIDERS[p] for p in order if p in PROVIDERS]
+
+
+def keys_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[str]:
+    env = os.environ if env is None else env
+    if not provider.needs_key:
+        return [""]
+    names = [provider.env] + [f"{provider.env}_{i}" for i in range(2, 10)]
+    keys: list[str] = []
+    for name in names:
+        value = (env.get(name) or "").strip()
+        if value and value not in keys:
+            keys.append(value)
+    return keys
+
+
+def models_for(provider: Provider, env: Mapping[str, str] | None = None) -> list[str]:
+    env = os.environ if env is None else env
+    override = env.get(f"{provider.prefix}_MODELS", "")
+    models = [m.strip() for m in override.split(",") if m.strip()]
+    return models or list(provider.models)
+
+
+def base_url_for(provider: Provider, env: Mapping[str, str] | None = None) -> str:
+    env = os.environ if env is None else env
+    if provider.id == "ollama":
+        return env.get("OLLAMA_URL") or provider.base_url
+    return provider.base_url
+
+
+def detect_keys(text: str) -> list[tuple[Provider, str]]:
+    """Find provider keys inside free text (a pasted key, a chat message, a .env dump)."""
+    found: list[tuple[Provider, str]] = []
+    for provider in PROVIDERS.values():
+        if not provider.key_pattern:
+            continue
+        for match in re.finditer(rf"(?<![0-9A-Za-z_\-]){provider.key_pattern}(?![0-9A-Za-z_\-])", text):
+            if all(match.group(0) != key for _, key in found):
+                found.append((provider, match.group(0)))
+    return found

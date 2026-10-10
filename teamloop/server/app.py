@@ -1,0 +1,166 @@
+"""The HTTP API the UI, phone and Telegram use (contract: PLAN.md section 4)."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from teamloop import config, kits, trace
+from teamloop.crew.bots import BOTS, ROSTER
+from teamloop.crew.events import Bus
+from teamloop.crew.store import Store
+from teamloop.crew.team import Crew
+from teamloop.models import providers as P
+from teamloop.models.router import Router
+
+PING_SECONDS = 15
+
+
+class NewChat(BaseModel):
+    title: str
+    members: list[str]
+
+
+class NewMessage(BaseModel):
+    text: str
+
+
+class Answer(BaseModel):
+    ok: bool
+
+
+def build_crew(db_path: Path | str | None = None, router: Any = None) -> Crew:
+    store = Store(db_path or config.db_path())
+    crew = Crew(store, router or Router(on_usage=store.add_usage), Bus())
+    crew.ensure_default_chats()
+    return crew
+
+
+def _mask(key: str) -> str:
+    return f"{key[:4]}…{key[-4:]}" if len(key) > 12 else "…"
+
+
+def create_app(crew: Crew | None = None) -> FastAPI:
+    kits.load_all()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        trace.init()
+        yield
+        trace.flush()
+
+    app = FastAPI(title="TeamLoop", lifespan=lifespan)
+    app.add_middleware(CORSMiddleware, allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+                       allow_methods=["*"], allow_headers=["*"])
+    app.state.crew = crew or build_crew()
+
+    def get_crew() -> Crew:
+        return app.state.crew
+
+    @app.get("/api/bots")
+    def bots() -> list[dict]:
+        c = get_crew()
+        return [{"id": b.id, "name": b.name, "role": b.role, "emoji": b.emoji,
+                 "model": c.model_for(b.id) or "auto"} for b in ROSTER]
+
+    @app.get("/api/chats")
+    def chats() -> list[dict]:
+        return get_crew().store.chats()
+
+    @app.post("/api/chats")
+    def new_chat(body: NewChat) -> dict:
+        members = [m for m in body.members if m in BOTS]
+        if not members:
+            raise HTTPException(400, "Pick at least one bot.")
+        return get_crew().store.create_chat(body.title.strip() or "New chat", members)
+
+    @app.get("/api/chats/{chat_id}/messages")
+    def messages(chat_id: str) -> list[dict]:
+        c = get_crew()
+        if c.store.get_chat(chat_id) is None:
+            raise HTTPException(404, "No such chat.")
+        return c.store.messages(chat_id)
+
+    @app.post("/api/chats/{chat_id}/messages", status_code=202)
+    async def post_message(chat_id: str, body: NewMessage) -> dict:
+        if not body.text.strip():
+            raise HTTPException(400, "Empty message.")
+        try:
+            return await get_crew().post(chat_id, body.text)
+        except KeyError:
+            raise HTTPException(404, "No such chat.") from None
+
+    @app.post("/api/chats/{chat_id}/stop")
+    async def stop(chat_id: str) -> dict:
+        return {"stopped": await get_crew().stop(chat_id)}
+
+    @app.post("/api/approvals/{approval_id}")
+    def answer(approval_id: str, body: Answer) -> dict:
+        if not get_crew().gate.answer(approval_id, body.ok):
+            raise HTTPException(404, "That approval is no longer waiting.")
+        return {"ok": True}
+
+    @app.get("/api/events")
+    async def events() -> StreamingResponse:
+        bus = get_crew().bus
+
+        async def stream():
+            with bus.subscribe() as queue:
+                yield ": connected\n\n"
+                while True:
+                    try:
+                        event = await asyncio.wait_for(queue.get(), PING_SECONDS)
+                    except asyncio.TimeoutError:
+                        yield ": ping\n\n"
+                        continue
+                    yield f"data: {json.dumps(event, ensure_ascii=False, default=str)}\n\n"
+
+        return StreamingResponse(stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.get("/api/keys")
+    def keys() -> list[dict]:
+        return [{"id": p.id, "name": p.name, "needs_key": p.needs_key,
+                 "keys": [_mask(k) for k in P.keys_for(p) if k]} for p in P.PROVIDERS.values()]
+
+    @app.get("/api/models")
+    def models() -> list[dict]:
+        router = get_crew().router
+        dead = getattr(router, "dead_models", set())
+        return [{"provider": p.id, "name": p.name, "has_key": bool(P.keys_for(p)),
+                 "models": [{"id": m, "dead": (p.id, m) in dead} for m in P.models_for(p)]}
+                for p in P.chain()]
+
+    @app.get("/api/settings")
+    def settings() -> dict:
+        s = get_crew().store
+        return {"save_tokens": bool(s.get_setting("save_tokens", False)),
+                "crew_model": s.get_setting("crew_model"),
+                "bot_models": s.get_setting("bot_models", {}) or {}}
+
+    @app.post("/api/settings")
+    def set_settings(body: dict) -> dict:
+        s = get_crew().store
+        for key in ("save_tokens", "crew_model", "bot_models"):
+            if key in body:
+                s.set_setting(key, body[key])
+        return settings()
+
+    @app.get("/api/usage")
+    def usage() -> list[dict]:
+        return get_crew().store.usage()
+
+    ui = config.ROOT / "ui" / "dist"
+    if ui.is_dir():
+        app.mount("/", StaticFiles(directory=ui, html=True), name="ui")
+
+    return app
