@@ -3,7 +3,7 @@
 **A crew of AI bots that runs your laptop.** Chat with the lead bot, S, from the desktop app, your
 phone or Telegram. S plans the job and hands steps to specialist bots. They really control the
 computer (apps, windows, settings, any app's screen, their own logged-in Chrome), check their own
-work, and ask you before anything risky. Free models only, and every step is traced in neatlogs.
+work, and ask you before anything risky. Free models only, and with a neatlogs key every step is traced in neatlogs.
 
 Built for **neatHack** (Oct 10–12, 2026) by @sourabhnirvani and @JrKrishh. It is a fresh rebuild of
 our earlier private project, Agent S: same ideas, and all code here was written during the event.
@@ -20,7 +20,7 @@ Windows 10/11, Python 3.11+, Node 20+. Everything below is free.
 git clone https://github.com/sourabhnirvani/teamloop
 cd teamloop
 python -m venv .venv
-.venv\Scriptsctivate
+.venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env          # add at least one free key (see below)
 cd ui && npm ci && npm run build && cd ..
@@ -29,8 +29,8 @@ python -m teamloop              # open http://127.0.0.1:8790
 
 **Keys.** Use free-tier keys from accounts with no card attached: Gemini (aistudio.google.com),
 Groq, NVIDIA (build.nvidia.com), OpenRouter `:free` models, z.ai flash, or local Ollama with no key.
-Put them in `.env`, or paste them into Settings → API keys; they're checked, then locked in the key
-vault and never shown again. "check models" in any chat tells you which ones answer.
+Put them in `.env`, or paste them into Settings → API keys (pasted keys are checked, then locked in the
+key vault and never shown again). "check models" in any chat tells you which ones answer.
 
 **Ways to use it**
 
@@ -50,6 +50,7 @@ students", "save a note on the Desktop: hello", "every Monday at 9am remind me t
 write a short report on the Desktop, open it, and remind me about it every Monday."*
 
 **Safety.** Anything that acts as you (closing apps, deleting, sending, buying, locking, shutting down)
-shows an approval card first; no answer in 2 minutes means no, and a "no" isn't asked again in that chat for 10 minutes. Bots never
+shows an approval card first; no answer in 2 minutes means no, and after a "no" the same request isn't asked again in that chat for
+10 minutes (say "ask me again"). Bots never
 touch a window titled "TeamLoop". Through the phone tunnel, every `/api` call needs a paired phone.
 
