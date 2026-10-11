@@ -302,8 +302,9 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
   const orbQueue = useRef<Handoff[]>([]);
   const ids = bots.map((b) => b.id).join(",");
 
+  const openedAt = useRef(Date.now());
   useEffect(() => {
-    if (handoff) orbQueue.current.push(handoff);
+    if (handoff && handoff.key >= openedAt.current) orbQueue.current.push(handoff); // not old ones when the tab opens
   }, [handoff]);
 
   useEffect(() => {

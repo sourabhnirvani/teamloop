@@ -56,6 +56,8 @@ class ScriptRouter:
         self.dead_models: set = set()
         self.last_doctor: list = []
         self.on_usage = None
+        self.runs = 0
+        self.report = "Desktop/llm-report.md"  # a new name each job, so a second run doesn't hit "already exists"
 
     async def chat(self, messages, tools=None, prefer=None, purpose="", max_tokens=None, only=False):
         await asyncio.sleep(PACE)
@@ -73,10 +75,13 @@ class ScriptRouter:
             person = next((str(m["content"]) for m in reversed(messages) if m["role"] == "user"), "")
             if not done and len(person) < 25:  # "hi", "thanks": a one-line answer
                 return _say("Hi! I'm S. In this rehearsal, send a longer request to watch the whole crew work.")
+            if not done:
+                self.runs += 1
+                self.report = f"Desktop/llm-report-{self.runs}.md"
             plan = [
                 lambda: _call("delegate", bot="scout", instruction="Find the top 3 free LLM APIs for students, with links."),
-                lambda: _call("delegate", bot="writer", instruction=f"Save Desktop/llm-report.md with:\n{REPORT}"),
-                lambda: _call("delegate", bot="desk", instruction="Open Desktop/llm-report.md."),
+                lambda: _call("delegate", bot="writer", instruction=f"Save {self.report} with:\n{REPORT}"),
+                lambda: _call("delegate", bot="desk", instruction=f"Open {self.report}."),
                 lambda: _call("schedule_routine", task="Remind me about the LLM report on my Desktop",
                               schedule="every monday at 9am"),
                 lambda: _say("Done: Scout found Gemini, Groq and OpenRouter, Writer saved llm-report.md on your Desktop, "
@@ -88,10 +93,10 @@ class ScriptRouter:
                 _say("Top 3: Gemini (https://ai.google.dev), Groq (https://console.groq.com), OpenRouter (https://openrouter.ai).")
         if bot == "writer":
             if len(done) < 2 and not any(str(m["content"]).startswith("OK:") for m in done):
-                return _call("write_file", path="Desktop/llm-report.md", content=REPORT)
-            return _say("Saved Desktop/llm-report.md.")
+                return _call("write_file", path=self.report, content=REPORT)
+            return _say(f"Saved {self.report}.")
         if bot == "desk":
-            return _call("open_file", path="Desktop/llm-report.md") if not done else _say(
+            return _call("open_file", path=self.report) if not done else _say(
                 "Opened llm-report.md." if str(done[-1]["content"]).startswith("OK:") else "You said no, so I left it.")
         return _say(f"Hi! I'm {bot.title()}. (Rehearsal: this chat answers with one line.)")
 

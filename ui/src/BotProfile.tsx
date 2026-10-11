@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Bot, type Chat, type Routine } from "./api";
 import { Avatar, botColor } from "./Avatar";
+import { Sheet } from "./Sheet";
 
 export const RULES: Record<string, { alone: string[]; asks: string[]; never: string[] }> = {
   s: { alone: ["plan jobs and hand steps to teammates", "remember things you tell it", "set routines"],
@@ -17,9 +18,9 @@ export const RULES: Record<string, { alone: string[]; asks: string[]; never: str
     asks: ["replace an existing file"], never: ["write outside those folders"] },
 };
 
-export function BotProfile({ bot, bots, chats, typing, onChat, onClose }: {
+export function BotProfile({ bot, bots, chats, typing, onChat, onBot, onClose }: {
   bot: Bot; bots: Record<string, Bot>; chats: Chat[]; typing: Record<string, string[]>;
-  onChat: (chatId: string) => void; onClose: () => void;
+  onChat: (chatId: string) => void; onBot: (botId: string) => void; onClose: () => void;
 }) {
   const [routines, setRoutines] = useState<Routine[]>([]);
   useEffect(() => { api.routines().then(setRoutines).catch(() => {}); }, []);
@@ -27,11 +28,9 @@ export function BotProfile({ bot, bots, chats, typing, onChat, onClose }: {
   const busyIn = Object.entries(typing).filter(([, ids]) => ids.includes(bot.id)).map(([c]) => c);
   const dm = chats.find((c) => c.members.length === 1 && c.members[0] === bot.id);
   const mine = routines.filter((r) => r.chat_id === dm?.id);
-  const others = Object.values(bots);
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="profile" onClick={(e) => e.stopPropagation()} style={{ "--bot": botColor(bot.id) } as React.CSSProperties}>
-        <button className="icon close" onClick={onClose} aria-label="Close">✕</button>
+    <Sheet title={bot.name} onClose={onClose} className="profile">
+      <div style={{ "--bot": botColor(bot.id) } as React.CSSProperties}>
         <div className="profile-hero">
           <Avatar bot={bot} move={busyIn.length ? "think" : "cheer"} size={112} />
           <div>
@@ -49,15 +48,15 @@ export function BotProfile({ bot, bots, chats, typing, onChat, onClose }: {
         {mine.length > 0 && (
           <div className="profile-sched"><h4>Scheduled</h4>{mine.map((r) => <div key={r.id}>⏰ {r.text} <small>({r.schedule})</small></div>)}</div>
         )}
-        <div className="profile-crew">
-          {others.map((b) => (
-            <button key={b.id} className={b.id === bot.id ? "on" : ""} title={b.name} onClick={(e) => { e.stopPropagation(); onChat(`__profile:${b.id}`); }}>
+        <div className="profile-crew" role="group" aria-label="Other bots">
+          {Object.values(bots).map((b) => (
+            <button key={b.id} className={b.id === bot.id ? "on" : ""} title={b.name} aria-label={`${b.name} profile`} onClick={() => onBot(b.id)}>
               <Avatar bot={b} size={34} />
             </button>
           ))}
         </div>
         {dm && <button className="primary wide" onClick={() => onChat(dm.id)}>Chat with {bot.name}</button>}
       </div>
-    </div>
+    </Sheet>
   );
 }

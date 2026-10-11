@@ -1,6 +1,6 @@
 // TeamLoop service worker: lets the phone install the app and open it offline.
 // The API is never cached; live chat always comes from the laptop.
-const CACHE = "teamloop-v1";
+const CACHE = "teamloop-v2"; // a new name clears the old cache, which could hold an error page
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) =>
@@ -8,6 +8,21 @@ self.addEventListener("activate", (e) =>
     caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
   ),
 );
+
+// Save the fresh page, and drop built files from older versions (same name, different hash).
+async function keep(page) {
+  const html = await page.clone().text();
+  const cache = await caches.open(CACHE);
+  await cache.put("/", page);
+  const used = new Set(html.match(/\/assets\/[\w.-]+/g) || []);
+  const families = new Set([...used].map((p) => p.replace(/-[\w]+\.(js|css)$/, "")));
+  for (const req of await cache.keys()) {
+    const path = new URL(req.url).pathname;
+    if (path.startsWith("/assets/") && !used.has(path) && families.has(path.replace(/-[\w]+\.(js|css)$/, ""))) {
+      await cache.delete(req);
+    }
+  }
+}
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
@@ -17,8 +32,7 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(
       fetch(e.request)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("/", copy));
+          if (res.ok) e.waitUntil(keep(res.clone())); // never save an error page as the app
           return res;
         })
         .catch(() => caches.match("/")),

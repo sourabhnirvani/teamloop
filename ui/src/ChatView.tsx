@@ -1,13 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
 import { Avatar, botColor, type Move } from "./Avatar";
 import { RichText } from "./RichText";
-
-export type Item =
-  | { kind: "msg"; key: string; sender: string; text: string; mkind: string; ts: number }
-  | { kind: "step"; key: string; bot: string; tool: string; status: "start" | "done" | "fail"; text?: string }
-  | { kind: "approval"; key: string; id: string; bot: string; title: string; details: string; screenshot?: string | null; status?: string }
-  | { kind: "shot"; key: string; bot: string; url: string };
+import type { Item } from "./store";
 
 type Props = {
   chat: Chat;
@@ -15,14 +10,18 @@ type Props = {
   items: Item[];
   typing: string[];
   moves: Record<string, Move>;
-  onMenu: () => void;
+  draft: string;
+  setDraft: (text: string) => void;
+  onBack: () => void;
   onBot: (botId: string) => void;
+  onAnswered: (approvalId: string, status: string) => void;
 };
 
 const HINTS = ["team, plan my evening", "@desk what's my battery?", "@web open news.ycombinator.com", "check models", "remember I like short answers"];
-
 const SHORT = 180;
 const GROUP_GAP = 5 * 60; // seconds: messages from the same bot closer than this share one header
+const NEAR_BOTTOM = 80; // px: closer than this to the end counts as "reading the newest"
+const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
 
 // "Failed: ..." replies keep the first part readable and fold the raw error (codes, JSON) away.
 function Failure({ text }: { text: string }) {
@@ -55,7 +54,7 @@ function Handoff({ from, text, bots, ts }: { from?: Bot; text: string; bots: Rec
   const [open, setOpen] = useState(false);
   const { to, rest } = handoffTarget(text, bots);
   return (
-    <div className="activity handoff" onClick={() => setOpen(!open)} title="A job one bot handed to another">
+    <button className="activity handoff" onClick={() => setOpen(!open)} aria-expanded={open} title="A job one bot handed to another">
       <span className="flow">
         <Avatar bot={from} size={20} /> <b>{from?.name ?? "?"}</b>
         <span className="arrow" style={{ color: botColor(to?.id ?? "") }}>→</span>
@@ -63,75 +62,134 @@ function Handoff({ from, text, bots, ts }: { from?: Bot; text: string; bots: Rec
       </span>
       <span className={`handoff-text ${open ? "open" : ""}`}>{rest}</span>
       <span className="ts">{time(ts)}</span>
-    </div>
+    </button>
   );
 }
 
 function Step({ item, bots }: { item: Extract<Item, { kind: "step" }>; bots: Record<string, Bot> }) {
-  const bot = bots[item.bot];
   return (
     <div className={`activity step ${item.status}`}>
       <span className="mark">{item.status === "start" ? <i className="spin" /> : item.status === "done" ? "✓" : "✗"}</span>
-      <span className="step-who" style={{ color: botColor(item.bot) }}>{bot?.name ?? item.bot}</span>
+      <span className="step-who" style={{ color: botColor(item.bot) }}>{bots[item.bot]?.name ?? item.bot}</span>
       <code>{item.tool}</code>
       {item.text && <span className="step-text">{item.text}</span>}
     </div>
   );
 }
 
-export function ChatView({ chat, bots, items, typing, moves, onMenu, onBot }: Props) {
-  const [text, setText] = useState("");
-  const [error, setError] = useState("");
-  const log = useRef<HTMLDivElement>(null);
-  const busy = typing.length > 0 || items.some((i) => i.kind === "approval" && !i.status);
+const DONE_LABEL: Record<string, string> = {
+  approved: "✓ Approved", denied: "✗ Denied", expired: "No answer: not done", stopped: "Stopped", answered: "Answered",
+};
 
+function Approval({ item, bots, onAnswered }: { item: Extract<Item, { kind: "approval" }>; bots: Record<string, Bot>; onAnswered: (id: string, status: string) => void }) {
+  const [sending, setSending] = useState(false);
+  const answer = async (ok: boolean) => {
+    setSending(true); // one press only: a second click can't send a second answer
+    try {
+      await api.answer(item.id, ok);
+    } catch {
+      onAnswered(item.id, "answered"); // it was already answered (on the phone, by typing yes/no, or it expired)
+    }
+  };
+  return (
+    <div className={`approval ${item.status ?? "waiting"}`} style={{ "--bot": botColor(item.bot) } as React.CSSProperties}>
+      <div className="approval-head">
+        <Avatar bot={bots[item.bot]} move={item.status ? "idle" : "ask"} size={30} />
+        <div>
+          <b>{bots[item.bot]?.name ?? item.bot} needs your OK</b>
+          <div className="approval-title">{item.title}</div>
+        </div>
+      </div>
+      <p>{item.details}</p>
+      {item.screenshot && <img src={item.screenshot} alt="what will be affected" />}
+      {item.status ? (
+        <div className={`approval-done ${item.status}`}>{DONE_LABEL[item.status] ?? item.status}</div>
+      ) : (
+        <div className="approval-btns">
+          <button className="primary" disabled={sending} onClick={() => answer(true)}>Approve</button>
+          <button className="deny" disabled={sending} onClick={() => answer(false)}>Deny</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ChatView({ chat, bots, items, typing, moves, draft, setDraft, onBack, onBot, onAnswered }: Props) {
+  const [error, setError] = useState("");
+  const [behind, setBehind] = useState(false);
+  const log = useRef<HTMLDivElement>(null);
+  const atEnd = useRef(true);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const busy = typing.length > 0 || items.some((i) => i.kind === "approval" && !i.status);
+  const count = items.length + typing.length;
+
+  const toEnd = (smooth: boolean) => {
+    const el = log.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    atEnd.current = true;
+    setBehind(false);
+  };
+  useLayoutEffect(() => toEnd(false), [chat.id]);
   useEffect(() => {
-    log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "smooth" });
-  }, [items, typing]);
+    // follow new messages only while reading the newest; otherwise show the "New messages" pill
+    if (atEnd.current) toEnd(true);
+    else setBehind(true);
+  }, [count]);
+
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 6 * 24 + 16)}px`; // grows up to 6 lines
+  }, [draft]);
 
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
-    const value = text.trim();
+    const value = draft.trim();
     if (!value) return;
-    setText("");
+    setDraft("");
     setError("");
+    atEnd.current = true;
     try {
       await api.send(chat.id, value);
     } catch (err) {
       setError(String((err as Error).message));
-      setText(value);
+      setDraft(value);
     }
   }
 
   const members = chat.members.map((m) => bots[m]).filter(Boolean);
-
-  // A bot's header (avatar, name, role) shows once per run of its messages, like a real team chat.
   let lastSender = "";
   let lastTs = 0;
 
   return (
     <section className="chat">
       <header className="chat-head">
-        <button className="icon menu" onClick={onMenu} aria-label="Chats">☰</button>
+        <button className="icon back" onClick={onBack} aria-label="Back to chats">‹</button>
         <div className="crew">
           {members.map((b) => (
-            <button key={b.id} className="crew-btn" title={`${b.name}: what it does`} onClick={() => onBot(b.id)}>
+            <button key={b.id} className="crew-btn" title={`${b.name}: profile`} aria-label={`${b.name} profile`} onClick={() => onBot(b.id)}>
               <Avatar bot={b} move={moves[b.id]} size={30} />
             </button>
           ))}
         </div>
         <div className="chat-title">
           <b>{chat.title}</b>
-          <small>{members.map((b) => b.name).join(" · ")}</small>
+          <small>{typing.length ? `${typing.map((id) => bots[id]?.name ?? id).join(", ")} working…` : members.map((b) => b.name).join(" · ")}</small>
         </div>
         {busy && <button className="stop" onClick={() => api.stop(chat.id)}>■ Stop</button>}
       </header>
 
-      <div className="log" ref={log}>
+      <div className="log" ref={log} aria-live="polite"
+           onScroll={(e) => {
+             const el = e.currentTarget;
+             atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM;
+             if (atEnd.current) setBehind(false);
+           }}>
         {items.length === 0 && (
           <div className="empty">
             <p>Say hi to {members.length > 1 ? "the crew" : members[0]?.name}. Try:</p>
-            {HINTS.map((h) => <button key={h} className="hint" onClick={() => setText(h)}>{h}</button>)}
+            {HINTS.map((h) => <button key={h} className="hint" onClick={() => setDraft(h)}>{h}</button>)}
           </div>
         )}
         {items.map((item) => {
@@ -158,10 +216,14 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu, onBot }: Pr
               );
             }
             return (
-              <div key={item.key} className={`row bot ${head ? "head" : "cont"} ${failed ? "failed" : ""}`}
+              <div key={item.key} className={`row bot ${head ? "head" : "cont"} ${failed ? "failed" : ""} ${item.mkind === "stopped" ? "stopped" : ""}`}
                    style={{ "--bot": botColor(item.sender) } as React.CSSProperties}>
                 <div className="gutter">
-                  {head && bot && <button className="crew-btn" title={`${bot.name}: what it does`} onClick={() => onBot(bot.id)}><Avatar bot={bot} move={moves[item.sender]} size={38} /></button>}
+                  {head && bot && (
+                    <button className="crew-btn" title={`${bot.name}: profile`} aria-label={`${bot.name} profile`} onClick={() => onBot(bot.id)}>
+                      <Avatar bot={bot} move={moves[item.sender]} size={38} />
+                    </button>
+                  )}
                 </div>
                 <div className="body">
                   {head && (
@@ -181,31 +243,8 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu, onBot }: Pr
           }
           lastSender = "";
           if (item.kind === "step") return <Step key={item.key} item={item} bots={bots} />;
-          if (item.kind === "shot") {
-            return <img key={item.key} className="shot" src={item.url} alt="screenshot" />;
-          }
-          return (
-            <div key={item.key} className={`approval ${item.status ?? "waiting"}`}
-                 style={{ "--bot": botColor(item.bot) } as React.CSSProperties}>
-              <div className="approval-head">
-                <Avatar bot={bots[item.bot]} move={item.status ? "idle" : "ask"} size={30} />
-                <div>
-                  <b>{bots[item.bot]?.name ?? item.bot} needs your OK</b>
-                  <div className="approval-title">{item.title}</div>
-                </div>
-              </div>
-              <p>{item.details}</p>
-              {item.screenshot && <img src={item.screenshot} alt="what will be affected" />}
-              {item.status ? (
-                <div className={`approval-done ${item.status}`}>{item.status === "approved" ? "✓ Approved" : item.status === "expired" ? "No answer: not done" : item.status === "stopped" ? "Stopped" : "✗ Denied"}</div>
-              ) : (
-                <div className="approval-btns">
-                  <button className="primary" onClick={() => api.answer(item.id, true)}>Approve</button>
-                  <button className="deny" onClick={() => api.answer(item.id, false)}>Deny</button>
-                </div>
-              )}
-            </div>
-          );
+          if (item.kind === "shot") return <img key={item.key} className="shot" src={item.url} alt="screenshot" />;
+          return <Approval key={item.key} item={item} bots={bots} onAnswered={onAnswered} />;
         })}
         {typing.length > 0 && (
           <div className="typing">
@@ -215,23 +254,27 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu, onBot }: Pr
           </div>
         )}
       </div>
+      {behind && <button className="new-pill" onClick={() => toEnd(true)}>New messages ↓</button>}
 
       {error && <div className="error">{error}</div>}
       <form className="composer" onSubmit={send}>
         <textarea
-          value={text}
+          ref={box}
+          value={draft}
           rows={1}
-          placeholder={window.innerWidth < 720 ? `Message ${chat.title}…` : `Message ${chat.title}…  (@name to ask one bot · paste a key to save it)`}
-          onChange={(e) => setText(e.target.value)}
+          aria-label={`Message ${chat.title}`}
+          placeholder={`Message ${chat.title}…`}
+          onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !touch) { // on phones Enter is a new line; the Send button sends
               e.preventDefault();
               send();
             }
           }}
         />
-        <button className="primary send" disabled={!text.trim()}>Send ➤</button>
+        <button className="primary send" disabled={!draft.trim()} aria-label="Send">Send ➤</button>
       </form>
+      <div className="composer-hint">@name asks one bot · paste a key to save it · “stop” stops everything</div>
     </section>
   );
 }
