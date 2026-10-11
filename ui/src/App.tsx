@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
 import { Avatar, botColor, SIGNS, toolSign, type Move } from "./Avatar";
 import { BoardView } from "./BoardView";
+import { NewBotSheet } from "./BotBuilder";
 import { BotProfile } from "./BotProfile";
 import { ChatView } from "./ChatView";
 import { CrewView } from "./CrewView";
@@ -169,6 +170,7 @@ export default function App() {
       <button className="new-group" onClick={() => openOverlay("new", "group")}>＋ New group</button>
       <div className="section">Your crew</div>
       {dms.map(row)}
+      <button className="new-group" onClick={() => openOverlay("new", "bot")}>＋ Build a bot</button>
     </aside>
   );
 
@@ -240,7 +242,15 @@ export default function App() {
       {profileBot && (
         <BotProfile bot={profileBot} bots={bots} chats={chats} typing={typing} look={look} onClose={closeOverlay}
                     onBot={(id) => go(withOverlay(route, "bot", id), true)}
-                    onChat={(id) => { pushed.current = false; go(href("chats", id), true); }} />
+                    onChat={(id) => { pushed.current = false; go(href("chats", id), true); }}
+                    onRemoved={() => { pushed.current = false; crew.loadChats(); go(href("chats"), true); }} />
+      )}
+      {route.overlay === "bot" && (
+        <NewBotSheet onClose={closeOverlay} onMade={async (b) => {
+          await Promise.all([crew.loadChats(), crew.loadBots()]);
+          pushed.current = false;
+          go(href("chats", `dm-${b.id}`), true);
+        }} />
       )}
       {route.overlay === "group" && (
         <NewGroup bots={bots} onClose={closeOverlay} onMade={async (c) => {

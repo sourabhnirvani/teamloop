@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
-import { Avatar, botColor, type Move } from "./Avatar";
+import { Avatar, botColor, colorOf, type Move } from "./Avatar";
 import { ModelChip } from "./ModelChip";
 import { RichText } from "./RichText";
 import type { Item } from "./store";
@@ -225,7 +225,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
             }
             return (
               <div key={item.key} className={`row bot ${head ? "head" : "cont"} ${failed ? "failed" : ""} ${item.mkind === "stopped" ? "stopped" : ""}`}
-                   style={{ "--bot": botColor(item.sender) } as React.CSSProperties}>
+                   style={{ "--bot": colorOf(bot) } as React.CSSProperties}>
                 <div className="gutter">
                   {head && bot && (
                     <button className="crew-btn" title={`${bot.name}: profile`} aria-label={`${bot.name} profile`} onClick={() => onBot(bot.id)}>

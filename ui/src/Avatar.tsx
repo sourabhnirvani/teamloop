@@ -1,5 +1,6 @@
 import { useId } from "react";
 import type { Bot } from "./api";
+import { AccessoryBack, AccessoryFront, BodyShape, FRAMES, type Look } from "./Look";
 
 // The crew's mascots, drawn like the app logo: soft glossy bodies, big shiny eyes that blink, blush, and a
 // mouth that shows what the bot is doing. Each bot has its own look and its own little habit (see index.css,
@@ -25,7 +26,13 @@ export function botColor(id: string): string {
 
 const INK = "#1d2150";
 
-function Eyes({ x1, x2, y, r, mood, ink = INK, look = 0 }: { x1: number; x2: number; y: number; r: number; mood: Move; ink?: string; look?: number }) {
+// a bot's colour: the one picked for a built bot, else the crew colour
+export function colorOf(bot?: Bot | null): string {
+  const c = bot?.look?.colour;
+  return c && c !== "rainbow" ? c : botColor(bot?.id ?? "?");
+}
+
+function Eyes({ x1, x2, y, r, mood, ink = INK, look = 0, style = "shiny" }: { x1: number; x2: number; y: number; r: number; mood: Move; ink?: string; look?: number; style?: string }) {
   if (mood === "cheer") { // happy closed eyes: ^ ^
     return (
       <g fill="none" stroke={ink} strokeWidth={r * 0.62} strokeLinecap="round">
@@ -52,12 +59,26 @@ function Eyes({ x1, x2, y, r, mood, ink = INK, look = 0 }: { x1: number; x2: num
   }
   const up = mood === "think" ? -r * 0.35 : 0; // thinking looks up a little
   const big = mood === "ask" || mood === "listen" ? 1.12 : 1; // asking / listening: wide-eyed
+  if (style === "dot") {
+    return <g className="eyes">{[x1, x2].map((x) => <circle key={x} cx={x + look} cy={y + up} r={r * 0.62 * big} fill={ink} />)}</g>;
+  }
+  if (style === "sleepy" && mood !== "ask" && mood !== "listen") { // calm half-closed eyes
+    return (
+      <g className="eyes" fill="none" stroke={ink} strokeWidth={r * 0.55} strokeLinecap="round">
+        {[x1, x2].map((x) => <path key={x} d={`M${x - r} ${y + up} Q${x} ${y + up + r * 0.9} ${x + r} ${y + up}`} />)}
+      </g>
+    );
+  }
   return (
     <g className="eyes">
       {[x1, x2].map((x) => (
         <g key={x}>
           <ellipse cx={x + look} cy={y + up} rx={r * big} ry={r * 1.28 * big} fill={ink} />
-          <circle cx={x + look + r * 0.38} cy={y + up - r * 0.45} r={r * 0.42} fill="#fff" />
+          {style === "sparkle" ? (
+            <path d={`M${x + look + r * 0.35} ${y + up - r * 0.95} l${r * 0.16} ${r * 0.36} ${r * 0.36} ${r * 0.16} -${r * 0.36} ${r * 0.16} -${r * 0.16} ${r * 0.36} -${r * 0.16} -${r * 0.36} -${r * 0.36} -${r * 0.16} ${r * 0.36} -${r * 0.16}z`} fill="#fff" />
+          ) : (
+            <circle cx={x + look + r * 0.38} cy={y + up - r * 0.45} r={r * 0.42} fill="#fff" />
+          )}
           <circle cx={x + look - r * 0.35} cy={y + up + r * 0.5} r={r * 0.18} fill="#fff" opacity=".85" />
         </g>
       ))}
@@ -206,18 +227,51 @@ function Body({ id, mood, fill }: { id: string; mood: Move; fill: string }) {
   }
 }
 
-export function Mascot({ id, move = "idle", size = 36, title }: { id: string; move?: Move; size?: number; title?: string }) {
+function lighten(hex: string, k = 0.55): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * k).toString(16).padStart(2, "0");
+  return `#${mix(n >> 16)}${mix((n >> 8) & 255)}${mix(n & 255)}`;
+}
+
+function LookBody({ look, mood, fill }: { look: Look; mood: Move; fill: string }) {
+  const body = look.body && FRAMES[look.body] ? look.body : "blob";
+  const f = FRAMES[body];
+  const acc = look.accessory ?? "none";
+  const ink = f.screen ? "#7dfbd3" : INK;
+  return (
+    <g>
+      <AccessoryBack accessory={acc} f={f} />
+      <BodyShape body={body} fill={fill} />
+      <Eyes x1={f.x1} x2={f.x2} y={f.y} r={f.r} mood={mood} ink={ink} style={look.eyes} />
+      {!f.screen && <Blush x1={f.bx1} x2={f.bx2} y={f.blush} r={2.4} />}
+      <Mouth x={32} y={f.mouth} s={f.screen ? 0.85 : 1.05} mood={mood} ink={ink} />
+      <AccessoryFront accessory={acc} f={f} mood={mood} />
+    </g>
+  );
+}
+
+export function Mascot({ id, move = "idle", size = 36, title, look }: { id: string; move?: Move; size?: number; title?: string; look?: Look | null }) {
   const uid = useId().replace(/:/g, "");
-  const [top, bottom] = BODY[id] ?? ["#ffffff", botColor(id)];
+  const built = look && Object.keys(look).length ? look : null;
+  const colour = built?.colour && built.colour !== "rainbow" ? built.colour : botColor(id);
+  const [top, bottom] = built ? [lighten(colour), colour] : BODY[id] ?? ["#ffffff", botColor(id)];
   const known = id in BODY ? id : "custom";
   return (
     <svg className={`mascot move-${move} p-${known}`} width={size} height={size} viewBox="0 0 64 64" role="img" aria-label={title}>
       {title && <title>{title}</title>}
       <defs>
-        <linearGradient id={`b${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={top} />
-          <stop offset="1" stopColor={bottom} />
-        </linearGradient>
+        {built?.colour === "rainbow" ? (
+          <linearGradient id={`b${uid}`} x1="0" y1="0" x2="1" y2="1">
+            {["#ff8fb3", "#ffd45c", "#8af5d6", "#7bb8ff", "#c9a8ff"].map((c, i) => <stop key={c} offset={i / 4} stopColor={c} />)}
+          </linearGradient>
+        ) : (
+          <linearGradient id={`b${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={top} />
+            <stop offset="1" stopColor={bottom} />
+          </linearGradient>
+        )}
         <radialGradient id={`h${uid}`} cx="32%" cy="22%" r="55%">
           <stop offset="0" stopColor="#fff" stopOpacity=".55" />
           <stop offset="1" stopColor="#fff" stopOpacity="0" />
@@ -225,7 +279,7 @@ export function Mascot({ id, move = "idle", size = 36, title }: { id: string; mo
       </defs>
       <ellipse className="ground" cx="32" cy="59.5" rx="15" ry="2.6" fill="#000" opacity=".2" />
       <g className="bod">
-        <Body id={id} mood={move} fill={`url(#b${uid})`} />
+        {built ? <LookBody look={built} mood={move} fill={`url(#b${uid})`} /> : <Body id={id} mood={move} fill={`url(#b${uid})`} />}
         <ellipse cx="25" cy="22" rx="9" ry="5" fill={`url(#h${uid})`} pointerEvents="none" />
       </g>
     </svg>
@@ -251,7 +305,7 @@ export function Avatar({ bot, move = "idle", size = 36, sign }: { bot?: Bot; mov
   const id = bot?.id ?? "?";
   return (
     <span className="avatar" style={{ width: size, height: size }} title={bot ? `${bot.name} · ${bot.role}` : ""}>
-      <Mascot id={id} move={move} size={size} title={bot?.name} />
+      <Mascot id={id} move={move} size={size} title={bot?.name} look={bot?.look} />
       {sign && size >= 26 && <span key={sign} className="sign" style={{ fontSize: Math.max(10, Math.round(size * 0.34)) }} aria-hidden="true">{sign}</span>}
     </span>
   );

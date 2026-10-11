@@ -1,6 +1,8 @@
 // The TeamLoop server API (PLAN.md section 4).
 
-export type Bot = { id: string; name: string; role: string; emoji: string; model: string; only?: boolean };
+export type BotLook = { body?: string; accessory?: string; eyes?: string; colour?: string };
+export type Bot = { id: string; name: string; role: string; emoji: string; model: string; only?: boolean; custom?: boolean;
+  muted?: boolean; persona?: string; default_persona?: string | null; look?: BotLook | null; tools?: string[] };
 export type LastMessage = { sender: string; text: string; kind: string; ts: number };
 export type Chat = { id: string; title: string; members: string[]; created: number; last?: LastMessage | null };
 export type Message = { id: number; chat_id: string; sender: string; text: string; kind: string; ts: number };
@@ -61,6 +63,11 @@ export const api = {
     post<{ ok: boolean; rule: AllowRule | null }>(`/api/approvals/${approvalId}`, { ok, always }),
   allowed: () => call<AllowRule[]>("/api/allowed"),
   hub: () => call<HubStatus>("/api/hub"),
+  createBot: (bot: { name: string; role: string; persona: string; look: BotLook }) => post<Bot>("/api/bots", bot),
+  patchBot: (id: string, patch: Partial<{ name: string; role: string; persona: string; muted: boolean; look: BotLook }>) =>
+    call<Bot>(`/api/bots/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) }),
+  deleteBot: (id: string) => call<{ ok: boolean }>(`/api/bots/${id}`, { method: "DELETE" }),
+  addRoutine: (chatId: string, text: string, schedule: string) => post<Routine>("/api/routines", { chat_id: chatId, text, schedule }),
   hubSetup: () => post<HubStatus>("/api/hub/setup"),
   forgetAllowed: (id: string) => call<{ ok: boolean }>(`/api/allowed/${id}`, { method: "DELETE" }),
   state: () => call<CrewState>("/api/state"),

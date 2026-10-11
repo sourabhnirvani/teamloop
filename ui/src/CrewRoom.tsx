@@ -165,7 +165,8 @@ function heartShape(s: number) {
 // a globe-ball, a monocled bean, an envelope and a bespectacled pill.
 function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading" | "speed" | "nextWander" | "dashUntil" |
   "daydreamUntil" | "nextQuirk" | "quirkUntil" | "hop" | "jumpUntil" | "catchUntil" | "label" | "lastMove" | "shadow" | "bubble" | "hit" | "signShown"> {
-  const color = new THREE.Color(botColor(bot.id));
+  const picked = bot.look?.colour && bot.look.colour !== "rainbow" ? bot.look.colour : null; // a built bot keeps its colour
+  const color = new THREE.Color(picked ?? botColor(bot.id));
   const skin = clay(bot.id === "s" ? "#eef0ff" : color); // S is the logo's white blob
   const root = new THREE.Group();
   const body = new THREE.Group();
