@@ -40,6 +40,14 @@ export default function App() {
     loadChats().catch(() => setLive(false));
   }, [loadChats]);
 
+  // Today's model calls: refreshed on load and after each bot reply, so free-tier use stays visible.
+  const [usage, setUsage] = useState({ req: 0, tok: 0 });
+  const loadUsage = useCallback(() => {
+    api.usage().then((rows) => setUsage(rows.reduce(
+      (a, u) => ({ req: a.req + u.requests, tok: a.tok + u.tokens_in + u.tokens_out }), { req: 0, tok: 0 }))).catch(() => {});
+  }, []);
+  useEffect(loadUsage, [loadUsage]);
+
   useEffect(() => {
     api.messages(active).then((ms) =>
       setItems((all) => {
@@ -65,6 +73,7 @@ export default function App() {
           if (e.message.sender !== "user") {
             const failed = /^(failed:|not mine:)/i.test(e.message.text);
             move(e.message.sender, failed ? "oops" : e.message.kind === "handoff" ? "talk" : "cheer");
+            loadUsage();
           }
           if (chat !== activeRef.current) setUnread((u) => ({ ...u, [chat]: (u[chat] ?? 0) + 1 }));
           break;
@@ -112,7 +121,7 @@ export default function App() {
       }
     };
     return listen(onEvent, setLive);
-  }, [move]);
+  }, [move, loadUsage]);
 
   const chat = chats.find((c) => c.id === active);
   const dms = chats.filter((c) => c.members.length === 1);
@@ -142,6 +151,9 @@ export default function App() {
       <aside className="sidebar">
         <div className="brand">
           <span>🧭 TeamLoop</span>
+          <span className="usage-chip" title="Model requests and tokens used today">
+            {usage.req} calls · {usage.tok >= 1000 ? `${(usage.tok / 1000).toFixed(1)}k` : usage.tok} tok
+          </span>
           <span className={`live ${live ? "on" : ""}`} title={live ? "connected" : "reconnecting"} />
         </div>
         <div className="section">Team</div>
