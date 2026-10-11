@@ -23,6 +23,8 @@ user32.IsWindowVisible.argtypes = [wintypes.HWND]
 user32.IsIconic.argtypes = [wintypes.HWND]
 user32.IsZoomed.argtypes = [wintypes.HWND]
 user32.IsWindow.argtypes = [wintypes.HWND]
+user32.SwitchToThisWindow.argtypes = [wintypes.HWND, wintypes.BOOL]
+user32.SwitchToThisWindow.restype = None
 user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
 user32.GetWindowThreadProcessId.restype = wintypes.DWORD
 user32.GetForegroundWindow.restype = wintypes.HWND
@@ -147,11 +149,20 @@ def focus(hwnd: int) -> bool:
     finally:
         if attached:
             user32.AttachThreadInput(me, fg_thread, False)
-    for _ in range(10):
+    if _wait_front(hwnd, 0.5):
+        return True
+    # Windows can refuse a window that was just opened by another process; this asks the shell instead
+    user32.SwitchToThisWindow(hwnd, True)
+    return _wait_front(hwnd, 1.5)
+
+
+def _wait_front(hwnd: int, seconds: float) -> bool:
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
         if foreground() == hwnd:
             return True
         time.sleep(0.05)
-    return False
+    return foreground() == hwnd
 
 
 def set_state(hwnd: int, state: str) -> None:

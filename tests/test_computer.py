@@ -107,3 +107,31 @@ async def test_open_and_close_calculator():
     assert closed.ok, closed.text
     status = await tools.system_status({}, ctx)
     assert status.ok and "volume" in status.text
+
+
+async def test_typing_and_keys_run_on_the_com_thread(monkeypatch):
+    """pywinauto's keyboard needs COM set up on its thread (Yang's debug pass row 14: CoInitialize error)."""
+    import contextlib
+    import threading
+
+    from teamloop.computer import tools, uia, winapi
+
+    seen = []
+    monkeypatch.setattr(uia, "send_text", lambda text: seen.append(("text", threading.current_thread().name)))
+    monkeypatch.setattr(uia, "send_keys_combo", lambda keys: seen.append(("keys", threading.current_thread().name)))
+    monkeypatch.setattr(winapi, "focus", lambda hwnd: True)
+    win = winapi.Win(hwnd=1, title="Untitled - Notepad", pid=1, process="notepad.exe", minimized=False)
+
+    async def window(name):
+        return win
+
+    @contextlib.asynccontextmanager
+    async def no_lease():
+        yield
+
+    monkeypatch.setattr(tools, "_window", window)
+    monkeypatch.setattr(tools, "lease", no_lease)
+    assert (await tools.type_text({"text": "hello"}, None)).ok
+    assert (await tools.press_keys({"keys": "ctrl+s"}, None)).ok
+    assert [kind for kind, _ in seen] == ["text", "keys"]
+    assert all(name.startswith("teamloop-com") for _, name in seen)

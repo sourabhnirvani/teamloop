@@ -12,7 +12,7 @@ import os
 import time
 from typing import AsyncIterator
 
-from teamloop.computer import apps, risk, system, uia, winapi
+from teamloop.computer import apps, com, risk, system, uia, winapi
 from teamloop.tools.registry import ToolResult, tool
 
 WINDOW_WAIT = 12.0
@@ -216,7 +216,7 @@ async def type_text(args: dict, ctx) -> ToolResult:
         async with lease():
             if not await asyncio.to_thread(winapi.focus, win.hwnd):
                 return ToolResult(False, f"Couldn't bring \"{win.title}\" to the front, so I didn't type.")
-            await asyncio.to_thread(uia.send_text, text)
+            await com.run(uia.send_text, text)  # pywinauto needs COM set up on the thread that types
     except LeaseBusy:
         return _busy()
     return ToolResult(True, f"Typed {len(text)} characters into \"{win.title}\".")
@@ -240,7 +240,7 @@ async def press_keys(args: dict, ctx) -> ToolResult:
         async with lease():
             if win and not await asyncio.to_thread(winapi.focus, win.hwnd):
                 return ToolResult(False, f"Couldn't bring \"{title}\" to the front.")
-            await asyncio.to_thread(uia.send_keys_combo, keys)
+            await com.run(uia.send_keys_combo, keys)
     except LeaseBusy:
         return _busy()
     return ToolResult(True, f"Pressed {risk.normalize_keys(keys)}" + (f" in \"{title}\"." if title else "."))
