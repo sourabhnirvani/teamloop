@@ -51,3 +51,63 @@ files or show them to your coding agent.
 > approval cards and typing dots, using exactly the API in PLAN.md §4 (mock it until the server is
 > up). Write all code fresh. Commit and push small steps. When it works, tell Sourabh's agent on
 > ccbridge.
+
+## 4. Sun 11 Oct handoff from Sourabh (ccbridge relay is down, so this comes through the repo)
+
+Sourabh asked his agent to hand these to your side. The no-money rule still holds: free tiers only,
+never let anything charge a card. If something would cost money, stop and say so.
+
+1. **Video run with a neatlogs trace.** We don't share keys, so Yang gets his **own free neatlogs
+   key** (neatlogs dashboard / hackathon Discord), puts it in his own `.env` (`NEATLOGS_API_KEY`),
+   and records the final demo-goal run on his laptop. Check the trace view shows
+   chat message → S turn → handoffs → tool spans → LLM calls. For Entire, show
+   `entire checkpoint list` and a commit's `Entire-Checkpoint:` trailer, never an `explain` that
+   hasn't been read through first.
+2. **cfo.ai business plan** (required by the rules; PLAN.md §7). Yang signs up at
+   https://cfo.ai/neathacks. If it asks for a card: use the trial, export the plan, then **cancel
+   right away**, before anything can charge. Paste the brief below into Ari, adjust the numbers
+   with Yang, and export the plan (pricing, costs, revenue, runway) to `evidence/cfo/`.
+3. **#neatHack posts** (15% of the score). Post from Yang's X account during the event, tag
+   **#neatHack** and **@neatlogs**, attach a screenshot or clip, and save the links in
+   `evidence/posts.md`. Drafts are below; Sourabh will send his X handle to tag.
+
+Still Sourabh's own: registering on Luma under the team name **"Agent S"**, and his X handle.
+
+### cfo.ai brief (draft: every number is a placeholder)
+
+> Build a 24-month business plan for **TeamLoop**, starting November 2026, monthly, in USD (and INR).
+> **What it is:** a crew of AI bots that runs your Windows laptop. You chat with a lead bot, S, from
+> the desktop app, a phone or Telegram; specialist bots open apps, change settings, drive their own
+> Chrome, research and write files, and each one asks before anything risky. It runs locally on free
+> AI models, so inference costs almost nothing.
+> **Customers:** students, freelancers and small-business owners on Windows; India first, then global.
+> **Pricing:** Free (all six bots, local, the person's own free keys) · Pro $5/month (Rs 299: phone
+> access when away, unlimited routines, priority fixes) · Team $12/user/month from month 9.
+> **Costs:** inference $0 on Free; hosting about $0.20 per Pro user a month + $50 base; payment fees 3%;
+> tools and marketing $100/month for 6 months, then $400; 2 founders unpaid for 6 months, then
+> $1,200/month each.
+> **Growth:** 300 free users in month 1, +25%/month for 12 months, then +10%; 3% go Pro; 4% of Pro
+> cancel each month; Team starts month 9 with 2 offices of 5 seats, +2 offices a month.
+> **Cash:** $3,000 of savings, no outside funding.
+> Show monthly revenue, costs, profit/loss, cash, runway and the break-even month, plus a pessimistic
+> scenario (1.5% go Pro, +15% growth) and an optimistic one (5% go Pro, +35% growth).
+
+### #neatHack post drafts (edit freely; add a screenshot or clip to each)
+
+1. *Kickoff:* "Day 1 of #neatHack: we're building TeamLoop, a crew of AI bots that runs your Windows
+   laptop. Chat with the lead bot, S; it hands steps to Desk (apps, settings, terminal), Web (its own
+   Chrome), Scout (research) and Writer (files), and every risky step asks you first. Free models only,
+   every step traced in @neatlogs. Repo: github.com/sourabhnirvani/teamloop"
+2. *Crew + traces:* "TeamLoop's crew works as a team: 'research the top 3 free LLM APIs, write a report on
+   my Desktop, open it, remind me every Monday' goes S → Scout → Writer → Desk, with one approval card,
+   in 41 s. Every step is a trace in @neatlogs. #neatHack"
+3. *Safety:* "Things TeamLoop's bots never do, even if a web page tells them to: press Approve on their own
+   card, type card numbers, API keys or one-time codes, upload files, or run commands in a terminal
+   without asking first. And a 'no' stays a no. #neatHack @neatlogs"
+4. *Evals:* "We test TeamLoop on real outcomes, not on what the bot says: the battery % matches the
+   machine, the file exists with the exact text, a delete you didn't approve didn't happen, 'volume 30'
+   runs with zero model calls. #neatHack"
+5. *Recovery:* "We broke TeamLoop on purpose: the 'save file' step fails once. Writer saw the failure,
+   retried, and the file really exists. The whole recovery is one trace in @neatlogs. #neatHack"
+6. *Submission (Mon 19:00 IST):* quote-post the official @neatlogs submission post with the team name,
+   project, repo link and the demo video.
