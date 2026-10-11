@@ -18,7 +18,7 @@ import threading
 import time
 import uuid
 from collections import deque
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 
 import segno
 from fastapi import FastAPI, HTTPException, Request
@@ -40,6 +40,61 @@ mimetypes.add_type("application/manifest+json", ".webmanifest")
 def is_remote(request: Request) -> bool:
     host = request.client.host if request.client else ""
     return host not in LOCAL_HOSTS or any(h in request.headers for h in PROXY_HEADERS)
+
+
+# ---- other websites ----------------------------------------------------------------------------------------
+# The app listens on loopback, but a web page in the person's browser can still reach it: by re-pointing its own
+# name at 127.0.0.1 (DNS rebinding: the Host header is then the attacker's name), or by posting a form straight to
+# 127.0.0.1:8790 (CSRF: the Origin is the attacker's site). Both are refused here, before anything else runs.
+LOOPBACK_NAMES = {"localhost", "127.0.0.1", "::1"}
+TEST_NAMES = {"testserver", "testclient"}  # FastAPI's TestClient
+HUB_HOST = "hub"  # what hub.answer() calls the app
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+def hostname(value: str) -> str:
+    """'Evil.Example:8790' -> 'evil.example'; '[::1]:8790' -> '::1'; 'https://x.y.dev' -> 'x.y.dev'."""
+    v = (value or "").strip().lower()
+    if "://" in v:
+        v = urlsplit(v).netloc
+    if v.startswith("["):
+        return v[1:v.index("]")] if "]" in v else v
+    return v.rsplit(":", 1)[0] if v.count(":") == 1 else v
+
+
+def _hub_name(store) -> str:
+    from teamloop.server import hub
+
+    return hostname(store.get_setting(hub.SETTING) or "")
+
+
+def trusted_host(request: Request, store) -> bool:
+    """Requests addressed to this laptop by a name it answers to: loopback, the hub relay, a quick tunnel
+    (Cloudflare owns those names, so they can't be re-pointed at the laptop), or the person's own hub."""
+    name = hostname(request.headers.get("host", ""))
+    hub_name = _hub_name(store)
+    return (name in LOOPBACK_NAMES or name in TEST_NAMES or name == HUB_HOST
+            or name.endswith(".trycloudflare.com") or (bool(hub_name) and name == hub_name))
+
+
+def from_this_app(request: Request, store) -> bool:
+    """Anything that changes something must come from TeamLoop's own pages, not from another site's page."""
+    if request.method in SAFE_METHODS:
+        return True
+    if request.headers.get("sec-fetch-site") == "cross-site":
+        return False
+    origin = request.headers.get("origin")
+    if origin is None:  # not sent by a page in a browser (scripts, the Telegram bridge, tests)
+        return True
+    name = hostname(origin) if origin != "null" else ""  # "null": a file:// page or a sandboxed frame
+    host = hostname(request.headers.get("host", ""))
+    if not name:
+        return False
+    if name in LOOPBACK_NAMES:  # the app on the laptop: Electron, a browser tab, the Vite dev server
+        return host in LOOPBACK_NAMES or host in TEST_NAMES
+    if host == HUB_HOST:  # a phone through the hub: its page lives at the hub's own address
+        return name == _hub_name(store)
+    return name == host  # a phone through the quick tunnel: same name both ways
 
 
 def _hash(token: str) -> str:
@@ -187,6 +242,13 @@ def install(app: FastAPI, phones: Phones) -> None:
     async def guard(request: Request, call_next):
         log.start()  # needs the running loop, so it starts with the first request
         path = request.url.path
+        store = app.state.crew.store
+        if not trusted_host(request, store):  # DNS rebinding: another site's name pointed at this laptop
+            return JSONResponse({"detail": "This address isn't TeamLoop's."}, 400)
+        if not from_this_app(request, store):  # another site's page posting here
+            return JSONResponse({"detail": "Only TeamLoop's own pages can do that."}, 403)
+        if path == "/api/events" and is_remote(request):  # an endless stream: a hub request would never end
+            return JSONResponse({"detail": "Phones get live updates from /api/events/poll."}, 404)
         if path in API_PAGES and is_remote(request):  # the API's shape stays on the laptop
             return JSONResponse({"detail": "Not Found"}, 404)
         if path.startswith("/api") and is_remote(request):

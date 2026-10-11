@@ -56,9 +56,9 @@ async def answer(app, msg: dict) -> dict:
     headers.setdefault("x-forwarded-for", "phone-hub")  # it's a remote request: the pairing cookie is required
     body = base64.b64decode(msg.get("body") or "")
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="https://hub") as client:
-        try:
-            res = await client.request(msg.get("method", "GET"), msg.get("path", "/"), headers=headers, content=body,
-                                       timeout=60)
+        try:  # a hard limit too: in-process requests ignore httpx's timeout, and the hub gives up at 45 s anyway
+            res = await asyncio.wait_for(client.request(msg.get("method", "GET"), msg.get("path", "/"), headers=headers,
+                                                        content=body, timeout=60), 50)
         except Exception as e:  # never leave the phone hanging
             log.warning("hub request failed: %s", e)
             data = json.dumps({"detail": "TeamLoop on the laptop hit an error."}).encode()

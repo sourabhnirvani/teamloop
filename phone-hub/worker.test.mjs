@@ -45,7 +45,9 @@ test("with the laptop off, the API says so and pages explain it", async () => {
 
 test("laptop-only pages and a wrong secret get 404 before reaching the hub", async () => {
   const env = { LINK_SECRET: "s3cret", HUB: { idFromName: () => "id", get: () => ({ fetch: async () => new Response("hub") }) } };
-  for (const path of ["/console", "/docs", "/openapi.json", "/api/events"]) {
+  // the same paths dressed up (jrkrishh's review): escapes, doubled and trailing slashes, case, /__laptop tricks
+  for (const path of ["/console", "/docs", "/openapi.json", "/api/events", "/api/%65vents", "//x/../api/events",
+                      "//api//events", "/api/events/", "/c%6Fnsole", "//console", "/Console", "/%5F_laptop", "//__laptop"]) {
     assert.equal((await w.default.fetch(new Request("https://h.dev" + path), env)).status, 404, path);
   }
   const wrong = new Request("https://h.dev/__laptop", { headers: { "x-link-secret": "guess" } });

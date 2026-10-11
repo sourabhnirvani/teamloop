@@ -13,6 +13,19 @@ const HOP = new Set(["connection", "keep-alive", "upgrade", "transfer-encoding",
 const LAPTOP_ONLY = ["/console", "/docs", "/redoc", "/openapi.json"]; // and everything under them
 const SSE = "/api/events"; // the laptop's stream, which a hub can't carry; phones long-poll /api/events/poll instead
 
+// The path as the laptop's router will see it: percent-decoded, repeated slashes merged, no trailing slash.
+// Checks use this, so "/api/%65vents" or "//x/console" can't slip past them (found in jrkrishh's review).
+export function normalPath(pathname) {
+  let p = pathname;
+  try {
+    p = decodeURIComponent(p);
+  } catch {
+    /* malformed escapes: check the raw path */
+  }
+  p = p.replace(/\/{2,}/g, "/");
+  return p.length > 1 ? p.replace(/\/+$/, "") : p;
+}
+
 export function sameSecret(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || !a || a.length !== b.length) return false;
   let diff = 0;
@@ -119,6 +132,11 @@ export class Hub extends DurableObject {
   }
 }
 
+function laptopOnly(path) {
+  const lower = path.toLowerCase();
+  return lower === SSE || LAPTOP_ONLY.some((p) => lower === p || lower.startsWith(p + "/")) || lower.startsWith("/__laptop");
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -126,7 +144,7 @@ export default {
       if (!sameSecret(request.headers.get("x-link-secret") || "", env.LINK_SECRET || "")) {
         return new Response("not found", { status: 404 });
       }
-    } else if (url.pathname === SSE || LAPTOP_ONLY.some((p) => url.pathname === p || url.pathname.startsWith(p + "/"))) {
+    } else if (laptopOnly(normalPath(url.pathname))) {
       return new Response("not found", { status: 404 });
     }
     const hub = env.HUB.get(env.HUB.idFromName("teamloop"));
