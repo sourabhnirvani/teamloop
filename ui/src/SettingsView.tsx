@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { canDo, choices, labelOf, localState, type Choice } from "./models";
 import { api, onLaptop, type AllowRule, type Bot, type SecurityInfo, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
+import { KeysList } from "./settings/KeysList";
 import { SecurityPage } from "./settings/SecurityPage";
 import { go, href } from "./router";
 import { applyUpdate, askToNotify, runningVersion, updateAvailable } from "./update";
@@ -217,6 +218,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
 function KeysPage({ header, keys, onSaved, note }: { header: React.ReactNode; keys: KeyInfo[]; onSaved: (text: string) => void; note: string }) {
   const [paste, setPaste] = useState("");
   const [busy, setBusy] = useState(false);
+  const missing = keys.filter((k) => k.needs_key && !k.keys.length).map((k) => k.name);
   return (
     <>
       {header}
@@ -235,11 +237,10 @@ function KeysPage({ header, keys, onSaved, note }: { header: React.ReactNode; ke
         }
       }}>{busy ? "Checking…" : "Save keys"}</button>
       {note && <div className="note">{note}</div>}
-      <ul className="list">
-        {keys.map((k) => (
-          <li key={k.id}><b>{k.name}</b><span>{k.needs_key ? (k.keys.length ? k.keys.join(", ") : "no key") : "runs on this laptop"}</span></li>
-        ))}
-      </ul>
+      <h3>Your keys</h3>
+      {/* one row per key, with works / rejected (jrkrishh's KeysList); it reloads when a paste adds keys */}
+      <KeysList version={keys.map((k) => k.keys.join()).join("|")} onChanged={() => onSaved("")} />
+      {missing.length > 0 && <p className="quiet">No key yet for {missing.join(", ")}. They're free: paste one above.</p>}
     </>
   );
 }
