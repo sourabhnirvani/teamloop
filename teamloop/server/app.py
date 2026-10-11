@@ -217,12 +217,23 @@ def create_app(crew: Crew | None = None) -> FastAPI:
                 "bot_models": s.get_setting("bot_models", {}) or {}}
 
     @app.post("/api/settings")
-    def set_settings(body: dict) -> dict:
+    async def set_settings(body: dict) -> dict:
         s = get_crew().store
         for key in ("save_tokens", "crew_model", "bot_models"):
             if key in body:
                 s.set_setting(key, body[key])
-        return settings()
+        now = settings()
+        await get_crew().bus.emit("settings", chat_id=None, **now)  # other open apps (the phone) update at once
+        return now
+
+    @app.get("/api/state")
+    def state() -> dict:
+        """What an app that (re)connects needs: who is working where, cards still waiting, asleep, save tokens."""
+        return get_crew().state()
+
+    @app.get("/api/approvals")
+    def approvals() -> list[dict]:
+        return get_crew().gate.waiting_cards()
 
     @app.get("/api/usage")
     def usage() -> list[dict]:

@@ -31,7 +31,7 @@ CODE_SECONDS = 600
 MAX_FAILS = 10
 LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"  # no I or O, so a typed code can't be misread
 PROXY_HEADERS = ("cf-connecting-ip", "x-forwarded-for", "forwarded")
-API_PAGES = {"/docs", "/docs/oauth2-redirect", "/redoc", "/openapi.json"}
+API_PAGES = {"/docs", "/docs/oauth2-redirect", "/redoc", "/openapi.json", "/console"}
 LOCAL_HOSTS = {"127.0.0.1", "::1", "testclient"}  # the server only listens on loopback
 TUNNEL_URL = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
 mimetypes.add_type("application/manifest+json", ".webmanifest")
@@ -152,6 +152,9 @@ class EventLog:
                 self._new.set()
                 self._new = asyncio.Event()
 
+    def oldest(self) -> int:
+        return self.events[0][0] if self.events else self.seq + 1
+
     async def after(self, seq: int, wait: float) -> list[dict]:
         if not any(n > seq for n, _ in self.events):
             try:
@@ -202,9 +205,10 @@ def install(app: FastAPI, phones: Phones) -> None:
             crew = app.state.crew
             waiting = {aid for chat in crew.store.chats() for aid in crew.gate.pending_in(chat["id"])}
             cards = [e for _, e in log.events if e["type"] == "approval" and e.get("id") in waiting]
-            return {"seq": log.seq, "events": cards}
+            return {"seq": log.seq, "oldest": log.oldest(), "events": cards}
         events = await log.after(after, min(wait, 25))
-        return {"seq": log.seq, "events": events}
+        # `oldest` > after+1 means events were dropped from the buffer: the app reloads its chats and /api/state
+        return {"seq": log.seq, "oldest": log.oldest(), "events": events}
 
     @app.post("/api/phones/pair")
     async def pair() -> dict:

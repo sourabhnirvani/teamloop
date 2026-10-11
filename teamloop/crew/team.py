@@ -44,6 +44,7 @@ class Crew:
         self.gate = gate or Gate(store, bus)
         self._tasks: dict[str, asyncio.Task] = {}
         self._stops: dict[str, asyncio.Event] = {}
+        self.busy: dict[str, dict[str, int]] = {}  # chat id -> bot id -> how many turns it is running
 
     # ---- setup ----------------------------------------------------------------------------
     def ensure_default_chats(self) -> None:
@@ -196,7 +197,7 @@ class Crew:
         if bot.id == LEAD and self.store.get_setting("solo", False):
             bot = dataclasses.replace(bot, kits=WORKER_KITS)  # "one bot" mode for before/after numbers
         prompt = f"{text}\n\n{note}" if note else text
-        await self.bus.emit("typing", chat_id=chat["id"], bot=bot.id, on=True)
+        await self.typing(chat["id"], bot.id, True)
         try:
             reply = await run_bot_turn(bot, self.router,
                                        self.history(chat["id"], bot.id, SAVE_HISTORY_LIMIT if saving else HISTORY_LIMIT),
@@ -205,7 +206,7 @@ class Crew:
         except AllModelsBusy as e:
             reply = f"Failed: {e}"
         finally:
-            await self.bus.emit("typing", chat_id=chat["id"], bot=bot.id, on=False)
+            await self.typing(chat["id"], bot.id, False)
         if note and reply.strip().upper().startswith("SKIP"):
             return None
         if not (bot.id == LEAD and reply.lower().startswith("not mine:")):  # S's "Not mine" is re-routed, not shown
@@ -226,6 +227,20 @@ class Crew:
                 await self._turn(target, chat, ask, TurnCtx(chat["id"], target.id, self, stop))
                 return
 
+    async def typing(self, chat_id: str, bot_id: str, on: bool) -> None:
+        """Who is working where, kept here too, so an app that (re)connects can ask GET /api/state."""
+        working = self.busy.setdefault(chat_id, {})
+        working[bot_id] = working.get(bot_id, 0) + (1 if on else -1)  # a bot can be busy twice (handoff to itself)
+        if working[bot_id] <= 0:
+            del working[bot_id]
+        await self.bus.emit("typing", chat_id=chat_id, bot=bot_id, on=on)
+
+    def state(self) -> dict:
+        return {"typing": {chat: sorted(bots) for chat, bots in self.busy.items() if bots},
+                "approvals": self.gate.waiting_cards(),
+                "asleep": bool(self.store.get_setting("asleep", False)),
+                "save_tokens": self.saving()}
+
     async def say(self, chat_id: str, sender: str, text: str, kind: str = "chat") -> dict:
         msg = self.store.add_message(chat_id, sender, text, kind)
         await self.bus.emit("message", chat_id=chat_id, message=msg)
@@ -243,14 +258,14 @@ class Crew:
             return ToolResult(False, "Too many handoffs in a row. Do this step yourself or ask the person.")
         await self.say(ctx.chat_id, ctx.bot_id, f"@{bot.name} {instruction}", kind="handoff")
         sub = ctx.for_bot(bot.id, depth=ctx.depth + 1)
-        await self.bus.emit("typing", chat_id=ctx.chat_id, bot=bot.id, on=True)
+        await self.typing(ctx.chat_id, bot.id, True)
         try:
             reply = await run_bot_turn(bot, self.router, [], instruction, sub, prefer=self.model_for(bot.id),
                                        max_steps=SAVE_MAX_STEPS if self.saving() else MAX_STEPS)
         except AllModelsBusy as e:
             reply = f"Failed: {e}"
         finally:
-            await self.bus.emit("typing", chat_id=ctx.chat_id, bot=bot.id, on=False)
+            await self.typing(ctx.chat_id, bot.id, False)
         await self.say(ctx.chat_id, bot.id, reply)
         ok = not reply.lower().startswith(("failed:", "not mine:"))
         return ToolResult(ok, f"{bot.name} replied: {reply}")

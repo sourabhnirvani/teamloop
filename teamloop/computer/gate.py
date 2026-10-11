@@ -23,6 +23,7 @@ class Gate:
         self._denied: dict[tuple[str, str, str], float] = {}
         self._stopped: set[str] = set()
         self.last: dict[str, str] = {}  # chat id -> how the latest card there ended
+        self.cards: dict[str, dict] = {}  # approval id -> its event, while it waits (for apps that reconnect)
 
     async def ask(self, chat_id: str, bot: str, title: str, details: str, screenshot: str | None = None,
                   key: str | None = None) -> bool:
@@ -35,8 +36,10 @@ class Gate:
         row = self.store.add_approval(chat_id, bot, title, details)
         future: asyncio.Future = asyncio.get_running_loop().create_future()
         self._waiting[row["id"]] = (chat_id, future)
-        await self.bus.emit("approval", id=row["id"], chat_id=chat_id, bot=bot, title=title,
-                            details=details, screenshot=screenshot)
+        card = {"type": "approval", "id": row["id"], "chat_id": chat_id, "bot": bot, "title": title,
+                "details": details, "screenshot": screenshot}
+        self.cards[row["id"]] = card
+        await self.bus.emit("approval", **{k: v for k, v in card.items() if k != "type"})
         try:
             ok = bool(await asyncio.wait_for(future, self.timeout))
             status = "approved" if ok else "denied"
@@ -44,6 +47,7 @@ class Gate:
             ok, status = False, "expired"
         finally:
             self._waiting.pop(row["id"], None)
+            self.cards.pop(row["id"], None)
         if row["id"] in self._stopped:  # Stop pressed: not a "no" to remember
             self._stopped.discard(row["id"])
             status = "stopped"
@@ -60,6 +64,9 @@ class Gate:
             return False
         waiting[1].set_result(bool(ok))
         return True
+
+    def waiting_cards(self) -> list[dict]:
+        return [dict(c) for aid, c in self.cards.items() if aid in self._waiting and not self._waiting[aid][1].done()]
 
     def pending_in(self, chat_id: str) -> list[str]:
         return [aid for aid, (cid, fut) in self._waiting.items() if cid == chat_id and not fut.done()]

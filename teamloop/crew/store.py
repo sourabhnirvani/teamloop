@@ -64,7 +64,13 @@ class Store:
         return _chat(rows[0]) if rows else None
 
     def chats(self) -> list[dict]:
-        return [_chat(r) for r in self._all("SELECT * FROM chats ORDER BY created")]
+        out = [_chat(r) for r in self._all("SELECT * FROM chats ORDER BY created")]
+        last = {r["chat_id"]: {"sender": r["sender"], "text": r["text"][:160], "kind": r["kind"], "ts": r["ts"]}
+                for r in self._all("SELECT m.chat_id, m.sender, m.text, m.kind, m.ts FROM messages m JOIN "
+                                   "(SELECT chat_id, MAX(id) AS id FROM messages GROUP BY chat_id) l ON m.id = l.id")}
+        for chat in out:
+            chat["last"] = last.get(chat["id"])
+        return out
 
     def update_members(self, chat_id: str, members: list[str]) -> None:
         self._run("UPDATE chats SET members=? WHERE id=?", (json.dumps(members), chat_id))

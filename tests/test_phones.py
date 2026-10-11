@@ -85,7 +85,7 @@ async def test_first_poll_brings_cards_still_waiting(tmp_path):
     crew = build_crew(tmp_path / "p.db", router=FakeRouter([]))
     app = create_app(crew)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://127.0.0.1") as client:
-        assert (await client.get("/api/events/poll", params={"after": -1})).json() == {"seq": 0, "events": []}
+        assert (await client.get("/api/events/poll", params={"after": -1})).json() == {"seq": 0, "oldest": 1, "events": []}
         asked = asyncio.create_task(crew.gate.ask("team", "desk", "Lock", "Lock the laptop now."))
         await asyncio.sleep(0.05)
         first = (await client.get("/api/events/poll", params={"after": -1})).json()

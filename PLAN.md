@@ -89,9 +89,10 @@ teamloop/server/     app.py (FastAPI API below)                                 
 teamloop/trace.py    neatlogs                                                       → Sourabh
 teamloop/browser/    host (Chrome + CDP), kit (open/snapshot/act/read)              → Sourabh (done)
 teamloop/server/telegram.py   Telegram bridge                                       → Yang
-ui/                  React + Vite app                                               → Yang
+ui/                  React + Vite app                                               → Sourabh (from 11 Oct)
 desktop/             Electron wrapper                                               → Yang
 ui/public/ + teamloop/server/phones.py   PWA (manifest, service worker), pairing, tunnel → Yang
+phone-hub/ + teamloop/server/hub.py      fixed phone link (Cloudflare Worker + Durable Object)   → Sourabh
 tests/               pytest, each owner tests their own parts                       → both
 evidence/ hackathon.md                                                              → both
 ```
@@ -103,10 +104,13 @@ Server: `http://127.0.0.1:8790`. All JSON.
 | Call | Does |
 |---|---|
 | `GET /api/bots` | `[{id, name, role, emoji, model}]` |
-| `GET /api/chats` · `POST /api/chats {title, members:[bot ids]}` | list / create (1 member = 1:1, more = group) |
-| `GET /api/chats/{id}/messages` | `[{id, chat_id, sender, text, ts, kind}]` (sender = "user" or bot id; kind = `chat` · `handoff` · `routine` · `fast` = answered by the no-model fast path) |
+| `GET /api/chats` · `POST /api/chats {title, members:[bot ids]}` | list / create (1 member = 1:1, more = group). Each chat has `last: {sender, text, kind, ts}` or null |
+| `GET /api/chats/{id}/messages` | `[{id, chat_id, sender, text, ts, kind}]` (sender = "user" or bot id; kind = `chat` · `handoff` · `routine` · `fast` = answered by the no-model fast path · `stopped` = "Stopped.") |
 | `POST /api/chats/{id}/messages {text}` | 202; replies arrive as events |
-| `GET /api/events` (SSE) | `{type, chat_id, ...}` with type = `message` · `typing` · `step` · `approval` · `approval_done` · `usage` · `error` |
+| `GET /api/events` (SSE) | `{type, chat_id, ...}` with type = `message` · `typing` · `step` · `approval` · `approval_done` · `usage` · `screenshot` · `settings` (chat_id null, the new settings) |
+| `GET /api/state` | for an app that (re)connects: `{typing: {chat_id: [bot]}, approvals: [approval events still waiting], asleep, save_tokens}` |
+| `GET /api/approvals` | approval events still waiting |
+| `GET /api/version` | `{version}` = the UI bundle the laptop serves (`index-xxxx.js`); an open app with another bundle offers Update |
 | `POST /api/approvals/{id} {ok}` | answer an approval card |
 | `POST /api/chats/{id}/stop` | stop the work in that chat |
 | `GET /api/keys` · `POST /api/keys {text}` | saved providers (masked) / paste a key → detect + check + save |
@@ -114,11 +118,25 @@ Server: `http://127.0.0.1:8790`. All JSON.
 | `GET /api/settings` · `POST /api/settings {...}` | save_tokens, per-bot model |
 | `GET /api/usage` | today's tokens and requests per provider |
 | `POST /api/phones/pair` · `GET /api/phones` · `DELETE /api/phones/{id}` | laptop only: start the tunnel + one-use code `{code, link, expires, qr}` / paired phones / remove one |
-| `GET /api/events/poll?after=N&wait=20` | long-poll twin of `/api/events` for phones (quick tunnels don't carry SSE): `{seq, events}`; `after=-1` starts now and returns cards still waiting |
+| `GET /api/events/poll?after=N&wait=20` | long-poll twin of `/api/events` for phones (quick tunnels don't carry SSE): `{seq, oldest, events}`; `after=-1` starts now and returns cards still waiting; `oldest > after+1` = events were dropped, so reload chats + `/api/state` |
 | `GET /pair` · `POST /pair` (form `code`) | phone pairing page; sets the phone's cookie. Through the tunnel, every `/api` call needs that cookie (else 401) |
 | `POST /api/browser/signin {url?}` | open a tab in the crew's Chrome on a sign-in page (default Google, https only) so the person signs in once → `{ok, url, text}` |
 
 Approval event: `{type:"approval", id, chat_id, bot, title, details, screenshot?}`.
+
+Coming next (Phase 2, 11-12 Oct; each lands with tests, the UI follows):
+
+| Call | Does |
+|---|---|
+| `GET/POST /api/tasks` · `PATCH/DELETE /api/tasks/{id}` | Board: `{id, title, status: todo·doing·blocked·done, bot, by, chat_id, note, source: manual·delegate, created, updated}`; delegations are logged automatically; event `task` |
+| `GET /api/jobs` · `GET /api/jobs/{id}` · `POST /api/jobs/{id}/stop` | Desk's background terminal jobs `{id, chat_id, command, state, exit_code, started, ended}` (+ `output`); event `job` |
+| `POST /api/approvals/{id} {ok, always?}` · `GET /api/allowed` · `DELETE /api/allowed/{id}` | "Always allow" rules (never for power, delete, send, buy); a matched card emits `allowed` instead of `approval` |
+| `GET /api/bots` (more fields) · `POST /api/bots` · `PATCH/DELETE /api/bots/{id}` | look `{body, accessory, eyes, colour}`, personality, persona (job & rules), muted, custom, tools; custom bots get a 1:1 chat and join Team |
+| `POST /api/routines {chat_id, text, schedule}` | add a routine (400 says why a schedule can't be read) |
+| `POST /api/settings {bot_only: {bot: bool}}` | "only this model, no fallback" per bot |
+| `GET /api/overview` · `GET /api/security` | Settings home status lines; key vault count + blocked key-leak attempts |
+| `GET /api/keys` entries · `POST /api/keys/test` · `DELETE /api/keys/{env}` | per-key status (works / rejected + why), test all, remove |
+| `GET /api/hub` · `POST /api/hub/setup` | fixed phone link status / set up (laptop only) |
 
 ## 5. Talking to each other: ccbridge
 
