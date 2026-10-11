@@ -123,7 +123,7 @@ export default function App() {
 
   const chatList = (
     <aside className="sidebar">
-      <div className="brand"><b>TeamLoop</b><small>your AI crew</small></div>
+      <div className="brand"><img src="/logo.svg" alt="" /><span><b>TeamLoop</b><small>your AI crew</small></span></div>
       {lead && leadChat && (
         <button className={`hero ${leadChat.id === chatId ? "on" : ""}`} style={{ "--bot": botColor("s") } as React.CSSProperties}
                 onClick={() => openChat(leadChat.id)}>
@@ -166,7 +166,7 @@ export default function App() {
   return (
     <div className={`app tab-${route.tab} ${inChat ? "in-chat" : ""}`}>
       <nav className="rail" aria-label="TeamLoop">
-        <div className="logo" aria-hidden="true"><span>⟳</span></div>
+        <img className="logo" src="/logo.svg" alt="" />
         {TABS.map((t) => (
           <button key={t.tab} className={`rail-btn ${route.tab === t.tab ? "on" : ""}`} aria-current={route.tab === t.tab ? "page" : undefined}
                   onClick={() => go(href(t.tab, t.tab === "chats" ? chatId : null))}>

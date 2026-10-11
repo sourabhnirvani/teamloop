@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- TeamLoop: S, the lead, with two teammates and the loop they work in -->
+  <defs>
+    <linearGradient id="tl-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5a6cff"/>
+      <stop offset="1" stop-color="#a95cff"/>
+    </linearGradient>
+    <radialGradient id="tl-shine" cx="0.28" cy="0.18" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".38"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tl-s" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dfe3ff"/>
+    </linearGradient>
+    <linearGradient id="tl-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5ff0c0"/>
+      <stop offset="1" stop-color="#1fb98a"/>
+    </linearGradient>
+    <linearGradient id="tl-pink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb0cf"/>
+      <stop offset="1" stop-color="#ff6f9f"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="118" fill="url(#tl-bg)"/>
+  <rect width="512" height="512" rx="118" fill="url(#tl-shine)"/>
+
+  <!-- the loop, back half -->
+  <path d="M70 318 A186 62 -10 0 1 442 252" fill="none" stroke="#ffffff" stroke-opacity=".38" stroke-width="16" stroke-linecap="round"/>
+
+  <!-- teammates peeking from behind S -->
+  <g>
+    <circle cx="110" cy="312" r="60" fill="url(#tl-teal)"/>
+    <ellipse cx="82" cy="300" rx="10.5" ry="14" fill="#123a33"/>
+    <ellipse cx="110" cy="300" rx="10.5" ry="14" fill="#123a33"/>
+    <circle cx="86" cy="294" r="4" fill="#fff"/>
+    <circle cx="114" cy="294" r="4" fill="#fff"/>
+  </g>
+  <g>
+    <circle cx="402" cy="312" r="56" fill="url(#tl-pink)"/>
+    <ellipse cx="404" cy="288" rx="10" ry="13.5" fill="#4a1630"/>
+    <ellipse cx="430" cy="288" rx="10" ry="13.5" fill="#4a1630"/>
+    <circle cx="408" cy="282" r="4" fill="#fff"/>
+    <circle cx="434" cy="282" r="4" fill="#fff"/>
+  </g>
+
+  <!-- S -->
+  <line x1="256" y1="132" x2="256" y2="98" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="256" cy="88" r="17" fill="#ffd45c"/>
+  <circle cx="251" cy="83" r="5" fill="#fff6d6"/>
+  <path d="M256 128c84 0 136 58 136 138 0 78-50 124-136 124s-136-46-136-124c0-80 52-138 136-138z" fill="url(#tl-s)"/>
+  <ellipse cx="212" cy="262" rx="21" ry="28" fill="#1d2150"/>
+  <ellipse cx="300" cy="262" rx="21" ry="28" fill="#1d2150"/>
+  <circle cx="220" cy="250" r="8" fill="#fff"/>
+  <circle cx="308" cy="250" r="8" fill="#fff"/>
+  <ellipse cx="180" cy="308" rx="19" ry="11" fill="#ff8fb3" opacity=".75"/>
+  <ellipse cx="332" cy="308" rx="19" ry="11" fill="#ff8fb3" opacity=".75"/>
+  <path d="M232 306q24 22 48 0" fill="none" stroke="#1d2150" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- the loop, front half, with a spark travelling on it -->
+  <path d="M442 252 A186 62 -10 0 1 70 318" fill="none" stroke="#ffffff" stroke-opacity=".9" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="204" cy="352" r="15" fill="#ffd45c"/>
+  <circle cx="200" cy="348" r="5" fill="#fff6d6"/>
+</svg>

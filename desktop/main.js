@@ -150,6 +150,22 @@ function icon() {
   return nativeImage.createFromPath(path.join(__dirname, "icon.png"));
 }
 
+// The logo comes with the UI: after every load of the app (start-up, and the reload an Update does) the window,
+// taskbar button and tray take the icon the server has now, so a new logo shows without reinstalling.
+function refreshIcon() {
+  http.get(`${BASE}/app-icon.png?t=${Date.now()}`, (res) => {
+    if (res.statusCode !== 200) return res.resume();
+    const chunks = [];
+    res.on("data", (c) => chunks.push(c));
+    res.on("end", () => {
+      const img = nativeImage.createFromBuffer(Buffer.concat(chunks));
+      if (img.isEmpty()) return;
+      win?.setIcon(img);
+      tray?.setImage(img.resize({ width: 16, height: 16 }));
+    });
+  }).on("error", () => { /* keep the icon we have */ });
+}
+
 function show() {
   if (!win) return;
   if (win.isMinimized()) win.restore();
@@ -167,6 +183,9 @@ function createWindow() {
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.on("page-title-updated", (e) => e.preventDefault());
+  win.webContents.on("did-finish-load", () => {
+    if (win.webContents.getURL().startsWith(BASE)) refreshIcon();
+  });
   win.on("focus", () => win.flashFrame(false));
   win.on("close", (e) => {
     if (quitting) return;
