@@ -29,6 +29,7 @@ from teamloop import config
 COOKIE = "teamloop_phone"
 CODE_SECONDS = 600
 MAX_FAILS = 10
+LOCKOUT_SECONDS = 600  # wrong codes are counted per sender over this long
 LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"  # no I or O, so a typed code can't be misread
 PROXY_HEADERS = ("cf-connecting-ip", "x-forwarded-for", "forwarded")
 API_PAGES = {"/docs", "/docs/oauth2-redirect", "/redoc", "/openapi.json", "/console"}
@@ -105,7 +106,7 @@ class Phones:
     def __init__(self, store):
         self.store = store
         self.codes: dict[str, float] = {}
-        self.fails = 0
+        self.fails: dict[str, list[float]] = {}  # sender -> when it typed a wrong code
         self.url: str | None = None
         self._proc: subprocess.Popen | None = None
         self._seen: dict[str, float] = {}
@@ -116,14 +117,18 @@ class Phones:
         self.codes[code] = time.time() + CODE_SECONDS
         return code
 
-    def redeem(self, code: str, name: str) -> str | None:
+    def redeem(self, code: str, name: str, who: str = "") -> str | None:
+        """A phone's token for a right code. A sender with MAX_FAILS wrong codes is shut out for a while; the
+        person's own code keeps working (before, anyone could wipe it by typing 10 wrong codes at the hub)."""
+        now = time.time()
+        tries = [t for t in self.fails.get(who, []) if now - t < LOCKOUT_SECONDS]
+        if len(tries) >= MAX_FAILS:
+            self.fails[who] = tries
+            return None
         code = re.sub(r"[^A-Z]", "", code.upper())
-        self.codes = {c: t for c, t in self.codes.items() if t > time.time()}
+        self.codes = {c: t for c, t in self.codes.items() if t > now}
         if self.codes.pop(code, None) is None:
-            self.fails += 1
-            if self.fails >= MAX_FAILS:  # someone is guessing: every open code dies
-                self.codes.clear()
-                self.fails = 0
+            self.fails[who] = [*tries, now]
             return None
         token = secrets.token_urlsafe(32)
         phone = {"id": uuid.uuid4().hex[:8], "name": name[:80] or "Phone", "hash": _hash(token),
@@ -306,12 +311,19 @@ def install(app: FastAPI, phones: Phones) -> None:
     @app.post("/pair")
     async def pair_phone(request: Request):
         form = parse_qs((await request.body()).decode("utf-8", "replace"))
-        token = phones.redeem(form.get("code", [""])[0], _device(request.headers.get("user-agent", "")))
+        token = phones.redeem(form.get("code", [""])[0], _device(request.headers.get("user-agent", "")), _sender(request))
         if token is None:
             return HTMLResponse(_page(error="That code is wrong or expired. Make a new one on the laptop."), 400)
         res = RedirectResponse("/", status_code=303)
         res.set_cookie(COOKIE, token, max_age=365 * 86400, httponly=True, secure=True, samesite="strict")
         return res
+
+
+def _sender(request: Request) -> str:
+    """Who is typing codes: Cloudflare's own record of the visitor (it can't be faked through the tunnel or the
+    hub), else the forwarded or direct address."""
+    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    return request.headers.get("cf-connecting-ip") or forwarded or (request.client.host if request.client else "")
 
 
 def _device(agent: str) -> str:

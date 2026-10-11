@@ -45,7 +45,7 @@ def test_pair_with_code_then_remove(tmp_path):
         assert client.get("/api/chats", headers=paired).status_code == 401
 
 
-def test_codes_work_once_and_guessing_kills_them(tmp_path):
+def test_codes_work_once_and_a_guesser_is_shut_out_without_killing_the_persons_code(tmp_path):
     app, client = app_and_client(tmp_path)
     store = app.state.phones
     code = store.new_code()
@@ -53,8 +53,23 @@ def test_codes_work_once_and_guessing_kills_them(tmp_path):
     assert store.redeem(code, "Phone") is None
     fresh = store.new_code()
     for _ in range(phones.MAX_FAILS):
-        store.redeem("WRONGONE", "Phone")
-    assert store.redeem(fresh, "Phone") is None
+        store.redeem("WRONGONE", "Phone", who="203.0.113.9")
+    assert store.redeem(fresh, "Phone", who="203.0.113.9") is None  # the guesser can't use even a right code now
+    assert store.redeem(fresh, "Phone", who="198.51.100.4")  # the person's phone still pairs
+
+
+def test_the_sender_is_cloudflares_record_of_the_visitor(tmp_path):
+    app, client = app_and_client(tmp_path)
+    fresh = app.state.phones.new_code()
+    form = {**TUNNEL, "content-type": "application/x-www-form-urlencoded"}
+    with client:
+        for i in range(phones.MAX_FAILS):  # a guesser that also fakes x-forwarded-for each time
+            client.post("/pair", content="code=WRONGONE", headers={**form, "cf-connecting-ip": "203.0.113.9",
+                                                                   "x-forwarded-for": f"10.0.0.{i}"})
+        shut = client.post("/pair", content=f"code={fresh}", headers={**form, "cf-connecting-ip": "203.0.113.9"})
+        mine = client.post("/pair", content=f"code={fresh}", headers={**form, "cf-connecting-ip": "198.51.100.4"},
+                           follow_redirects=False)
+    assert shut.status_code == 400 and mine.status_code == 303
 
 
 def test_bad_code_shows_the_page_again(tmp_path):
