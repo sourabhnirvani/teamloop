@@ -57,9 +57,23 @@ class SignIn(BaseModel):
 
 def build_crew(db_path: Path | str | None = None, router: Any = None) -> Crew:
     store = Store(db_path or config.db_path())
-    crew = Crew(store, router or Router(on_usage=store.add_usage), Bus())
+    bus = Bus()
+    crew = Crew(store, router or Router(on_usage=usage_hook(store, bus)), bus)
     crew.ensure_default_chats()
     return crew
+
+
+def usage_hook(store: Store, bus: Bus):
+    """Count each model call, and tell the UI live (a "usage" event) so its counter needn't refetch."""
+    def hook(provider: str, model: str, tokens_in: int, tokens_out: int, purpose: str = "") -> None:
+        store.add_usage(provider, model, tokens_in, tokens_out, purpose)
+        try:
+            asyncio.get_running_loop().create_task(
+                bus.emit("usage", chat_id=None, provider=provider, model=model,
+                         tokens_in=tokens_in, tokens_out=tokens_out))
+        except RuntimeError:  # no running loop (scripts): counting is enough
+            pass
+    return hook
 
 
 def _mask(key: str) -> str:

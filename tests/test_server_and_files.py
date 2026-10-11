@@ -101,3 +101,16 @@ def test_sign_in_opens_a_tab_in_the_crews_chrome(tmp_path):
             assert client.post("/api/browser/signin", json={"url": "http://evil.example"}).status_code == 400
     finally:
         browser_kit.set_host(None)
+
+
+async def test_each_model_call_is_counted_and_announced(tmp_path):
+    import asyncio
+
+    from teamloop.server.app import usage_hook
+
+    crew = build_crew(tmp_path / "api.db", router=FakeRouter([]))
+    with crew.bus.subscribe() as queue:
+        usage_hook(crew.store, crew.bus)("nvidia", "nemotron", 120, 30, "turn:s")
+        event = await asyncio.wait_for(queue.get(), 2)
+    assert event["type"] == "usage" and event["provider"] == "nvidia" and event["tokens_in"] == 120
+    assert crew.store.usage()[0]["requests"] == 1
