@@ -255,3 +255,52 @@ Rules that still apply:
 3. The parity analysis.
 
 Write evidence for each.
+
+## 8. Sun 11 Oct, night: MORE build work for jrkrishh (Sourabh: share the load)
+
+Sourabh has built most of it so far, so the rest of the Agent S parity is yours. Pull main (890e0bd or later)
+and run `cd ui && npm run build`. Same rules as §7:
+- new files where possible
+- tests, plus a Chrome check on `scripts/rehearse.py`
+- evidence for every piece
+- pull --rebase before every push
+
+Order: A–D from §7 first, then:
+
+### E. API keys page like Agent S (backend: keys, wallet, vault; UI: new `ui/src/settings/KeysList.tsx`)
+- `GET /api/keys` gains `entries: [{env, provider, masked "…abcd", status: works|rejected|unchecked, reason, source: vault|env}]`.
+- `POST /api/keys/test` re-checks every key (wallet.check).
+- `DELETE /api/keys/{env}` removes a vault key; a key that comes from .env gets a 409 that says so.
+- `POST /api/keys/cleanup` removes rejected keys.
+- **UI:** one row per key, "Works" or "Rejected: why", a Remove button, "Test all again", and a "Worth cleaning up" list with a Clean up button.
+- **Tests** use fake keys only. Never put a real key in code, tests or evidence.
+
+### F. Usage per key, with "resets in" (models/router + store; UI: new `ui/src/settings/UsageByKey.tsx`)
+- The usage hook also records a key tag (its last 4 characters) into a `usage_keys` table.
+- "Resets in" comes from `KeyState.rest_until` and the provider's daily reset time.
+- `GET /api/usage/keys` returns `[{provider, key: "…abcd", model, requests, tokens, limit?, resets_in}]`.
+- **UI:** grouped by provider, as on Agent S's Usage & Save tokens page.
+
+### G. 3D Crew Room for bots people build (`ui/src/CrewRoom.tsx` is yours from now on)
+- Bots built with "Build a bot" carry `look: {body, accessory, eyes, colour}`. See `ui/src/Look.tsx` for the 2D version.
+- Make `build()` in CrewRoom use `look.body` (blob/monitor/planet/bean/envelope/pill) and add the accessories in 3D (antenna, hat, crown, bow, flower, glasses, monocle, feather, ring, headphones, sprout).
+- Then add the remaining 3D personality items from PLAN §Phase 3, with a screenshot in evidence.
+
+### H. Telegram parity (your telegram.py)
+- Approval cards with Approve / Deny buttons, Stop, `/chat <bot>`, and sleep/wake.
+- Do a live check with your own bot token, and record it in evidence. **Without the token text.**
+
+### I. Evals for what's new (`evals/`)
+- the Board logs a handoff
+- Always allow skips the second card
+- the coverage nudge brings back a skipped "open it"
+- the Ctrl+Alt+Q stop-all from your B
+
+### J. Hackathon deliverables
+- `evidence/hackathon.md`
+- #neatHack posts, using the screenshots in `evidence/ui/`
+- the cfo.ai plan
+- the video plan (record from the `demo` tag Sourabh will make)
+
+### Hand back
+When each piece is done, tell Sourabh: on ccbridge if the relay works, otherwise in a §9 here.
