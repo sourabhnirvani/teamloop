@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import json
+import sys
 
 from fakes import FakeRouter
 from fastapi.testclient import TestClient
@@ -84,3 +85,12 @@ def test_hub_setup_is_laptop_only(tmp_path):
     with TestClient(app, base_url="https://x.trycloudflare.com") as client:
         res = client.post("/api/hub/setup", headers={**TUNNEL, "cookie": f"{phones.COOKIE}={token}"})
     assert res.status_code == 403
+
+
+def test_wrangler_output_with_emoji_is_read_on_windows(monkeypatch):
+    # wrangler prints "⛅️ wrangler 4.x" in UTF-8; read with Windows' cp1252 the output came back as None
+    banner = "import sys; sys.stdout.buffer.write('\u26c5\ufe0f wrangler'.encode()); sys.stderr.buffer.write(b'')"
+    monkeypatch.setattr(hub.shutil, "which", lambda name: sys.executable)
+    monkeypatch.setattr(hub, "WRANGLER", ["npx", "-c", banner])
+    done = hub._wrangler("whoami", timeout=60)
+    assert done.returncode == 0 and "wrangler" in done.stdout and done.stderr == ""

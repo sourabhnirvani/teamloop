@@ -110,8 +110,12 @@ async def _reply(ws, app, msg: dict) -> None:
 # ---- one-time setup ------------------------------------------------------------------------------------------
 def _wrangler(*args: str, input: str | None = None, timeout: int = 300) -> subprocess.CompletedProcess:
     exe = shutil.which("npx") or "npx"
-    return subprocess.run([exe, *WRANGLER[1:], *args], input=input, capture_output=True, text=True, timeout=timeout,
-                          cwd=CONFIG.parent, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    # wrangler prints UTF-8 (⛅️, box lines); Windows' default cp1252 can't decode it and the output came back as None
+    done = subprocess.run([exe, *WRANGLER[1:], *args], input=input, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", timeout=timeout, cwd=CONFIG.parent,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    done.stdout, done.stderr = done.stdout or "", done.stderr or ""
+    return done
 
 
 def setup(store, say=print) -> str:
