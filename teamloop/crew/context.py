@@ -25,6 +25,7 @@ class TurnCtx:
     # Cards nobody answered in this job (shared with teammates' sub-turns): no answer counts as a no, so the same
     # request isn't asked again until the person sends a new message.
     unanswered: set = field(default_factory=set)
+    cards: list = field(default_factory=list)  # how each approval card in this job ended, in order (shared)
     used: set = field(default_factory=set)   # tools any bot called in this job (an attempt counts)
     spoke: set = field(default_factory=set)  # bots that really ran a turn in this job
 
@@ -36,9 +37,11 @@ class TurnCtx:
         what = (title, key or details)
         if what in self.unanswered:
             self.last_answer = "expired_before"
+            self.cards.append(self.last_answer)
             return False
         ok = await self.crew.gate.ask(self.chat_id, self.bot_id, title, details, screenshot, key=key)
         self.last_answer = self.crew.gate.last.get(self.chat_id, "")
+        self.cards.append(self.last_answer)
         if self.last_answer == "expired":
             self.unanswered.add(what)
         self.check_stop()

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
 import { Avatar, botColor, SIGNS, toolSign, type Move } from "./Avatar";
+import { BoardView } from "./BoardView";
 import { BotProfile } from "./BotProfile";
 import { ChatView } from "./ChatView";
 import { CrewView } from "./CrewView";
+import { JobsView } from "./JobsView";
 import { go, href, useRoute, withOverlay, type Tab } from "./router";
 import { SettingsView } from "./SettingsView";
 import { Sheet } from "./Sheet";
@@ -39,6 +41,8 @@ function ago(ts?: number) {
 const TABS: { tab: Tab; icon: string; label: string }[] = [
   { tab: "chats", icon: "💬", label: "Chats" },
   { tab: "crew", icon: "🤖", label: "Crew" },
+  { tab: "board", icon: "📋", label: "Board" },
+  { tab: "jobs", icon: "⌨️", label: "Jobs" },
   { tab: "settings", icon: "⚙", label: "Settings" },
 ];
 
@@ -47,7 +51,7 @@ export default function App() {
   const narrow = useNarrow();
   const chatId = route.tab === "chats" ? route.id ?? (narrow ? null : DEFAULT_CHAT) : null;
   const crew = useCrew(chatId);
-  const { bots, chats, items, typing, unread, moves, handoff, tools, asleep, live, ready } = crew;
+  const { bots, chats, items, typing, unread, moves, handoff, tools, asleep, tasks, live, ready } = crew;
   const [listening, setListening] = useState<string[]>([]);
   const quiet = useRef<number | undefined>(undefined);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -171,6 +175,10 @@ export default function App() {
   let main: React.ReactNode;
   if (route.tab === "crew") {
     main = <CrewView bots={crewList} moves={moves} look={look} working={working} asking={asking} handoff={handoff} onBot={(id) => openOverlay("bot", id)} />;
+  } else if (route.tab === "board") {
+    main = <BoardView tasks={tasks} bots={bots} look={look} onChat={(id) => go(href("chats", id))} />;
+  } else if (route.tab === "jobs") {
+    main = <JobsView chats={chats} onChat={(id) => go(href("chats", id))} />;
   } else if (route.tab === "settings") {
     main = <SettingsView page={route.id} bots={bots} theme={theme} setTheme={setTheme} />;
   } else if (chat) {

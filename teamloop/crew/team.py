@@ -257,18 +257,38 @@ class Crew:
         if ctx.depth >= MAX_HANDOFF_DEPTH:
             return ToolResult(False, "Too many handoffs in a row. Do this step yourself or ask the person.")
         await self.say(ctx.chat_id, ctx.bot_id, f"@{bot.name} {instruction}", kind="handoff")
+        task = await self.board_add(_task_title(instruction), status="doing", bot=bot.id, by=ctx.bot_id,
+                                    chat_id=ctx.chat_id, source="delegate")
         sub = ctx.for_bot(bot.id, depth=ctx.depth + 1)
+        cards_before = len(sub.cards)
         await self.typing(ctx.chat_id, bot.id, True)
         try:
             reply = await run_bot_turn(bot, self.router, [], instruction, sub, prefer=self.model_for(bot.id),
                                        max_steps=SAVE_MAX_STEPS if self.saving() else MAX_STEPS)
         except AllModelsBusy as e:
             reply = f"Failed: {e}"
+        except (Stopped, asyncio.CancelledError):
+            await self.board_update(task["id"], status="blocked", note="Stopped.")
+            raise
         finally:
             await self.typing(ctx.chat_id, bot.id, False)
         await self.say(ctx.chat_id, bot.id, reply)
         ok = not reply.lower().startswith(("failed:", "not mine:"))
+        said_no = any(a in ("denied", "denied_before", "expired", "expired_before") for a in sub.cards[cards_before:])
+        await self.board_update(task["id"], status="done" if ok and not said_no else "blocked", note=reply[:300])
         return ToolResult(ok, f"{bot.name} replied: {reply}")
+
+    # ---- board ----------------------------------------------------------------------------
+    async def board_add(self, title: str, **fields) -> dict:
+        task = self.store.add_task(title, **fields)
+        await self.bus.emit("task", chat_id=None, task=task)
+        return task
+
+    async def board_update(self, task_id: int, **fields) -> dict | None:
+        task = self.store.update_task(task_id, **fields)
+        if task:
+            await self.bus.emit("task", chat_id=None, task=task)
+        return task
 
     # ---- stop -----------------------------------------------------------------------------
     async def stop(self, chat_id: str) -> bool:
@@ -291,3 +311,9 @@ class Crew:
       kit="lead")
 async def delegate(args: dict, ctx: TurnCtx) -> ToolResult:
     return await ctx.crew.delegate(ctx, str(args.get("bot", "")), str(args.get("instruction", "")))
+
+
+def _task_title(instruction: str) -> str:
+    """A board card's title: the instruction's first line, short."""
+    line = instruction.strip().splitlines()[0] if instruction.strip() else "Step"
+    return line if len(line) <= 90 else line[:87].rstrip() + "…"

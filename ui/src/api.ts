@@ -13,6 +13,10 @@ export type Phone = { id: string; name: string; paired: number; last_seen: numbe
 export type Pairing = { code: string; link: string; expires: number; qr: string };
 export type ApprovalEvent = { type: "approval"; chat_id: string; id: string; bot: string; title: string; details: string; screenshot?: string | null };
 export type CrewState = { typing: Record<string, string[]>; approvals: ApprovalEvent[]; asleep: boolean; save_tokens: boolean };
+export type TaskStatus = "todo" | "doing" | "blocked" | "done";
+export type Task = { id: number; title: string; status: TaskStatus; bot: string | null; by: string | null; chat_id: string | null;
+  note: string; source: "manual" | "delegate"; created: number; updated: number };
+export type Job = { id: string; chat_id: string; command: string; state: "running" | "done" | "failed" | "stopped"; exit_code: number | null; started: number; output?: string };
 
 export type ServerEvent =
   | { type: "message"; chat_id: string; message: Message }
@@ -22,6 +26,7 @@ export type ServerEvent =
   | { type: "approval_done"; chat_id: string; id: string; status: string }
   | { type: "screenshot"; chat_id: string; bot: string; url: string }
   | { type: "settings"; chat_id: null } & Settings
+  | { type: "task"; chat_id: null; task: Task | { id: number; deleted: true } }
   | { type: "usage"; chat_id: null; provider: string; model: string; tokens_in: number; tokens_out: number };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -64,6 +69,14 @@ export const api = {
   pairPhone: () => post<Pairing>("/api/phones/pair"),
   removePhone: (id: string) => call<{ ok: boolean }>(`/api/phones/${id}`, { method: "DELETE" }),
   signIn: (url: string) => post<{ ok: boolean; url: string; text: string }>("/api/browser/signin", { url }),
+  tasks: () => call<Task[]>("/api/tasks"),
+  addTask: (title: string, bot?: string | null) => post<Task>("/api/tasks", { title, bot }),
+  patchTask: (id: number, patch: Partial<Pick<Task, "title" | "status" | "note">>) =>
+    call<Task>(`/api/tasks/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) }),
+  deleteTask: (id: number) => call<{ ok: boolean }>(`/api/tasks/${id}`, { method: "DELETE" }),
+  jobs: () => call<Job[]>("/api/jobs"),
+  job: (id: string) => call<Job>(`/api/jobs/${id}`),
+  stopJob: (id: string) => post<Job>(`/api/jobs/${id}/stop`),
 };
 
 // On the laptop itself the app talks to the server directly; anywhere else it's a paired phone.

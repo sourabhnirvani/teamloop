@@ -3,10 +3,10 @@
 
 import { useEffect, useState } from "react";
 
-export type Tab = "chats" | "crew" | "settings";
+export type Tab = "chats" | "crew" | "board" | "jobs" | "settings";
 export type Route = { tab: Tab; id: string | null; bot: string | null; overlay: string | null };
 
-const TABS: Tab[] = ["chats", "crew", "settings"];
+const TABS: Tab[] = ["chats", "crew", "board", "jobs", "settings"];
 
 export function parse(hash: string): Route {
   const [path, query = ""] = hash.replace(/^#\/?/, "").split("?");

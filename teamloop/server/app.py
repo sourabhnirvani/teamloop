@@ -21,7 +21,8 @@ from teamloop import config, kits, trace
 from teamloop.crew import routines
 from teamloop.crew.bots import BOTS, ROSTER
 from teamloop.crew.events import Bus
-from teamloop.crew.store import Store
+from teamloop.computer import terminal
+from teamloop.crew.store import TASK_STATES, Store
 from teamloop.crew.team import Crew
 from teamloop.keys import vault, wallet
 from teamloop.models import doctor
@@ -47,6 +48,17 @@ class Answer(BaseModel):
 
 class KeyText(BaseModel):
     text: str
+
+
+class NewTask(BaseModel):
+    title: str
+    bot: str | None = None
+
+
+class TaskPatch(BaseModel):
+    title: str | None = None
+    status: str | None = None
+    note: str | None = None
 
 
 SIGN_IN_URL = "https://accounts.google.com"
@@ -269,6 +281,51 @@ def create_app(crew: Crew | None = None) -> FastAPI:
             raise HTTPException(503, f"Couldn't open the crew's Chrome: {str(e).splitlines()[0][:160]}") from None
         return {"ok": True, "url": page.url,
                 "text": "The crew's Chrome is open on the sign-in page. Sign in there yourself; the bots use it after."}
+
+    @app.get("/api/tasks")
+    def list_tasks() -> list[dict]:
+        return get_crew().store.tasks()
+
+    @app.post("/api/tasks")
+    async def add_task(body: NewTask) -> dict:
+        title = body.title.strip()
+        if not title:
+            raise HTTPException(400, "Give the task a title.")
+        return await get_crew().board_add(title[:200], bot=body.bot if body.bot in BOTS else None, by="user")
+
+    @app.patch("/api/tasks/{task_id}")
+    async def patch_task(task_id: int, body: TaskPatch) -> dict:
+        if body.status is not None and body.status not in TASK_STATES:
+            raise HTTPException(400, f"Status is one of: {', '.join(TASK_STATES)}.")
+        task = await get_crew().board_update(task_id, title=body.title, status=body.status, note=body.note)
+        if task is None:
+            raise HTTPException(404, "No such task.")
+        return task
+
+    @app.delete("/api/tasks/{task_id}")
+    async def delete_task(task_id: int) -> dict:
+        crew = get_crew()
+        if not crew.store.delete_task(task_id):
+            raise HTTPException(404, "No such task.")
+        await crew.bus.emit("task", chat_id=None, task={"id": task_id, "deleted": True})
+        return {"ok": True}
+
+    @app.get("/api/jobs")
+    def list_jobs() -> list[dict]:
+        return terminal.jobs()
+
+    @app.get("/api/jobs/{job_id}")
+    def get_job(job_id: str) -> dict:
+        job = terminal.job_detail(job_id)
+        if job is None:
+            raise HTTPException(404, "No such job.")
+        return job
+
+    @app.post("/api/jobs/{job_id}/stop")
+    async def stop_job(job_id: str) -> dict:
+        if not await terminal.stop(job_id):
+            raise HTTPException(404, "No such job.")
+        return terminal.job_detail(job_id) or {"ok": True}
 
     @app.get("/api/version")
     def version() -> dict:

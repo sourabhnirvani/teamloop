@@ -1,4 +1,4 @@
-"""SQLite storage: chats, messages, approvals, usage, settings, routines."""
+"""SQLite storage: chats, messages, approvals, usage, settings, routines, board tasks."""
 
 from __future__ import annotations
 
@@ -29,7 +29,13 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS routines (
     id TEXT PRIMARY KEY, chat_id TEXT NOT NULL, text TEXT NOT NULL, schedule TEXT NOT NULL,
     next_run REAL NOT NULL, enabled INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'todo',
+    bot TEXT, by TEXT, chat_id TEXT, note TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'manual',
+    created REAL NOT NULL, updated REAL NOT NULL);
 """
+
+TASK_STATES = ("todo", "doing", "blocked", "done")
 
 
 class Store:
@@ -111,6 +117,31 @@ class Store:
     def usage(self, day: str | None = None) -> list[dict]:
         return self._all("SELECT * FROM usage WHERE day=? ORDER BY provider, model",
                          (day or date.today().isoformat(),))
+
+    # ---- board ----------------------------------------------------------------------------
+    def add_task(self, title: str, status: str = "todo", bot: str | None = None, by: str | None = None,
+                 chat_id: str | None = None, source: str = "manual", note: str = "") -> dict:
+        now = time.time()
+        cur = self._run("INSERT INTO tasks (title, status, bot, by, chat_id, note, source, created, updated) "
+                        "VALUES (?,?,?,?,?,?,?,?,?)", (title, status, bot, by, chat_id, note, source, now, now))
+        return self.get_task(cur.lastrowid)
+
+    def get_task(self, task_id: int) -> dict | None:
+        rows = self._all("SELECT * FROM tasks WHERE id=?", (task_id,))
+        return rows[0] if rows else None
+
+    def update_task(self, task_id: int, **fields: Any) -> dict | None:
+        allowed = {k: v for k, v in fields.items() if k in ("title", "status", "note", "bot") and v is not None}
+        if allowed:
+            sets = ", ".join(f"{k}=?" for k in allowed)
+            self._run(f"UPDATE tasks SET {sets}, updated=? WHERE id=?", (*allowed.values(), time.time(), task_id))
+        return self.get_task(task_id)
+
+    def tasks(self, limit: int = 300) -> list[dict]:
+        return self._all("SELECT * FROM tasks ORDER BY id DESC LIMIT ?", (limit,))
+
+    def delete_task(self, task_id: int) -> bool:
+        return self._run("DELETE FROM tasks WHERE id=?", (task_id,)).rowcount > 0
 
     # ---- settings -------------------------------------------------------------------------
     def get_setting(self, key: str, default: Any = None) -> Any:

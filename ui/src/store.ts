@@ -3,7 +3,7 @@
 // nothing said while the app was away goes missing and no bot stays stuck "working".
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, listen, type ApprovalEvent, type Bot, type Chat, type Message, type ServerEvent } from "./api";
+import { api, listen, type ApprovalEvent, type Bot, type Chat, type Message, type ServerEvent, type Task } from "./api";
 import type { Move } from "./Avatar";
 import type { Handoff } from "./CrewRoom";
 
@@ -36,6 +36,7 @@ export function useCrew(active: string | null) {
   const [handoff, setHandoff] = useState<Handoff | null>(null);
   const [tools, setTools] = useState<Record<string, string>>({}); // bot -> the tool it's using right now
   const [asleep, setAsleep] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [live, setLive] = useState(false);
   const [ready, setReady] = useState(false);
   const activeRef = useRef(active);
@@ -68,7 +69,7 @@ export function useCrew(active: string | null) {
   // after a (re)connect: chats, the open chat, who is working, and cards still waiting
   const resync = useCallback(async () => {
     try {
-      const [state] = await Promise.all([api.state(), loadBots(), loadChats()]);
+      const [state] = await Promise.all([api.state(), loadBots(), loadChats(), api.tasks().then(setTasks)]);
       setTyping(state.typing);
       setAsleep(state.asleep);
       setTools({});
@@ -114,6 +115,12 @@ export function useCrew(active: string | null) {
       if (e.type === "usage") return;
       if (e.type === "settings") {
         loadBots().catch(() => {});
+        return;
+      }
+      if (e.type === "task") {
+        const t = e.task;
+        setTasks((all) => ("deleted" in t ? all.filter((x) => x.id !== t.id)
+          : all.some((x) => x.id === t.id) ? all.map((x) => (x.id === t.id ? t : x)) : [t, ...all]));
         return;
       }
       const chat = e.chat_id;
@@ -219,5 +226,5 @@ export function useCrew(active: string | null) {
     }));
   }, []);
 
-  return { bots, chats, items, typing, unread, moves, handoff, tools, asleep, live, ready, loadChats, loadBots, markAnswered };
+  return { bots, chats, items, typing, unread, moves, handoff, tools, asleep, tasks, live, ready, loadChats, loadBots, markAnswered };
 }

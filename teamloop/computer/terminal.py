@@ -44,6 +44,7 @@ class Job:
     proc: subprocess.Popen
     log: Path
     started: float
+    stopped: bool = False
 
 
 _jobs: dict[str, Job] = {}
@@ -203,6 +204,35 @@ def _job_state(job: Job) -> str:
     return "running" if code is None else f"finished with exit code {code}"
 
 
+def jobs() -> list[dict]:
+    """Every background job, newest first, for the Jobs tab."""
+    out = []
+    for job in sorted(_jobs.values(), key=lambda j: j.started, reverse=True):
+        code = job.proc.poll()
+        state = "running" if code is None else "stopped" if job.stopped else "done" if code == 0 else "failed"
+        out.append({"id": job.id, "chat_id": job.chat_id, "command": redact(job.command), "state": state,
+                    "exit_code": code, "started": job.started})
+    return out
+
+
+def job_detail(job_id: str) -> dict | None:
+    job = _jobs.get(job_id)
+    if job is None:
+        return None
+    return {**next(j for j in jobs() if j["id"] == job_id), "output": _job_tail(job)}
+
+
+async def stop(job_id: str) -> bool:
+    job = _jobs.get(job_id)
+    if job is None:
+        return False
+    if job.proc.poll() is None:
+        job.stopped = True
+        await asyncio.to_thread(_kill_tree, job.proc.pid)
+        await asyncio.to_thread(job.proc.wait, 10)
+    return True
+
+
 def _job_tail(job: Job) -> str:
     try:
         text = job.log.read_bytes().decode("utf-8", "replace").replace("\r\n", "\n")
@@ -239,6 +269,5 @@ async def stop_job(args: dict, ctx) -> ToolResult:
         return ToolResult(False, "There is no job with that id.")
     if job.proc.poll() is not None:
         return ToolResult(True, f"{job.id} had already {_job_state(job)}.")
-    await asyncio.to_thread(_kill_tree, job.proc.pid)
-    await asyncio.to_thread(job.proc.wait, 10)
+    await stop(job.id)
     return ToolResult(True, f"Stopped {job.id}.", {"output": _job_tail(job)})
