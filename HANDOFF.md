@@ -111,3 +111,28 @@ Still Sourabh's own: registering on Luma under the team name **"Agent S"**, and 
    retried, and the file really exists. The whole recovery is one trace in @neatlogs. #neatHack"
 6. *Submission (Mon 19:00 IST):* quote-post the official @neatlogs submission post with the team name,
    project, repo link and the demo video.
+
+## 5. Sun 11 Oct 12:45: full debug pass, top priority (ccbridge relay failing again, join 500)
+
+Sourabh asks your side to do a **full live debug pass now**. Use your debugging skill
+(reproduce → isolate → diagnose → fix) on **every** feature. Don't assume anything works because a
+unit test passes or because it worked once: check it for real, and show the evidence.
+
+Report back (bridge if it's up, otherwise a file `evidence/runs/debug-pass-yang.md` in a commit):
+
+- **A.** Each feature: WORKS / FAILS / FAILS MID-PROCESS / NOT TESTED, with the exact message sent,
+  what happened step by step, the server log lines for any failure, and the commit tested.
+- **B.** Flows that **fail mid-process**: a job that starts fine and then breaks (a handoff that never
+  returns, a card that never reaches the phone, a step stuck spinning, a routine that never fires, a
+  reply that never arrives). Run each multi-step flow end to end **at least twice**.
+- **C.** Each failure: the root cause (not a guess), and whose fix it is: yours (ui/, desktop/,
+  phone, telegram) or ours (backend). Fix yours and push; send ours with a repro and we fix it right away.
+- **D.** Free models only (or Yang's Nebius credits with no card attached). Keep runs short.
+
+Not verified live by anyone yet, so start there: Telegram with a real bot token; Inbox/email; a model
+that writes tool calls as text; the demo goal from the phone and from Telegram; the desktop app's tray
+Quit / Start with Windows / `.vbs` / `.bat`; the Stop button mid-handoff; a routine actually firing in
+the app; the forced-failure recovery run (`TEAMLOOP_FAIL_ONCE=write_file`).
+
+Sourabh's laptop is doing the same now: the demo goal on a free NVIDIA model with a live neatlogs
+trace, then the forced-failure recovery run. Results will be in `evidence/runs/`.
