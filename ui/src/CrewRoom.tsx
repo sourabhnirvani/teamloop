@@ -18,6 +18,7 @@ type Props = {
   working: string[];
   asking: string[];
   handoff: Handoff | null;
+  signs?: Record<string, string | null>; // the same signs the chats show: 👂 💭 🔎 🙋 ✨ ...
   onPick?: (botId: string) => void;
   height?: number | string;
 };
@@ -51,6 +52,7 @@ type Rig = {
   catchUntil: number;
   label: HTMLDivElement;
   lastMove: Move;
+  signShown: string;
 };
 
 type Particle = { mesh: THREE.Mesh; vel: THREE.Vector3; life: number; max: number; spin: number };
@@ -79,55 +81,76 @@ function blobTexture(inner: string, outer: string) {
   return t;
 }
 
-function bubbleTexture() {
+// a speech-bubble sign with an emoji, drawn once per emoji
+function signTexture(emoji: string) {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
   const g = c.getContext("2d")!;
-  g.fillStyle = "#ffd166";
+  g.fillStyle = "#151b33";
+  g.strokeStyle = "rgba(170,185,255,.55)";
+  g.lineWidth = 4;
   g.beginPath();
-  g.arc(64, 58, 46, 0, Math.PI * 2);
+  g.roundRect(10, 8, 108, 92, 30);
+  g.moveTo(44, 98);
+  g.lineTo(52, 122);
+  g.lineTo(70, 98);
   g.fill();
-  g.beginPath();
-  g.moveTo(50, 96);
-  g.lineTo(64, 122);
-  g.lineTo(74, 96);
-  g.fill();
-  g.fillStyle = "#1b1f2e";
-  g.font = "bold 70px system-ui, sans-serif";
+  g.stroke();
+  g.font = "62px 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif";
   g.textAlign = "center";
   g.textBaseline = "middle";
-  g.fillText("?", 64, 62);
+  g.fillText(emoji, 64, 57);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 
+const INK = "#1d2150";
+
 function addEyes(parent: THREE.Object3D, spots: [number, number, number][], r: number): { eyes: Eye[]; whites: THREE.Object3D[] } {
-  const white = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.2 });
-  const dark = new THREE.MeshStandardMaterial({ color: "#151826", roughness: 0.3 });
+  const ink = new THREE.MeshStandardMaterial({ color: INK, roughness: 0.2, metalness: 0.1 });
   const shine = new THREE.MeshBasicMaterial({ color: "#ffffff" });
   const eyes: Eye[] = [];
   const whites: THREE.Object3D[] = [];
   for (const [x, y, z] of spots) {
     const eye = new THREE.Group();
     eye.position.set(x, y, z);
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 16), white);
-    ball.scale.set(1, 1.18, 0.55);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 16), ink);
+    ball.scale.set(0.86, 1.18, 0.5);
     eye.add(ball);
-    const pupil = new THREE.Group();
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(r * 0.55, 16, 12), dark);
-    iris.scale.set(1, 1.1, 0.45);
-    pupil.add(iris);
-    const glint = new THREE.Mesh(new THREE.SphereGeometry(r * 0.16, 8, 6), shine);
-    glint.position.set(r * 0.18, r * 0.22, r * 0.2);
-    pupil.add(glint);
-    pupil.position.set(0, 0, r * 0.42);
-    eye.add(pupil);
+    const glints = new THREE.Group();
+    const big = new THREE.Mesh(new THREE.SphereGeometry(r * 0.32, 10, 8), shine);
+    big.position.set(r * 0.28, r * 0.42, 0);
+    const small = new THREE.Mesh(new THREE.SphereGeometry(r * 0.14, 8, 6), shine);
+    small.position.set(-r * 0.22, -r * 0.4, 0);
+    glints.add(big, small);
+    glints.position.set(0, 0, r * 0.42);
+    eye.add(glints);
     parent.add(eye);
-    eyes.push({ pupil, base: pupil.position.clone(), range: r * 0.42 });
+    eyes.push({ pupil: glints, base: glints.position.clone(), range: r * 0.3 });
     whites.push(eye);
   }
   return { eyes, whites };
+}
+
+// a smile and two blush dots; the mouth talks, grins or frowns in the loop
+function addFace(parent: THREE.Object3D, mouth: [number, number, number], blush: [number, number, number][], size: number,
+                 ink: THREE.ColorRepresentation = INK, glow = false): THREE.Object3D {
+  const mat = glow ? new THREE.MeshStandardMaterial({ color: ink, emissive: ink, emissiveIntensity: 1.6 })
+    : new THREE.MeshStandardMaterial({ color: ink, roughness: 0.3 });
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(size, size * 0.24, 8, 18, Math.PI), mat);
+  smile.rotation.z = Math.PI; // the lower half of a ring: a smile
+  smile.position.set(...mouth);
+  parent.add(smile);
+  const pink = new THREE.MeshBasicMaterial({ color: "#ff8fb3", transparent: true, opacity: 0.55, depthWrite: false });
+  for (const [x, y, z] of blush) {
+    const dot = new THREE.Mesh(new THREE.CircleGeometry(size * 0.9, 18), pink);
+    dot.scale.set(1, 0.6, 1);
+    dot.position.set(x, y, z);
+    dot.rotation.y = x * 0.9; // follow the body's curve a little
+    parent.add(dot);
+  }
+  return smile;
 }
 
 function heartShape(s: number) {
@@ -141,9 +164,9 @@ function heartShape(s: number) {
 // Builds one mascot. Shapes, colours and accessories are TeamLoop's own: a captain, a screen-cube,
 // a globe-ball, a monocled bean, an envelope and a bespectacled pill.
 function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading" | "speed" | "nextWander" | "dashUntil" |
-  "daydreamUntil" | "nextQuirk" | "quirkUntil" | "hop" | "jumpUntil" | "catchUntil" | "label" | "lastMove" | "shadow" | "bubble" | "hit"> {
+  "daydreamUntil" | "nextQuirk" | "quirkUntil" | "hop" | "jumpUntil" | "catchUntil" | "label" | "lastMove" | "shadow" | "bubble" | "hit" | "signShown"> {
   const color = new THREE.Color(botColor(bot.id));
-  const skin = clay(color);
+  const skin = clay(bot.id === "s" ? "#eef0ff" : color); // S is the logo's white blob
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
@@ -152,29 +175,25 @@ function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading
   let whites: THREE.Object3D[] = [];
 
   switch (bot.id) {
-    case "s": {
+    case "s": { // the logo's friendly blob with its antenna star and an indigo collar
       const blob = new THREE.Mesh(new THREE.SphereGeometry(0.55, 40, 30), skin);
-      blob.scale.set(1, 0.9, 0.95);
-      blob.position.y = 0.52;
+      blob.scale.set(1, 0.92, 0.95);
+      blob.position.y = 0.53;
       body.add(blob);
-      const capMat = clay("#1d2550");
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.44, 0.26, 32), capMat);
-      cap.position.y = 0.98;
-      body.add(cap);
-      const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.04, 32, 1, false, -Math.PI / 2, Math.PI), clay("#141a3d"));
-      brim.position.set(0, 0.86, 0.22);
-      brim.scale.set(1.15, 1, 0.9);
-      body.add(brim);
-      const badge = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.03, 24),
-        new THREE.MeshStandardMaterial({ color: "#f6c453", metalness: 0.8, roughness: 0.25 }));
-      badge.rotation.x = Math.PI / 2;
-      badge.position.set(0, 1.0, 0.41);
-      body.add(badge);
-      const needle = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.12, 8), new THREE.MeshBasicMaterial({ color: "#e5484d" }));
-      needle.position.set(0, 1.0, 0.43);
-      body.add(needle);
-      extra.needle = needle;
-      ({ eyes, whites } = addEyes(body, [[-0.17, 0.6, 0.45], [0.17, 0.6, 0.45]], 0.1));
+      const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.24, 8), clay("#c9d0ff"));
+      stalk.position.y = 1.12;
+      body.add(stalk);
+      const star = new THREE.Mesh(new THREE.SphereGeometry(0.075, 18, 14),
+        new THREE.MeshStandardMaterial({ color: "#ffd45c", emissive: "#ffb800", emissiveIntensity: 1.2 }));
+      star.position.y = 1.26;
+      body.add(star);
+      extra.tip = star;
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.05, 10, 40), clay("#5b6bff"));
+      collar.rotation.x = Math.PI / 2;
+      collar.position.y = 0.14;
+      body.add(collar);
+      ({ eyes, whites } = addEyes(body, [[-0.19, 0.62, 0.46], [0.19, 0.62, 0.46]], 0.115));
+      extra.mouth = addFace(body, [0, 0.43, 0.5], [[-0.33, 0.47, 0.41], [0.33, 0.47, 0.41]], 0.06);
       break;
     }
     case "desk": {
@@ -194,6 +213,7 @@ function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading
       });
       eyes = px.map((p) => ({ pupil: p, base: p.position.clone(), range: 0.07 }));
       whites = px;
+      extra.mouth = addFace(body, [0, 0.41, 0.43], [[-0.24, 0.42, 0.425], [0.24, 0.42, 0.425]], 0.045, "#7dfbd3", true);
       const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 8), clay("#b9c3dc"));
       stalk.position.y = 1.02;
       body.add(stalk);
@@ -219,7 +239,13 @@ function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading
       m3.rotation.y = Math.PI / 5;
       ball.add(m3);
       extra.ball = ball;
-      ({ eyes, whites } = addEyes(ball, [[-0.16, 0.12, 0.49], [0.16, 0.12, 0.49]], 0.1));
+      ({ eyes, whites } = addEyes(ball, [[-0.17, 0.12, 0.49], [0.17, 0.12, 0.49]], 0.115));
+      extra.mouth = addFace(ball, [0, -0.07, 0.53], [[-0.3, -0.02, 0.46], [0.3, -0.02, 0.46]], 0.055);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.026, 10, 72),
+        new THREE.MeshStandardMaterial({ color: "#ffe0bd", emissive: "#ffb070", emissiveIntensity: 0.25, roughness: 0.4 }));
+      ring.rotation.set(Math.PI / 2 - 0.62, 0, 0.22); // tilted toward you, so it reads as a ring
+      ring.position.y = 0.56;
+      body.add(ring);
       break;
     }
     case "scout": {
@@ -227,7 +253,18 @@ function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading
       bean.position.y = 0.62;
       bean.rotation.z = 0.18;
       body.add(bean);
-      ({ eyes, whites } = addEyes(body, [[-0.12, 0.78, 0.29], [0.15, 0.8, 0.27]], 0.085));
+      ({ eyes, whites } = addEyes(body, [[-0.12, 0.78, 0.29], [0.15, 0.8, 0.27]], 0.1));
+      extra.mouth = addFace(body, [0.03, 0.6, 0.33], [[-0.22, 0.66, 0.29], [0.3, 0.68, 0.24]], 0.05);
+      const hat = new THREE.Group();
+      hat.position.set(-0.1, 1.13, 0);
+      hat.rotation.z = 0.18;
+      const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.03, 36), clay("#d9a94e"));
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(0.25, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2), clay("#efc46d"));
+      crown.scale.set(1, 0.9, 1);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.255, 0.255, 0.06, 28), clay("#8a5a2b"));
+      band.position.y = 0.04;
+      hat.add(brim, crown, band);
+      body.add(hat);
       const gold = new THREE.MeshStandardMaterial({ color: "#f6c453", metalness: 0.85, roughness: 0.2 });
       const monocle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.022, 10, 36), gold);
       monocle.position.set(0.15, 0.8, 0.33);
@@ -251,19 +288,21 @@ function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading
         new THREE.MeshStandardMaterial({ color: "#ffffff", transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
       flap.position.set(0, 0.44, 0.285);
       body.add(flap);
-      const heart = new THREE.Mesh(new THREE.ExtrudeGeometry(heartShape(0.11), { depth: 0.03, bevelEnabled: false }),
-        new THREE.MeshStandardMaterial({ color: "#ffffff", emissive: "#ffd0dd", emissiveIntensity: 0.4 }));
-      heart.position.set(0, 0.24, 0.27);
+      const heart = new THREE.Mesh(new THREE.ExtrudeGeometry(heartShape(0.1), { depth: 0.03, bevelEnabled: false }),
+        new THREE.MeshStandardMaterial({ color: "#e53965", emissive: "#ff4f7d", emissiveIntensity: 0.35 }));
+      heart.position.set(0, 0.47, 0.29);
       body.add(heart);
       extra.heart = heart;
-      ({ eyes, whites } = addEyes(body, [[-0.24, 0.6, 0.29], [0.24, 0.6, 0.29]], 0.085));
+      ({ eyes, whites } = addEyes(body, [[-0.25, 0.3, 0.29], [0.25, 0.3, 0.29]], 0.095));
+      extra.mouth = addFace(body, [0, 0.17, 0.29], [[-0.38, 0.2, 0.285], [0.38, 0.2, 0.285]], 0.045);
       break;
     }
     case "writer": {
       const pill = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.56, 12, 32), skin);
       pill.position.y = 0.66;
       body.add(pill);
-      ({ eyes, whites } = addEyes(body, [[-0.13, 0.82, 0.3], [0.13, 0.82, 0.3]], 0.08));
+      ({ eyes, whites } = addEyes(body, [[-0.13, 0.82, 0.3], [0.13, 0.82, 0.3]], 0.088));
+      extra.mouth = addFace(body, [0, 0.62, 0.33], [[-0.24, 0.68, 0.29], [0.24, 0.68, 0.29]], 0.05);
       const rim = new THREE.MeshStandardMaterial({ color: "#1b1f2e", roughness: 0.4 });
       for (const x of [-0.13, 0.13]) {
         const lens = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.016, 10, 32), rim);
@@ -277,7 +316,7 @@ function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading
       const quill = new THREE.Group();
       quill.position.set(0.28, 1.05, -0.08);
       quill.rotation.z = -0.5;
-      const feather = new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 14), clay("#f4f1ff"));
+      const feather = new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 14), clay("#cfe8ff"));
       feather.scale.set(0.5, 1.9, 0.18);
       feather.position.y = 0.18;
       quill.add(feather);
@@ -289,16 +328,17 @@ function build(bot: Bot): Omit<Rig, "pos" | "vel" | "target" | "home" | "heading
       const blob = new THREE.Mesh(new THREE.SphereGeometry(0.52, 32, 24), skin);
       blob.position.y = 0.52;
       body.add(blob);
-      ({ eyes, whites } = addEyes(body, [[-0.16, 0.6, 0.44], [0.16, 0.6, 0.44]], 0.09));
+      ({ eyes, whites } = addEyes(body, [[-0.17, 0.6, 0.44], [0.17, 0.6, 0.44]], 0.105));
+      extra.mouth = addFace(body, [0, 0.42, 0.49], [[-0.3, 0.46, 0.41], [0.3, 0.46, 0.41]], 0.055);
     }
   }
   return { id: bot.id, root, body, skin, eyes, eyeScale: whites, extra };
 }
 
-export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height = 300 }: Props) {
+export function CrewRoom({ bots, moves, working, asking, handoff, signs, onPick, height = 300 }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const live = useRef({ moves, working, asking, onPick });
-  live.current = { moves, working, asking, onPick };
+  const live = useRef({ moves, working, asking, signs, onPick });
+  live.current = { moves, working, asking, signs, onPick };
   const orbQueue = useRef<Handoff[]>([]);
   const ids = bots.map((b) => b.id).join(",");
 
@@ -360,7 +400,8 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
     scene.add(dust);
 
     const shadowTex = blobTexture("rgba(0,0,0,0.55)", "rgba(0,0,0,0)");
-    const bubbleTex = bubbleTexture();
+    const signTex: Record<string, THREE.CanvasTexture> = {};
+    const texFor = (emoji: string) => (signTex[emoji] ??= signTexture(emoji));
     const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
     const lead = bots.findIndex((b) => b.id === "s");
@@ -375,9 +416,9 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
       shadow.rotation.x = -Math.PI / 2;
       shadow.position.y = 0.01;
       part.root.add(shadow);
-      const bubble = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTex, transparent: true, opacity: 0 }));
-      bubble.scale.set(0.5, 0.5, 0.5);
-      bubble.position.y = 1.65;
+      const bubble = new THREE.Sprite(new THREE.SpriteMaterial({ map: texFor("💭"), transparent: true, opacity: 0, depthTest: false }));
+      bubble.scale.set(0.46, 0.46, 0.46);
+      bubble.position.set(0.42, 1.55, 0);
       part.root.add(bubble);
       const hit = new THREE.Mesh(new THREE.SphereGeometry(0.72, 12, 8), hitMat);
       hit.position.y = 0.6;
@@ -393,6 +434,7 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
         ...part, shadow, bubble, hit, label, home, pos: start, vel: new THREE.Vector2(), target: start.clone(),
         heading: 0, speed: 0.55 + Math.random() * 0.25, nextWander: Math.random() * 3, dashUntil: 0,
         daydreamUntil: 0, nextQuirk: 2 + Math.random() * 6, quirkUntil: 0, hop: 0, jumpUntil: 0, catchUntil: 0, lastMove: "idle",
+        signShown: "",
       };
     });
     const byId: Record<string, Rig> = Object.fromEntries(rigs.map((r) => [r.id, r]));
@@ -442,7 +484,7 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
       });
       scene.add(mesh);
       orbs.push({ mesh, trail, from: h.from, to: h.to, t: 0 });
-      a.jumpUntil = clock.elapsedTime + 0.35;
+      a.jumpUntil = clock.elapsedTime + 0.9; // the same 0.9 s hop the cheer uses
     }
 
     const size = () => {
@@ -480,8 +522,13 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
       ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     };
     const onLeave = () => ptr.set(-9, -9);
-    const onClick = () => {
-      if (hovered) live.current.onPick?.(hovered.id);
+    const onClick = (e: MouseEvent) => {
+      // pick what is under the finger right now (a tap on a phone or tablet has no hover before it)
+      onMove(e as PointerEvent);
+      ray.setFromCamera(ptr, camera);
+      const hit = ray.intersectObjects(rigs.map((r) => r.hit), false)[0];
+      const picked = hit ? rigs.find((r) => r.hit === hit.object) : hovered;
+      if (picked) live.current.onPick?.(picked.id);
     };
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerleave", onLeave);
@@ -526,7 +573,7 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
 
         // where to go
         if (busy) r.target.copy(r.home);
-        else if (asks) r.target.set(THREE.MathUtils.clamp(r.pos.x, -2, 2), 1.6);
+        else if (asks) r.target.set(THREE.MathUtils.clamp(r.pos.x, -2, 2), bounds.cz + bounds.z * 0.9); // to the front, still on the floor
         else if (t > r.nextWander && t > r.daydreamUntil) {
           const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random());
           r.target.set(Math.cos(a) * d * bounds.x, bounds.cz + Math.sin(a) * d * bounds.z);
@@ -544,7 +591,7 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
           if (o === r) continue;
           const d = r.pos.clone().sub(o.pos);
           const l = d.length();
-          if (l > 0 && l < 0.92) r.vel.add(d.multiplyScalar(((0.92 - l) / l) * dt * 9));
+          if (l > 0 && l < 1.25) r.vel.add(d.multiplyScalar(((1.25 - l) / l) * dt * 14)); // personal space: no piles
         }
         r.pos.addScaledVector(r.vel, dt);
         const e = (r.pos.x / bounds.x) ** 2 + ((r.pos.y - bounds.cz) / bounds.z) ** 2;
@@ -553,8 +600,13 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
 
         // which way to face: walking direction, or you when it needs you / you hover it
         // standing still they turn to you (so you see their faces); walking they face where they go
+        // they keep their faces to you: walking, they turn at most ~55 degrees away from the camera
         let face = Math.atan2(camPos.x - r.pos.x, camPos.z - r.pos.y);
-        if (moving && !isHover && !asks) face = Math.atan2(r.vel.x, r.vel.y);
+        if (moving && !isHover && !asks) {
+          const walk = Math.atan2(r.vel.x, r.vel.y);
+          const off = Math.atan2(Math.sin(walk - face), Math.cos(walk - face));
+          face += THREE.MathUtils.clamp(off, -0.95, 0.95);
+        }
         let dh = face - r.heading;
         dh = Math.atan2(Math.sin(dh), Math.cos(dh));
         r.heading += dh * Math.min(1, dt * 6);
@@ -592,11 +644,24 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
         r.body.rotation.z = tiltZ;
         r.body.rotation.x = tiltX;
         r.body.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy));
-        r.skin.emissiveIntensity += ((busy ? 0.22 + Math.sin(t * 6) * 0.08 : isHover ? 0.12 : 0) - r.skin.emissiveIntensity) * Math.min(1, dt * 6);
+        const glowBase = r.id === "s" ? 0.16 : 0; // S is white: a little inner light keeps it from looking grey
+        r.skin.emissiveIntensity += ((busy ? 0.22 + Math.sin(t * 6) * 0.08 : isHover ? 0.12 : glowBase) - r.skin.emissiveIntensity) * Math.min(1, dt * 6);
         (r.shadow.material as THREE.MeshBasicMaterial).opacity = 0.9 - y * 1.1;
+        const sign = live.current.signs?.[r.id] ?? (asks ? "🙋" : "");
         const bub = r.bubble.material as THREE.SpriteMaterial;
-        bub.opacity += ((asks ? 1 : 0) - bub.opacity) * Math.min(1, dt * 8);
-        r.bubble.position.y = 1.65 + Math.sin(t * 4) * 0.06;
+        if (sign && sign !== r.signShown) {
+          bub.map = texFor(sign);
+          r.signShown = sign;
+          r.bubble.scale.setScalar(0.2); // pops in
+        }
+        bub.opacity += ((sign ? 1 : 0) - bub.opacity) * Math.min(1, dt * 8);
+        r.bubble.scale.setScalar(THREE.MathUtils.lerp(r.bubble.scale.x, 0.46, Math.min(1, dt * 10)));
+        r.bubble.position.y = 1.55 + Math.sin(t * 4) * 0.05;
+        const mouth = r.extra.mouth;
+        if (mouth) {
+          const open = move === "talk" ? 1 + Math.abs(Math.sin(t * 16)) * 1.5 : move === "cheer" ? 1.7 : move === "ask" || move === "think" ? 0.55 : 1;
+          mouth.scale.set(move === "cheer" ? 1.3 : move === "think" || move === "ask" ? 0.6 : 1, move === "oops" ? -0.9 : open, 1);
+        }
 
         // eyes look at you, at the floor while working, or ahead; blink now and then
         const lookAt = isHover || asks ? camPos : busy ? tmp.set(r.pos.x, 0, r.pos.y + 1) : tmp.set(r.pos.x + r.vel.x * 3, 0.6, r.pos.y + r.vel.y * 3 + 2);
@@ -673,7 +738,7 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
         else mat?.dispose?.();
       });
       shadowTex.dispose();
-      bubbleTex.dispose();
+      Object.values(signTex).forEach((tx) => tx.dispose());
       renderer.dispose();
       el.innerHTML = "";
     };

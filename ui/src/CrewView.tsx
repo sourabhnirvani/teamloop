@@ -16,7 +16,8 @@ export function CrewView({ bots, moves, look, working, asking, handoff, onBot }:
       <div className="crew-stage">
         <div className="room-head"><b>Crew Room</b><small>{working.length ? `${working.length} working` : asking.length ? "waiting for you" : "all free"} · tap a bot</small></div>
         <Suspense fallback={<div className="room room-loading">Opening the Crew Room…</div>}>
-          <CrewRoom bots={bots} moves={moves} working={working} asking={asking} handoff={handoff} onPick={onBot} height="100%" />
+          <CrewRoom bots={bots} moves={moves} working={working} asking={asking} handoff={handoff} onPick={onBot} height="100%"
+                    signs={Object.fromEntries(bots.map((b) => [b.id, look(b.id).sign]))} />
         </Suspense>
       </div>
       <div className="crew-strip">
