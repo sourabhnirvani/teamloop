@@ -7,19 +7,19 @@ import { BotProfile } from "./BotProfile";
 import { ChatView } from "./ChatView";
 import { CrewView } from "./CrewView";
 import { JobsView } from "./JobsView";
+import { isPhone } from "./phoneMode";
 import { go, href, useRoute, withOverlay, type Tab } from "./router";
 import { SettingsView } from "./SettingsView";
 import { Sheet } from "./Sheet";
 import { useCrew } from "./store";
-import { applyUpdate, updateAvailable } from "./update";
+import { applyUpdate, notify, runningVersion, updateAvailable } from "./update";
 
-const PHONE = 760; // px: at or below this the app is one column with tabs at the bottom
 const DEFAULT_CHAT = "team";
 
 function useNarrow() {
-  const [narrow, setNarrow] = useState(() => window.innerWidth <= PHONE);
+  const [narrow, setNarrow] = useState(() => isPhone());
   useEffect(() => {
-    const on = () => setNarrow(window.innerWidth <= PHONE);
+    const on = () => setNarrow(isPhone());
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
@@ -52,7 +52,8 @@ export default function App() {
   const narrow = useNarrow();
   const chatId = route.tab === "chats" ? route.id ?? (narrow ? null : DEFAULT_CHAT) : null;
   const crew = useCrew(chatId);
-  const { bots, chats, items, typing, unread, moves, handoff, tools, asleep, tasks, live, ready } = crew;
+  const { bots, chats, items, typing, unread, moves, handoff, tools, asleep, tasks, served, live, ready } = crew;
+  const [askUpdate, setAskUpdate] = useState(false);
   const [listening, setListening] = useState<string[]>([]);
   const quiet = useRef<number | undefined>(undefined);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -66,8 +67,17 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    // the laptop announced a new build ("version" event): ask right away, and say so on the phone's screen
+    const mine = runningVersion();
+    if (!served || !mine || served === mine || served === "dev") return;
+    setUpdateReady(true);
+    setAskUpdate(true);
+    notify("TeamLoop update ready", "A new version is on your laptop. Open TeamLoop to update.", "update");
+  }, [served]);
+
+  useEffect(() => {
     // the laptop got a new build: offer Update (checked every minute and whenever the app comes back to the front)
-    const check = () => updateAvailable().then((yes) => yes && setUpdateReady(true));
+    const check = () => updateAvailable().then((yes) => { if (yes) { setUpdateReady(true); setAskUpdate((a) => a || document.visibilityState === "visible"); } });
     check();
     const t = window.setInterval(check, 60000);
     const onShow = () => document.visibilityState === "visible" && check();
@@ -244,6 +254,18 @@ export default function App() {
                     onBot={(id) => go(withOverlay(route, "bot", id), true)}
                     onChat={(id) => { pushed.current = false; go(href("chats", id), true); }}
                     onRemoved={() => { pushed.current = false; crew.loadChats(); go(href("chats"), true); }} />
+      )}
+      {askUpdate && (
+        <Sheet title="Update ready" onClose={() => setAskUpdate(false)}>
+          <div className="update-ask">
+            <img src="/app-icon.png" alt="" width={72} height={72} />
+            <p><b>A new version of TeamLoop is ready.</b><br />Your laptop has it now. Update takes a second; your chats stay as they are.</p>
+            <div className="dialog-btns">
+              <button onClick={() => setAskUpdate(false)}>Later</button>
+              <button className="primary" onClick={applyUpdate}>Update now</button>
+            </div>
+          </div>
+        </Sheet>
       )}
       {route.overlay === "bot" && (
         <NewBotSheet onClose={closeOverlay} onMade={async (b) => {

@@ -21,6 +21,24 @@ export async function updateAvailable(): Promise<boolean> {
   return !!mine && !!latest && latest !== "dev" && latest !== mine;
 }
 
+// A note on the phone's screen while the app is in the background (updates, approval cards). Phones only
+// show these through the service worker; it needs the person's OK once (Settings → Appearance & updates).
+export async function notify(title: string, body: string, tag: string): Promise<void> {
+  try {
+    if (document.visibilityState === "visible" || !("Notification" in window) || Notification.permission !== "granted") return;
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) await reg.showNotification(title, { body, tag, icon: "/app-icon.png", badge: "/app-icon.png" });
+    else new Notification(title, { body, tag, icon: "/app-icon.png" });
+  } catch {
+    /* notifications blocked: the in-app prompt still shows */
+  }
+}
+
+export async function askToNotify(): Promise<NotificationPermission | "unsupported"> {
+  if (!("Notification" in window)) return "unsupported";
+  return Notification.permission === "default" ? Notification.requestPermission() : Notification.permission;
+}
+
 export async function applyUpdate(): Promise<void> {
   try {
     const reg = await navigator.serviceWorker?.getRegistration();

@@ -32,7 +32,8 @@ export type ServerEvent =
   | { type: "screenshot"; chat_id: string; bot: string; url: string }
   | { type: "settings"; chat_id: null } & Settings
   | { type: "task"; chat_id: null; task: Task | { id: number; deleted: true } }
-  | { type: "usage"; chat_id: null; provider: string; model: string; tokens_in: number; tokens_out: number };
+  | { type: "usage"; chat_id: null; provider: string; model: string; tokens_in: number; tokens_out: number }
+  | { type: "version"; chat_id: null; version: string };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);

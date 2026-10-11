@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, listen, type ApprovalEvent, type Bot, type Chat, type Message, type ServerEvent, type Task } from "./api";
 import type { Move } from "./Avatar";
 import type { Handoff } from "./CrewRoom";
+import { notify } from "./update";
 
 export type Item =
   | { kind: "msg"; key: string; ts: number; sender: string; text: string; mkind: string }
@@ -38,6 +39,7 @@ export function useCrew(active: string | null) {
   const [tools, setTools] = useState<Record<string, string>>({}); // bot -> the tool it's using right now
   const [asleep, setAsleep] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [served, setServed] = useState<string | null>(null); // the UI build the laptop serves, from "version" events
   const [live, setLive] = useState(false);
   const [ready, setReady] = useState(false);
   const activeRef = useRef(active);
@@ -114,6 +116,10 @@ export function useCrew(active: string | null) {
     };
     const onEvent = (e: ServerEvent) => {
       if (e.type === "usage") return;
+      if (e.type === "version") {
+        setServed(e.version);
+        return;
+      }
       if (e.type === "settings") {
         loadBots().catch(() => {});
         return;
@@ -186,6 +192,7 @@ export function useCrew(active: string | null) {
           }
           break;
         case "approval":
+          notify(`${botsRef.current[e.bot]?.name ?? e.bot} needs your OK`, e.title, `card-${e.id}`);
           setItems((all) => {
             const list = all[chat] ?? [];
             if (list.some((i) => i.kind === "approval" && i.id === e.id)) return all;
@@ -230,5 +237,5 @@ export function useCrew(active: string | null) {
     }));
   }, []);
 
-  return { bots, chats, items, typing, unread, moves, handoff, tools, asleep, tasks, live, ready, loadChats, loadBots, markAnswered };
+  return { bots, chats, items, typing, unread, moves, handoff, tools, asleep, tasks, served, live, ready, loadChats, loadBots, markAnswered };
 }

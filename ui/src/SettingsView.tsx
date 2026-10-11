@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, onLaptop, type AllowRule, type Bot, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
 import { go, href } from "./router";
-import { applyUpdate, runningVersion, updateAvailable } from "./update";
+import { applyUpdate, askToNotify, runningVersion, updateAvailable } from "./update";
 
 // Settings: a home page of cards (each with a live status line) that open their own page, on laptop and phone.
 
@@ -188,7 +188,13 @@ export function SettingsView({ page, bots, theme, setTheme }: {
             ))}
           </div>
           <div className="switch-row">
-            <span><b>Version</b><small><code>{version}</code></small></span>
+            <span><b>Notifications</b><small>A note on this device's screen when an update is ready or a bot needs your OK while TeamLoop is in the background.{"Notification" in window ? ` Now: ${Notification.permission === "granted" ? "on" : Notification.permission === "denied" ? "blocked in the browser's site settings" : "off"}.` : " This browser can't show them."}</small></span>
+            {"Notification" in window && Notification.permission === "default" && (
+              <button onClick={async () => { const r = await askToNotify(); setNote(r === "granted" ? "Notifications are on." : "Notifications stay off."); refresh(); }}>Turn on</button>
+            )}
+          </div>
+          <div className="switch-row">
+            <span><b>Version</b><small><code>{version}</code> · updates are checked by themselves; you're asked when one is ready</small></span>
             <button onClick={async () => {
               setNote("Checking for a new version…");
               if (await updateAvailable()) { setNote("Updating…"); await applyUpdate(); } else setNote("You have the latest version.");

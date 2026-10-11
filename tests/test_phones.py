@@ -124,3 +124,26 @@ def test_version_changes_when_the_ui_is_rebuilt(tmp_path, monkeypatch):
         page.write_text("<script src=/assets/index-bbb.js></script>")
         second = client.get("/api/version").json()["version"]
     assert (first, second) == ("index-aaa.js", "index-bbb.js")  # the open app sees a new build and offers Update
+
+
+async def test_a_new_build_is_announced_to_open_apps(tmp_path, monkeypatch):
+    """The phone hears about a new build at once (a "version" event on its long-poll) and asks to update."""
+    import asyncio
+
+    from teamloop import config
+    from teamloop.crew.events import Bus
+    from teamloop.server import app as server
+
+    page = tmp_path / "ui" / "dist" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<script src=/assets/index-old.js></script>")
+    monkeypatch.setattr(config, "ROOT", tmp_path)
+    bus = Bus()
+    with bus.subscribe() as queue:
+        watcher = asyncio.create_task(server.watch_version(bus, every=0.01))
+        await asyncio.sleep(0.05)
+        assert queue.empty()  # nothing changed, nothing said
+        page.write_text("<script src=/assets/index-new.js></script>")
+        event = await asyncio.wait_for(queue.get(), 2)
+        watcher.cancel()
+    assert (event["type"], event["version"]) == ("version", "index-new.js")

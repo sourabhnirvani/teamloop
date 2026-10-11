@@ -54,3 +54,14 @@ self.addEventListener("fetch", (e) => {
     ),
   );
 });
+
+// tapping a TeamLoop notification (update ready, a bot needs your OK) brings the app up
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => new URL(w.url).origin === location.origin);
+      return open ? open.focus() : self.clients.openWindow("/");
+    }),
+  );
+});

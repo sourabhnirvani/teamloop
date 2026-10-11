@@ -33,6 +33,28 @@ from teamloop.models.router import Router
 from teamloop.server import hub, phones, telegram
 
 PING_SECONDS = 15
+VERSION_CHECK_SECONDS = 5
+
+
+def ui_version() -> str:
+    """Which UI bundle the laptop serves (index-xxxx.js); an open app with another bundle offers Update."""
+    page = config.ROOT / "ui" / "dist" / "index.html"
+    if not page.is_file():
+        return "dev"
+    html = page.read_text(encoding="utf-8", errors="replace")
+    bundle = re.search(r"assets/(index-[\w-]+\.js)", html)
+    return bundle.group(1) if bundle else hashlib.sha1(html.encode()).hexdigest()[:10]
+
+
+async def watch_version(bus: Bus, every: float = VERSION_CHECK_SECONDS) -> None:
+    """A new UI build lands: tell every open app (the phone too) right away, so it can ask to update."""
+    last = ui_version()
+    while True:
+        await asyncio.sleep(every)
+        now = ui_version()
+        if now != last:
+            last = now
+            await bus.emit("version", chat_id=None, version=now)
 
 
 class NewChat(BaseModel):
@@ -138,8 +160,10 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         phone = asyncio.create_task(telegram.run(app.state.crew))
         checker = asyncio.create_task(doctor.keep_checking(app.state.crew.router))
         link = asyncio.create_task(hub.run(app))  # the phone hub, once it's set up
+        versions = asyncio.create_task(watch_version(app.state.crew.bus))
         yield
         link.cancel()
+        versions.cancel()
         ticker.cancel()
         phone.cancel()
         app.state.phones.stop()
@@ -485,12 +509,7 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     @app.get("/api/version")
     def version() -> dict:
         """Which UI build the laptop serves; an open app (the phone's above all) compares it with its own to offer Update."""
-        page = config.ROOT / "ui" / "dist" / "index.html"
-        if not page.is_file():
-            return {"version": "dev"}
-        html = page.read_text(encoding="utf-8", errors="replace")
-        bundle = re.search(r"assets/(index-[\w-]+\.js)", html)  # the app compares this with the bundle it runs
-        return {"version": bundle.group(1) if bundle else hashlib.sha1(html.encode()).hexdigest()[:10]}
+        return {"version": ui_version()}
 
     @app.get("/api/shots/{name}")
     def shot(name: str) -> FileResponse:
