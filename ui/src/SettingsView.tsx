@@ -138,7 +138,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
             {routines.length === 0 && <li><span>No routines yet.</span></li>}
             {routines.map((r) => (
               <li key={r.id}>
-                <b>{r.schedule}</b>
+                <b>{r.schedule.charAt(0).toUpperCase() + r.schedule.slice(1)}</b>
                 <span>{r.text}<br /><small>next {new Date(r.next_run * 1000).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</small></span>
                 <button onClick={() => window.confirm(`Cancel “${r.text}”?`) && api.cancelRoutine(r.id).then(refresh).catch((e) => setNote(String(e.message)))}>Cancel</button>
               </li>
@@ -157,11 +157,12 @@ export function SettingsView({ page, bots, theme, setTheme }: {
             {SIGN_IN.map((s) => (
               <li key={s.name}>
                 <b>{s.name}</b>
-                <span>{s.note ?? s.url.replace("https://", "")}</span>
-                <button onClick={async () => {
+                <span>{new URL(s.url).hostname.replace(/^www\./, "")}{s.note && <><br /><small className="warn-text">⚠️ {s.note}</small></>}</span>
+                <button className={s.note ? "deny" : ""} onClick={async () => {
+                  if (s.note && !window.confirm(`${s.note} Open it anyway?`)) return;
                   setNote(`Opening ${s.name} in the crew's Chrome…`);
                   try { setNote((await api.signIn(s.url)).text); } catch (e) { setNote((e as Error).message); }
-                }}>Open sign-in</button>
+                }}>{s.note ? "Open anyway" : "Open sign-in"}</button>
               </li>
             ))}
           </ul>

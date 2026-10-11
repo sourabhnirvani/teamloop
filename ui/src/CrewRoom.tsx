@@ -441,15 +441,20 @@ export function CrewRoom({ bots, moves, working, asking, handoff, signs, onPick,
     const byId: Record<string, Rig> = Object.fromEntries(rigs.map((r) => [r.id, r]));
     const bounds = { x: 2.4, z: 1.15, cz: -0.25 }; // the walking area: an ellipse centred a little back
     let camDist = 6.4;
+    let portrait = false;
+    const WANDER = { x: 0.3, z: 0.2 }; // an idle bot strolls around its own spot, so no bot ends up hiding another
     function layoutHomes() {
-      // two rows at similar depth: the back row, then the front row with S in the middle
-      const rest = rigs.slice(1);
-      const back = rest.slice(0, Math.ceil(rest.length / 2)), front = rest.slice(back.length);
-      const row = (list: Rig[], z: number, spread: number) =>
-        list.forEach((r, i) => r.home.set(list.length === 1 ? 0 : ((i / (list.length - 1)) - 0.5) * 2 * spread, z));
-      row(back, -1.05, bounds.x * 0.78);
-      const fr = [...front.slice(0, Math.floor(front.length / 2)), rigs[0], ...front.slice(Math.floor(front.length / 2))].filter(Boolean);
-      row(fr, 0.55, bounds.x * 0.82);
+      // a brick pattern: S in the middle front, the others either side, alternating front and back rows, so each
+      // back-row bot shows between two front-row bots instead of behind one
+      const others = rigs.slice(1);
+      const order = [...others.slice(0, Math.floor(others.length / 2)), rigs[0], ...others.slice(Math.floor(others.length / 2))]
+        .filter(Boolean);
+      const n = order.length, mid = order.indexOf(rigs[0]);
+      const spread = bounds.x * 0.95;
+      order.forEach((r, i) => {
+        const x = n === 1 ? 0 : ((i / (n - 1)) - 0.5) * 2 * spread;
+        r.home.set(x, bounds.cz + ((i - mid) % 2 === 0 ? 0.8 : -0.9));
+      });
     }
 
     // pooled particles: work sparks and confetti
@@ -494,13 +499,14 @@ export function CrewRoom({ bots, moves, working, asking, handoff, signs, onPick,
       camera.aspect = w / Math.max(h, 1);
       camera.fov = 38;
       camera.updateProjectionMatrix();
-      // the walking area follows the panel, but never so narrow that the bots pile up
-      bounds.x = THREE.MathUtils.clamp(camera.aspect * 1.9, 2.3, 3.2);
-      bounds.z = camera.aspect < 1 ? 1.5 : 1.15;
+      // the walking area follows the panel: wide rooms get a wide floor, a phone a deep one
+      portrait = camera.aspect < 0.8;
+      bounds.x = portrait ? 1.9 : THREE.MathUtils.clamp(camera.aspect * 1.9, 2.3, 3.2);
+      bounds.z = 1.15;
       // back the camera off until the whole floor (plus a bot's width each side) fits across
-      const halfWidth = bounds.x + 0.9;
+      const halfWidth = bounds.x + (portrait ? 0.45 : 0.9);
       const fit = halfWidth / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect) - 0.35;
-      camDist = Math.max(camera.aspect < 1.1 ? 6.3 : 6.6, fit);
+      camDist = Math.max(camera.aspect < 1.1 ? 6.3 : 7.4, fit);
       const fog = scene.fog as THREE.Fog;
       fog.near = 9 * camDist / 6.6;
       fog.far = 17 * camDist / 6.6;
@@ -550,7 +556,8 @@ export function CrewRoom({ bots, moves, working, asking, handoff, signs, onPick,
 
       // camera: a slow drift plus a little parallax from the pointer
       const px = ptr.x > -2 ? ptr.x : 0;
-      camera.position.set(Math.sin(t * 0.1) * 0.3 * amp + px * 0.35, 2.7 * camDist / 6.6, camDist);
+      // on a phone the camera looks down more steeply, so the rows of bots stand apart instead of in a heap
+      camera.position.set(Math.sin(t * 0.1) * 0.3 * amp + px * 0.35, (portrait ? 4.2 : 3.3) * camDist / 6.6, camDist);
       camera.lookAt(0, 0.5, -0.35);
       camPos.copy(camera.position);
 
@@ -577,7 +584,7 @@ export function CrewRoom({ bots, moves, working, asking, handoff, signs, onPick,
         else if (asks) r.target.set(THREE.MathUtils.clamp(r.pos.x, -2, 2), bounds.cz + bounds.z * 0.9); // to the front, still on the floor
         else if (t > r.nextWander && t > r.daydreamUntil) {
           const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random());
-          r.target.set(Math.cos(a) * d * bounds.x, bounds.cz + Math.sin(a) * d * bounds.z);
+          r.target.set(r.home.x + Math.cos(a) * d * WANDER.x, r.home.y + Math.sin(a) * d * WANDER.z);
           r.nextWander = t + 3 + Math.random() * 5;
           if (r.id === "web" && Math.random() < 0.6) { r.daydreamUntil = t + 1.6; r.dashUntil = t + 2.4; }
         }
@@ -595,8 +602,9 @@ export function CrewRoom({ bots, moves, working, asking, handoff, signs, onPick,
           if (l > 0 && l < 1.25) r.vel.add(d.multiplyScalar(((1.25 - l) / l) * dt * 14)); // personal space: no piles
         }
         r.pos.addScaledVector(r.vel, dt);
-        const e = (r.pos.x / bounds.x) ** 2 + ((r.pos.y - bounds.cz) / bounds.z) ** 2;
-        if (e > 1) { const k = 1 / Math.sqrt(e); r.pos.set(r.pos.x * k, bounds.cz + (r.pos.y - bounds.cz) * k); }
+        // a rectangle, not an oval: an oval pushed the bots at the ends inward, onto their neighbours
+        r.pos.set(THREE.MathUtils.clamp(r.pos.x, -bounds.x, bounds.x),
+                  THREE.MathUtils.clamp(r.pos.y, bounds.cz - bounds.z, bounds.cz + bounds.z));
         const moving = r.vel.length() > 0.08;
 
         // which way to face: walking direction, or you when it needs you / you hover it

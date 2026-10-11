@@ -75,6 +75,21 @@ def resolve(raw: str) -> Path:
     return path
 
 
+def where(path: Path) -> str:
+    """Where a file is, as the person knows it: "on your Desktop", "in Documents\\Reports"; a full path elsewhere."""
+    names = {"desktop": "on your Desktop", "documents": "in Documents", "downloads": "in Downloads",
+             "workspace": "in TeamLoop's workspace"}
+    folder = path.parent.resolve()
+    for key, base in roots().items():
+        base = base.resolve()
+        if folder == base:
+            return names.get(key, f"in {base}")
+        if folder.is_relative_to(base):
+            label = names.get(key, f"in {base}").replace("on your Desktop", "in Desktop")
+            return f"{label}\\{folder.relative_to(base)}"
+    return f"in {folder}"
+
+
 def _holds_secrets(path: Path) -> bool:
     """The key vault, .env files (not .env.example) and databases."""
     name = path.name.lower()
@@ -98,7 +113,8 @@ async def write_file(args: dict, ctx) -> ToolResult:
     if path.exists():
         if not args.get("overwrite"):
             return ToolResult(False, f"{path} already exists. Pick another name or set overwrite.")
-        if not await ctx.approve("Replace a file", f"Overwrite {path} ({path.stat().st_size} bytes) with new text."):
+        if not await ctx.approve("Replace a file", f"Overwrite {path.name} ({where(path)}, {path.stat().st_size} bytes) "
+                                                   "with new text."):
             return ToolResult(False, f"The person said no, so {path.name} was left as it was.")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(dedupe_link_lines(content), encoding="utf-8")

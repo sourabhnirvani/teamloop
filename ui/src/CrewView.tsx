@@ -25,7 +25,7 @@ export function CrewView({ bots, moves, look, working, asking, handoff, onBot }:
           <button key={b.id} className={`crew-card ${asking.includes(b.id) ? "ask" : working.includes(b.id) ? "busy" : ""}`}
                   style={{ "--bot": botColor(b.id) } as React.CSSProperties} onClick={() => onBot(b.id)}>
             <Avatar bot={b} {...look(b.id)} size={42} />
-            <span><b>{b.name}</b><small>{b.role} · {status(b.id)}</small></span>
+            <span><b>{b.name}</b><small><span className="crew-role">{b.role} · </span>{status(b.id)}</small></span>
           </button>
         ))}
       </div>

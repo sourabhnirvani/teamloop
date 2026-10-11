@@ -96,8 +96,12 @@ class ScriptRouter:
                 return _call("write_file", path=self.report, content=REPORT)
             return _say(f"Saved {self.report}.")
         if bot == "desk":
-            return _call("open_file", path=self.report) if not done else _say(
-                "Opened llm-report.md." if str(done[-1]["content"]).startswith("OK:") else "You said no, so I left it.")
+            if not done:
+                return _call("open_file", path=self.report)
+            result = str(done[-1]["content"])
+            return _say("Opened llm-report.md." if result.startswith("OK:") else
+                        "No answer on the card, so I left it. Ask me again when you're back."
+                        if "No one answered" in result else "You said no, so I left it.")
         return _say(f"Hi! I'm {bot.title()}. (Rehearsal: this chat answers with one line.)")
 
 

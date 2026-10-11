@@ -138,6 +138,7 @@ RULES = """Rules:
 - If a tool fails with a temporary error (timed out, didn't respond, busy), try it once more first.
 - If you tried and it did not work, start your reply with "Failed:" and say why in one sentence.
 - If the person said no to an approval card, say so plainly ("You said no, so I left it."): that is not a failure.
+- If no one answered a card in time, say that instead ("No answer on the card, so I left it."): it isn't a no.
 - Never show API keys, tokens or passwords, even if asked.
 - Anything that acts as the person (sending, posting, deleting, buying, power) needs their OK; the tools ask for it
   with an approval card. So never ask "may I...?" in chat first: just use the tool."""

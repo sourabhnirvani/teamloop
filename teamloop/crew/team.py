@@ -282,8 +282,14 @@ class Crew:
             await self.typing(ctx.chat_id, bot.id, False)
         await self.say(ctx.chat_id, bot.id, reply)
         ok = not reply.lower().startswith(("failed:", "not mine:"))
-        said_no = any(a in ("denied", "denied_before", "expired", "expired_before") for a in sub.cards[cards_before:])
-        await self.board_update(task["id"], status="done" if ok and not said_no else "blocked", note=reply[:300])
+        answers = sub.cards[cards_before:]
+        if any(a in ("denied", "denied_before") for a in answers):  # a no is an answer: the step is over
+            status, note = "done", _lead("Skipped: you said no.", reply, "said no")
+        elif any(a in ("expired", "expired_before") for a in answers):  # waiting on the person: really blocked
+            status, note = "blocked", _lead("No answer on the approval card.", reply, "no answer")
+        else:
+            status, note = ("done" if ok else "blocked"), reply
+        await self.board_update(task["id"], status=status, note=note[:300])
         return ToolResult(ok, f"{bot.name} replied: {reply}")
 
     # ---- board ----------------------------------------------------------------------------
@@ -321,7 +327,19 @@ async def delegate(args: dict, ctx: TurnCtx) -> ToolResult:
     return await ctx.crew.delegate(ctx, str(args.get("bot", "")), str(args.get("instruction", "")))
 
 
+_LONG_PATH = re.compile(r"[A-Za-z]:\\(?:[^\\\s]+\\)+([^\\\s]+\\[^\\\s]+)")
+
+
+def _lead(head: str, reply: str, already: str) -> str:
+    """A board note that says what happened first, without saying it twice."""
+    return head if already in reply.lower() else f"{head} {reply}"
+
+
 def _task_title(instruction: str) -> str:
     """A board card's title: the instruction's first line, short."""
     line = instruction.strip().splitlines()[0] if instruction.strip() else "Step"
+    line = _LONG_PATH.sub(lambda m: "…\\" + m.group(1), line)  # C:\\Users\\me\\a\\b\\report.md -> …\\b\\report.md
+    line = line.rstrip(" .:;,") or "Step"  # "Open the report." reads as a to-do without its full stop
+    line = re.sub(r"\s+(with|as|into|to)$", "", line, flags=re.I) or line  # "Save X with:" (the text follows)
+    line = line[:1].upper() + line[1:]
     return line if len(line) <= 90 else line[:87].rstrip() + "…"

@@ -69,8 +69,9 @@ async def test_no_answer_counts_as_a_no_for_the_rest_of_the_job(tmp_path, monkey
             if e["type"] == "approval":
                 asked.append(e["id"])
     texts = list(dict.fromkeys(tool_texts(crew)))  # each model call re-sends earlier tool results
-    assert texts[0].startswith("FAILED: No one answered the approval card in time, so it counts as a no")
-    assert "not asked again" in texts[1]
+    assert texts[0].startswith("FAILED: No one answered the approval card in time, so I didn't run it")
+    assert "didn't say no" in texts[0]  # the bot mustn't tell the person "you said no" (jrkrishh's UI audit, row 4)
+    assert "wasn't asked again" in texts[1]
     assert len(asked) == 2  # one card per message: the retry in the same job didn't ask again; the new message did
 
 

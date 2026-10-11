@@ -116,7 +116,7 @@ RUNNABLE = {".exe", ".bat", ".cmd", ".com", ".ps1", ".psm1", ".vbs", ".vbe", ".j
                    "workspace only; asks the person first.",
       {"path": {"type": "string", "description": "e.g. Desktop/report.md"}, "required": ["path"]}, kit="computer")
 async def open_file(args: dict, ctx) -> ToolResult:
-    from teamloop.tools.files import resolve
+    from teamloop.tools.files import resolve, where
 
     try:
         path = resolve(str(args.get("path", "")))
@@ -126,7 +126,7 @@ async def open_file(args: dict, ctx) -> ToolResult:
         return ToolResult(False, f"There is no file at {path}.")
     if path.suffix.lower() in RUNNABLE:
         return ToolResult(False, "Refused: that file is a program or script, so opening it would run it.")
-    if not await ctx.approve("Open a file", f"Open {path.name} (in {path.parent}) with its usual app."):
+    if not await ctx.approve("Open a file", f"Open {path.name} ({where(path)}) with its usual app."):
         return ToolResult(False, f"The person said no, so {path.name} stays closed.")
     try:
         async with lease():

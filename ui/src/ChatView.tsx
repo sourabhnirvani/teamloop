@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
-import { Avatar, botColor, colorOf, type Move } from "./Avatar";
+import { Avatar, botColor, colorOf, type Move, toolName, toolSign } from "./Avatar";
 import { ModelChip } from "./ModelChip";
 import { RichText } from "./RichText";
 import type { Item } from "./store";
@@ -63,20 +63,26 @@ function Handoff({ from, text, bots, ts }: { from?: Bot; text: string; bots: Rec
         <Avatar bot={to} size={20} /> <b>{to?.name ?? "teammate"}</b>
       </span>
       <span className={`handoff-text ${open ? "open" : ""}`}>{rest}</span>
+      <span className="more" aria-hidden="true">{open ? "▾" : "▸"}</span>
       <span className="ts">{time(ts)}</span>
     </button>
   );
 }
 
 function Step({ item, bots }: { item: Extract<Item, { kind: "step" }>; bots: Record<string, Bot> }) {
-  return (
-    <div className={`activity step ${item.status}`}>
+  const [open, setOpen] = useState(false); // a long result reads in full with a tap (row 12 of the UI audit)
+  const parts = (
+    <>
       <span className="mark">{item.status === "start" ? <i className="spin" /> : item.status === "done" ? "✓" : "✗"}</span>
       <span className="step-who" style={{ color: botColor(item.bot) }}>{bots[item.bot]?.name ?? item.bot}</span>
-      <code>{item.tool}</code>
-      {item.text && <span className="step-text">{item.text}</span>}
-    </div>
+      <span className="step-tool" title={item.tool}>{toolSign(item.tool)} {toolName(item.tool)}</span>
+      {item.text && <span className={`step-text ${open ? "open" : ""}`}>{item.text}</span>}
+      {item.text && <span className="more" aria-hidden="true">{open ? "▾" : "▸"}</span>}
+    </>
   );
+  return item.text
+    ? <button className={`activity step ${item.status}`} onClick={() => setOpen(!open)} aria-expanded={open}>{parts}</button>
+    : <div className={`activity step ${item.status}`}>{parts}</div>;
 }
 
 const DONE_LABEL: Record<string, string> = {

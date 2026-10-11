@@ -25,7 +25,7 @@ async def test_delegation_is_logged_on_the_board(tmp_path):
             if e["type"] == "task":
                 seen.append(e["task"]["status"])
     [task] = crew.store.tasks()
-    assert (task["title"], task["bot"], task["by"], task["source"]) == ("Find the newest Node LTS.", "scout", "s", "delegate")
+    assert (task["title"], task["bot"], task["by"], task["source"]) == ("Find the newest Node LTS", "scout", "s", "delegate")
     assert task["status"] == "done" and "nodejs.org" in task["note"]
     assert seen == ["doing", "done"]  # the board moves live
 

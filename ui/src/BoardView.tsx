@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Task, type TaskStatus } from "./api";
 import { Avatar, type Move } from "./Avatar";
 
@@ -11,6 +11,29 @@ const COLUMNS: { status: TaskStatus; title: string; empty: string }[] = [
   { status: "blocked", title: "Blocked", empty: "Steps that failed, were stopped, or got a no." },
   { status: "done", title: "Done", empty: "Finished steps land here." },
 ];
+
+// A card's note, four lines at most; "Show all" appears only when the text really is cut off
+function Note({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const [cut, setCut] = useState(false);
+  const box = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    // measured again whenever its size changes: on a phone the column starts hidden (0 px), then a tab shows it
+    const el = box.current;
+    if (!el || open) return;
+    const check = () => setCut(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const watch = new ResizeObserver(check);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [text, open]);
+  return (
+    <>
+      <p ref={box} className={`task-note ${open ? "open" : ""}`}>{text}</p>
+      {(cut || open) && <button className="link note-more" onClick={() => setOpen(!open)}>{open ? "Show less" : "Show all"}</button>}
+    </>
+  );
+}
 
 function ago(ts: number) {
   const s = Date.now() / 1000 - ts;
@@ -26,7 +49,9 @@ export function BoardView({ tasks, bots, look, onChat }: {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [show, setShow] = useState<TaskStatus>("doing"); // phones show one column at a time
+  // phones show one column at a time: the one you picked, else the first with something in it (not an empty "Doing")
+  const [picked, setShow] = useState<TaskStatus | null>(null);
+  const show = picked ?? (["doing", "blocked", "todo", "done"] as TaskStatus[]).find((s) => tasks.some((t) => t.status === s)) ?? "doing";
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +79,8 @@ export function BoardView({ tasks, bots, look, onChat }: {
         <header>
           <span className="task-id">#{t.id}</span>
           <b>{t.title}</b>
-          <button className="icon" aria-label={`Remove task ${t.id}`} title="Remove" onClick={() => act(api.deleteTask(t.id))}>✕</button>
+          <button className="icon task-remove" aria-label={`Remove task ${t.id}`} title="Remove"
+                  onClick={() => window.confirm(`Remove “${t.title}” from the Board?`) && act(api.deleteTask(t.id))}>✕</button>
         </header>
         {(bot || by) && (
           <div className="task-who">
@@ -62,7 +88,7 @@ export function BoardView({ tasks, bots, look, onChat }: {
             {bot && <><Avatar bot={bot} {...(t.status === "doing" ? look(bot.id) : { move: "idle" as Move, sign: null })} size={20} /><span>{bot.name}</span></>}
           </div>
         )}
-        {t.note && <p className="task-note">{t.note}</p>}
+        {t.note && <Note text={t.note} />}
         <footer>
           <select aria-label={`Status of task ${t.id}`} value={t.status} onChange={(e) => act(api.patchTask(t.id, { status: e.target.value as TaskStatus }))}>
             {COLUMNS.map((c) => <option key={c.status} value={c.status}>{c.title}</option>)}

@@ -298,6 +298,23 @@ const TOOL_SIGNS: [RegExp, string][] = [
   [/power|lock/, "🔒"], [/routine/, "⏰"], [/delegate/, "📨"], [/memory|remember|recall/, "🧠"], [/status/, "🔋"],
 ];
 
+const TOOL_NAMES: Record<string, string> = {
+  web_search: "Web search", fetch_page: "Read a page", write_file: "Save a file", read_file: "Read a file",
+  list_files: "Look in a folder", open_file: "Open a file", open_app: "Open an app", close_app: "Close an app",
+  run_command: "Run a command", start_job: "Start a job", job_status: "Check a job", stop_job: "Stop a job",
+  schedule_routine: "Set a routine", cancel_routine: "Cancel a routine", list_routines: "Look at routines",
+  delegate: "Hand off", remember: "Remember", recall: "Recall", forget: "Forget", system_status: "Check the laptop",
+  set_volume: "Volume", set_brightness: "Brightness", screenshot: "Look at the screen", read_screen: "Read the screen",
+  type_text: "Type", press_keys: "Press keys", browser_open: "Open a site", browser_snapshot: "Read the site",
+  browser_act: "Use the site", focus_window: "Switch window", lock_screen: "Lock the screen",
+};
+
+// "Set a routine" for schedule_routine; any other tool's name, made readable
+export function toolName(tool: string): string {
+  const name = TOOL_NAMES[tool] ?? tool.replace(/_/g, " ");
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 export function toolSign(tool: string): string {
   return TOOL_SIGNS.find(([re]) => re.test(tool))?.[1] ?? "🛠️";
 }

@@ -286,8 +286,12 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 .room-label.ask b { background: #ffcf5c; color: #1b1f2e; border-color: transparent; }
 .room-label.ask i { color: #ffcf5c; }
 .room-label.hover b { transform: scale(1.12); }
-.crew-strip { display: flex; gap: 8px; padding: 10px 14px; overflow-x: auto; border-top: 1px solid var(--line); background: rgb(0 0 0 / .12); flex: none; }
-.crew-card { display: flex; align-items: center; gap: 8px; text-align: left; padding: 6px 12px 6px 6px; border-radius: 16px; background: var(--panel); flex: none; }
+/* every bot visible at once (it was a sideways strip with no hint that it scrolled): a grid that wraps */
+.crew-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; padding: 10px 14px;
+  border-top: 1px solid var(--line); background: rgb(0 0 0 / .12); flex: none; }
+.crew-card { display: flex; align-items: center; gap: 8px; text-align: left; padding: 6px 12px 6px 6px; border-radius: 16px; background: var(--panel); min-width: 0; }
+.crew-card > span { min-width: 0; }
+.crew-card small { display: block; overflow: hidden; text-overflow: ellipsis; }
 .crew-card b { display: block; font-size: 14px; }
 .crew-card small { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .crew-card.busy { border-color: var(--bot); }
@@ -424,7 +428,10 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
   .sheet-head .sheet-close { display: none; }
   .sheet-body { padding: 8px 16px calc(20px + env(safe-area-inset-bottom)); }
   .profile-hero { flex-direction: column; text-align: center; gap: 8px; }
-  .crew-strip { flex-wrap: nowrap; }
+  /* a phone: three bots a row, picture over name, just the status (the role is in the profile) */
+  .crew-strip { grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px 10px; }
+  .crew-card { flex-direction: column; text-align: center; gap: 2px; padding: 6px 4px; }
+  .crew-card .crew-role { display: none; }
 }
 
 /* ---- Board ----------------------------------------------------------------------------------------- */
@@ -444,7 +451,7 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 .task.done { border-left-color: var(--ok); opacity: .9; }
 .task header { display: flex; gap: 6px; align-items: flex-start; }
 .task header b { flex: 1; font-weight: 600; overflow-wrap: anywhere; }
-.task header .icon { font-size: 13px; color: var(--faint); padding: 0 2px; }
+.task header .icon { font-size: 15px; color: var(--faint); padding: 0; min-width: 32px; min-height: 32px; margin: -6px -6px 0 0; }
 .task-id { color: var(--faint); font-size: 12px; font-weight: 600; padding-top: 2px; }
 .task-who { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); }
 .task-who .arrow { margin: 0 2px; }
@@ -550,3 +557,13 @@ html.phone-forced, html.phone-forced body { overflow: hidden; }
 .local-row > span { display: flex; flex-direction: column; gap: 3px; }
 .local-model { display: block; color: var(--muted); }
 .local-model code { color: var(--text); }
+
+/* UI audit fixes (jrkrishh, evidence/runs/ui-audit-yang.md) */
+.task-note.open { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.note-more { align-self: flex-start; font-size: 12px; padding: 2px 0; min-height: 0; }
+.task footer button.link { min-height: 36px; padding: 6px 10px; }
+.activity .more { color: var(--faint); font-size: 11px; flex: none; }
+button.activity.step { font: inherit; color: inherit; text-align: left; background: none; border: none; cursor: pointer; }
+.step-tool { font-size: 12px; background: var(--soft2); padding: 1px 7px; border-radius: 6px; color: var(--text); white-space: nowrap; }
+.step-text.open { white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; max-width: none; }
+.warn-text { color: var(--warn); }

@@ -147,7 +147,7 @@ async def schedule_routine(args: dict, ctx) -> ToolResult:
     if row.get("existing"):
         return ToolResult(True, f"That routine already exists ({row['id']}): \"{row['text']}\" ({row['schedule']}); "
                                 f"next run {_when(row)}.", {"id": row["id"]})
-    return ToolResult(True, f"Routine {row['id']} set: \"{row['text']}\" ({row['schedule']}); first run {_when(row)}.",
+    return ToolResult(True, f"Routine set: \"{row['text']}\" ({row['schedule']}); first run {_when(row)}.",
                       {"id": row["id"]})
 
 
