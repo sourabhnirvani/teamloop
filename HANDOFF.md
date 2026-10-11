@@ -373,3 +373,28 @@ output) before calling it done; a PASS you didn't see is not a PASS. The earlier
   product".
 
 Order now: C, E, L, M, B, A/H, K, G, F, I, D; J after the freeze (Mon 12:30).
+
+## 12. Sun 11 Oct, ~23:30: N. Advanced computer use (top priority after B; also sent on the bridge)
+From Sourabh: Desk must control any app like a person: click, navigate to any point, scroll, drag, menus and dialogs.
+Plan deeper first (research, analysis), then build, then **test properly**.
+1. **Design first** in `evidence/runs/computer-use-design-yang.md`. Cover:
+   - what exists (`ui_snapshot`/`ui_act`, `screenshot`, `screen_read`, `type_text`, `press_keys`) and where it fails;
+   - the options: UIA patterns, Windows OCR, a free vision model, DPI-aware SendInput across monitors;
+   - the chosen approach and the new tools (contract in PLAN.md §4);
+   - safety.
+
+   Send Sourabh's side a summary before coding.
+2. **Build:**
+   - mouse move, click, right-click, double-click, scroll and drag;
+   - find a control by name or role (UIA first, OCR or vision as the fallback);
+   - a plan, act, look, verify loop with retries and a step limit.
+
+   Every action goes through `risk.py` + `gate.py`. B's pause and Ctrl+Alt+Q stop it mid-plan. Free models only.
+3. **Test** (pytest + live, a screenshot and log each, in `evidence/runs/computer-use-yang.md`):
+   - Calculator 12+30 by buttons
+   - Notepad Save As through the menus
+   - Settings > System > Display
+   - Explorer > Documents
+   - Paint: click and drag at coordinates
+   - a low-accessibility Electron/Chrome app via OCR or vision
+   - safety: the card shows, moving the mouse pauses, Ctrl+Alt+Q stops
