@@ -94,3 +94,11 @@ and the Electron app aren't affected.
 | CSRF on `/pair` | needs a live code from this laptop; the cookie's SameSite=Strict blocks riding a pairing |
 | Hub hop with no proxy headers / `//host/...` path / phone's own `X-Forwarded-For` | 401 / 401 / 401: `hub.answer` always marks it remote |
 | `/__laptop` without the secret | 404 at the Worker |
+
+## Re-test after Sourabh's fixes (d096d93), Sun 11 Oct ~22:55 IST
+I re-ran the same probe against main: **44 attempts, 0 FAIL** (`security-probe-yang.retest.out.txt`).
+- DNS rebinding: a foreign `Host` now gets **400** "This address isn't TeamLoop's.", both for reading and for driving the crew.
+- CSRF: every cross-site POST, with or without a body, now gets **403** "Only TeamLoop's own pages can do that.". No tunnel
+  and no hub setup starts.
+- SSE through the hub hop: `hub.answer` on `/api/events` now returns (no hang).
+- Pairing, paired-phone access, removed cookies and the guard's path tricks still behave as before (all PASS).
