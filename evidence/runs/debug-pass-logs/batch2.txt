@@ -1,0 +1,97 @@
+
+=== 13:11:50 dm-desk open notepad and type: hello from the teamloop debug pass --approve --timeout 120
+[+0.0s] SENT dm-desk: open notepad and type: hello from the teamloop debug pass
+[+2.9s] STEP desk open_app start 
+[+6.9s] STEP desk open_app done Opened Notepad; its window "Untitled - Notepad" is in front.
+[+7.4s] STEP desk type_text start 
+[+7.9s] STEP desk type_text fail Couldn't bring "Untitled - Notepad" to the front, so I didn't type.
+[+8.4s] STEP desk focus_window start 
+[+8.4s] STEP desk focus_window done "Untitled - Notepad" is in front now.
+[+9.1s] STEP desk type_text start 
+[+11.5s] STEP desk type_text fail type_text failed: [WinError -2147221008] CoInitialize has not been called
+[+12.0s] STEP desk ui_snapshot start 
+[+13.0s] STEP desk ui_snapshot done "Untitled - Notepad" shows 18 controls.
+[+21.1s] STEP desk ui_act start 
+[+21.6s] STEP desk ui_act done Typed into Edit "Text Editor" in "Untitled - Notepad".
+[+24.4s] MSG desk (chat): The text “hello from the teamloop debug pass” is now in Notepad.
+[+44.9s] END model_calls=7 still_typing=[]
+
+=== 13:12:38 dm-desk close notepad without saving --approve --timeout 120
+[+0.0s] SENT dm-desk: close notepad without saving
+[+0.1s] STEP desk close_app start 
+[+0.1s] STEP desk close_app fail No open window matches 'notepad without saving'.
+[+1.7s] STEP desk close_app start 
+[+2.2s] APPROVAL desk: Close notepad | shot=yes
+[+2.2s]   -> answered approve
+[+2.7s] APPROVAL_DONE approved
+[+4.8s] STEP desk close_app fail Untitled - Notepad is still open; it may be asking to save. I left it for the person.
+[+9.8s] MSG desk (chat): Notepad is still open, likely prompting to save. Let me know if you want me to confirm discarding changes.
+[+30.3s] END model_calls=2 still_typing=[]
+
+=== 13:13:09 dm-web open https://example.com in the browser, click the link on the page, and tell me the title of the page you land on --approve --timeout 150
+[+0.0s] SENT dm-web: open https://example.com in the browser, click the link on the page, and tell me the title of the page you land on
+[+2.3s] STEP web browser_open start 
+[+2.8s] STEP web browser_open done Opened "Example Domain" (https://example.com/).
+[+2.8s] STEP web browser_snapshot start 
+[+2.8s] STEP web browser_snapshot done "Example Domain" has 1 things to act on.
+[+3.3s] STEP web browser_act start 
+[+4.3s] STEP web browser_act done Clicked "Learn more"; the page is now "Example Domains" (https://www.iana.org/help/example-domains).
+[+4.8s] STEP web browser_read start 
+[+4.8s] STEP web browser_read done Read "Example Domains" (777 characters).
+[+4.8s] MSG web (chat): The page you landed on has the title **“Example Domains.”**
+[+25.3s] END model_calls=5 still_typing=[]
+
+=== 13:13:35 dm-s check models --timeout 120
+[+0.0s] SENT dm-s: check models
+[+2.3s] MSG s (chat): Working: Groq openai/gpt-oss-120b (0.2s). Not answering: Groq llama-3.1-8b-instant, Nebius meta-llama/Llama-3.3-70B-Instruct, Local (Ollama) qwen2.5:7b.
+[+22.9s] END model_calls=1 still_typing=[]
+
+=== 13:13:58 dm-s save tokens on --timeout 30
+[+0.0s] SENT dm-s: save tokens on
+[+0.0s] MSG s (chat): Save tokens mode is on: shorter history, fewer steps, and only S answers in groups. Say "normal mode" to go back.
+[+20.6s] END model_calls=0 still_typing=[]
+
+=== 13:14:19 dm-s what is 17 times 23? --timeout 60
+[+0.0s] SENT dm-s: what is 17 times 23?
+[+2.4s] MSG s (chat): 391.
+[+22.9s] END model_calls=1 still_typing=[]
+
+=== 13:14:42 dm-s save tokens off --timeout 30
+[+0.0s] SENT dm-s: save tokens off
+[+0.1s] MSG s (chat): Normal mode is on.
+[+20.6s] END model_calls=0 still_typing=[]
+
+=== 13:15:03 dm-s S go to sleep --timeout 30
+[+0.0s] SENT dm-s: S go to sleep
+[+0.0s] MSG s (chat): Going to sleep: no bot will act and routines wait until you say "S wake up".
+[+20.6s] END model_calls=0 still_typing=[]
+
+=== 13:15:24 dm-s what is 2 plus 2? --timeout 30
+[+0.0s] SENT dm-s: what is 2 plus 2?
+[+0.0s] MSG s (chat): The crew is asleep, so nothing runs (routines wait too). Say "S wake up" to wake us.
+[+20.6s] END model_calls=0 still_typing=[]
+
+=== 13:15:45 dm-s S wake up --timeout 30
+[+0.0s] SENT dm-s: S wake up
+[+0.0s] MSG s (chat): Awake and ready.
+[+20.5s] END model_calls=0 still_typing=[]
+
+=== 13:16:06 dm-s every Monday at 9am remind me to check the report --timeout 60
+[+0.0s] SENT dm-s: every Monday at 9am remind me to check the report
+[+5.2s] STEP s schedule_routine start 
+[+5.2s] STEP s schedule_routine done Routine 68103c9b set: "remind me to check the report" (every monday at 9am); first run Mon 12 Oct 09:00.
+[+7.5s] MSG s (chat): Routine set ✅ – every Monday at 9 am you’ll get a reminder to check the report.
+[+28.0s] END model_calls=2 still_typing=[]
+--- routines:
+[{"id":"68103c9b","chat_id":"dm-s","text":"remind me to check the report","schedule":"every monday at 9am","next_run":1791775800.0,"enabled":1}]=== 13:16:35 expiry test (card left unanswered)
+
+=== 13:16:35 dm-desk delete the file teamloop-expiry-test.txt on the Desktop --ignore --timeout 170
+[+0.0s] SENT dm-desk: delete the file teamloop-expiry-test.txt on the Desktop
+[+2.9s] STEP desk run_command start 
+[+2.9s] APPROVAL desk: Run a command | shot=no
+[+124.5s] APPROVAL_DONE expired
+[+124.5s] STEP desk run_command fail No one answered the approval card in time, so I didn't run it: Remove-Item -LiteralPath "C:\Users\{username}\Desktop\teamloop-expiry-test.txt" -Force
+[+125.1s] STEP desk run_command start 
+[+125.1s] APPROVAL desk: Run a command | shot=no
+[+187.2s] END model_calls=2 still_typing=['desk']
+=== 13:19:42 BATCH2 DONE

@@ -1,0 +1,15 @@
+=== use ollama for writer
+[+0.0s] SENT dm-s: use ollama for writer
+[+0.0s] MSG s (chat): Writer now uses ollama.
+[+20.5s] END model_calls=0 still_typing=[]
+{"save_tokens":false,"crew_model":"groq","bot_models":{"writer":"ollama"}}
+=== writer on ollama
+[+0.0s] SENT dm-writer: save a note on the Desktop called ollama-test.txt with the text: written by a small local model
+[+64.1s] MSG writer (chat): The file `ollama-test.txt` has been saved on your Desktop with the given text.
+[+84.7s] END model_calls=1 still_typing=[]
+=== revert
+[+0.0s] SENT dm-s: use groq for writer
+[+0.0s] MSG s (chat): Writer now uses groq.
+[+20.6s] END model_calls=0 still_typing=[]
+{"save_tokens":false,"crew_model":"groq","bot_models":{"writer":"groq"}}
+[{"day":"2026-10-11","provider":"groq","model":"openai/gpt-oss-120b","requests":105,"tokens_in":173902,"tokens_out":11867}]

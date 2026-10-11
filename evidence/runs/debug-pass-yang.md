@@ -9,7 +9,7 @@ Startup model check: `llama-3.3-70b-versatile` returns 404 (model gone), Nebius 
 Ollama off until started for row 30. No paid model answered anything.
 
 How it was driven: messages posted with `POST /api/chats/{id}/messages`, events read from
-`/api/events/poll`, cards answered with `POST /api/approvals/{id}`. Full timelines in `debug-pass-logs/batch1-4.log`.
+`/api/events/poll`, cards answered with `POST /api/approvals/{id}`. Full timelines in `debug-pass-logs/batch1-4.txt`.
 Test files, routines and the Notepad window the runs created were removed afterwards.
 
 Baseline: pytest 188 passed, 1 skipped; `python -m evals.run` 7/7; `python -m evals.run --live` **10/10**
