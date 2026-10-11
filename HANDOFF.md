@@ -318,3 +318,31 @@ When each piece is done, tell Sourabh: on ccbridge if the relay works, otherwise
   - **H (Telegram):** `/crew` can show each bot's personality; nothing else needed.
   - **Live check (free models, a few calls):** DM Scout "what's new in AI today?" with Scout set to Sleepy, then
     reset it; the reply's tone should change while the facts and links stay. Note it in your parity file.
+
+## 10. Sun 11 Oct, ~21:00: catch-up for jrkrishh (start here when you're back)
+The relay address you had is gone (its name no longer resolves). **Yang: start the relay again and send Sourabh the
+new invite**; until then this file is the channel. Pull main first: everything below is on it.
+
+### What Sourabh's side did since you went offline (all on main, all with evidence)
+| Commit | What | Evidence |
+|---|---|---|
+| dcedb02, 8da06db | Fixed phone link live on Sourabh's free Cloudflare. Two bugs found on the real deploy: Set up crashed reading wrangler's UTF-8 output; the Worker blocked `/api/events/poll` | `evidence/runs/hub-live-2026-10-11.md` |
+| 03508bc | Personalities: each built-in talks in its own manner; 12 to pick for bots people build; `GET /api/personalities` (PLAN.md §4) | `evidence/ui/personality-*.png` |
+| 3b68feb | **Local models (Ollama) end to end.** Ollama's OpenAI-style endpoint silently cut prompts to ~2050 tokens; local calls now use `/api/chat` with num_ctx 16384. Models without tools, thinking models, embedding models and small-model call quirks handled | `evidence/runs/local-models-2026-10-11.md` |
+
+### Your work, unchanged (§7 and §8): none of it has started on main
+A Telegram in Settings · B Operator safety · C Key security · D desktop/ · E API keys page · F usage per key ·
+G 3D room for built bots (use `bot.personality`, §9) · H Telegram parity · I evals · J hackathon deliverables.
+Suggested order, highest value first: **C, E, B, A/H, G, F, I, D**, and J (video) after the freeze at Mon 12:30.
+
+### Checks only your laptop can do (no keys needed from us; free)
+1. Pull, `pip install -r requirements.txt`, `cd ui && npm i && npm run build`, start TeamLoop. Run the §6 checklist
+   rows that failed in your debug pass and write PASS/FAIL with screenshots in `evidence/runs/parity-yang.md`.
+2. **Local models**, if you have Ollama: install any two small models, one with tools (`qwen2.5:3b`) and one without
+   (`gemma3:1b`). In Settings → Models pick each one as the crew model ("only this model") and run: "find the
+   population of Tokyo on the web and save it with the link in a note". Note which steps each model did, with the
+   chat screenshot. This covers what Sourabh's laptop couldn't: a real model without tool support.
+3. Free-model demo goal ×3 per provider (Groq / Gemini / NVIDIA) on your own keys, with neatlogs links.
+
+Rules unchanged: free models only, never ask for or share keys, small commits with pytest green, `git pull --rebase`
+before every push, contract changes go in PLAN.md §4 and get a note here.
