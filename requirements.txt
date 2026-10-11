@@ -12,3 +12,4 @@ pycaw; sys_platform == "win32"
 comtypes; sys_platform == "win32"
 playwright
 segno
+websockets>=14  # the laptop dials out to the phone hub (teamloop/server/hub.py)

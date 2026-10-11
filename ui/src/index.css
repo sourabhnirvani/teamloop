@@ -469,3 +469,5 @@ button.link { background: none; border: none; color: var(--accent); padding: 4px
 .menu button small.ok { color: var(--ok); }
 .menu-check { display: flex; align-items: center; gap: 8px; padding: 8px 10px 4px; border-top: 1px solid var(--line); margin-top: 4px; font-size: 13.5px; }
 @media (max-width: 760px) { .model-chip { max-width: 110px; padding: 4px 9px; } .menu { position: fixed; left: 10px; right: 10px; top: auto; bottom: 10px; width: auto; } }
+.hub-box { display: flex; flex-direction: column; gap: 8px; }
+.hub-box a { color: var(--accent); overflow-wrap: anywhere; }

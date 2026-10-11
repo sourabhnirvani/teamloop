@@ -1,0 +1,13 @@
+// The phone hub on the person's own free Cloudflare account. Deployed by `python -m teamloop.server.hub setup`.
+// No secrets here: LINK_SECRET is set with `wrangler secret put`, and the laptop keeps its copy in the key vault.
+{
+  "name": "teamloop-hub",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [{ "name": "HUB", "class_name": "Hub" }]
+  },
+  // SQLite-backed Durable Objects are on the Workers free plan
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Hub"] }]
+}

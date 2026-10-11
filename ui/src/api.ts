@@ -12,6 +12,7 @@ export type Routine = { id: string; chat_id: string; text: string; schedule: str
 export type Phone = { id: string; name: string; paired: number; last_seen: number };
 export type Pairing = { code: string; link: string; expires: number; qr: string };
 export type ApprovalEvent = { type: "approval"; chat_id: string; id: string; bot: string; title: string; details: string; screenshot?: string | null; can_always?: boolean };
+export type HubStatus = { configured: boolean; url: string | null; connected: boolean; since: number | null; error: string; setup: string };
 export type AllowRule = { id: string; title: string; key: string; label: string; bot: string; added: number };
 export type CrewState = { typing: Record<string, string[]>; approvals: ApprovalEvent[]; asleep: boolean; save_tokens: boolean };
 export type TaskStatus = "todo" | "doing" | "blocked" | "done";
@@ -59,6 +60,8 @@ export const api = {
   answer: (approvalId: string, ok: boolean, always = false) =>
     post<{ ok: boolean; rule: AllowRule | null }>(`/api/approvals/${approvalId}`, { ok, always }),
   allowed: () => call<AllowRule[]>("/api/allowed"),
+  hub: () => call<HubStatus>("/api/hub"),
+  hubSetup: () => post<HubStatus>("/api/hub/setup"),
   forgetAllowed: (id: string) => call<{ ok: boolean }>(`/api/allowed/${id}`, { method: "DELETE" }),
   state: () => call<CrewState>("/api/state"),
   keys: () => call<KeyInfo[]>("/api/keys"),

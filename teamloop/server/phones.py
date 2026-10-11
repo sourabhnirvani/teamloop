@@ -212,10 +212,14 @@ def install(app: FastAPI, phones: Phones) -> None:
 
     @app.post("/api/phones/pair")
     async def pair() -> dict:
-        try:
-            url = await phones.tunnel()
-        except RuntimeError as e:
-            raise HTTPException(503, str(e)) from None
+        from teamloop.server import hub
+
+        url = hub.link(app.state.crew.store)  # the fixed address, once the hub is set up and connected
+        if not url:
+            try:
+                url = await phones.tunnel()
+            except RuntimeError as e:
+                raise HTTPException(503, str(e)) from None
         code = phones.new_code()
         link = f"{url}/pair?code={code}"
         return {"code": f"{code[:4]}-{code[4:]}", "link": link, "expires": time.time() + CODE_SECONDS,

@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,7 +28,7 @@ from teamloop.keys import vault, wallet
 from teamloop.models import doctor
 from teamloop.models import providers as P
 from teamloop.models.router import Router
-from teamloop.server import phones, telegram
+from teamloop.server import hub, phones, telegram
 
 PING_SECONDS = 15
 
@@ -107,7 +107,9 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         ticker = asyncio.create_task(routines.scheduler(app.state.crew))
         phone = asyncio.create_task(telegram.run(app.state.crew))
         checker = asyncio.create_task(doctor.keep_checking(app.state.crew.router))
+        link = asyncio.create_task(hub.run(app))  # the phone hub, once it's set up
         yield
+        link.cancel()
         ticker.cancel()
         phone.cancel()
         app.state.phones.stop()
@@ -339,6 +341,22 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         if not await terminal.stop(job_id):
             raise HTTPException(404, "No such job.")
         return terminal.job_detail(job_id) or {"ok": True}
+
+    @app.get("/api/hub")
+    def hub_status() -> dict:
+        url, secret = hub.target(get_crew().store)
+        return {"configured": bool(url and secret), "url": url, "connected": hub.state["connected"],
+                "since": hub.state["since"], "error": hub.state["error"], "setup": hub.state["setup"]}
+
+    @app.post("/api/hub/setup")
+    async def hub_setup(request: Request) -> dict:
+        if phones.is_remote(request):
+            raise HTTPException(403, "Set up the phone link on the laptop.")
+        if hub.state["setup"] and not hub.state["setup"].startswith(("Done", "Failed")):
+            raise HTTPException(409, "Setup is already running.")
+        hub.state["setup"] = "Starting…"
+        asyncio.create_task(hub.setup_in_background(get_crew().store))
+        return hub_status()
 
     @app.get("/api/version")
     def version() -> dict:

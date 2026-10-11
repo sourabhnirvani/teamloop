@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, onLaptop, type AllowRule, type Bot, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
+import { api, onLaptop, type AllowRule, type Bot, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
 import { go, href } from "./router";
 import { applyUpdate, runningVersion, updateAvailable } from "./update";
@@ -28,6 +28,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [phones, setPhones] = useState<Phone[] | null>(null);
   const [rules, setRules] = useState<AllowRule[]>([]);
+  const [hub, setHub] = useState<HubStatus | null>(null);
   const [note, setNote] = useState("");
 
   const refresh = useCallback(() => {
@@ -37,6 +38,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
     api.usage().then(setUsage).catch(() => {});
     api.routines().then(setRoutines).catch(() => {});
     api.allowed().then(setRules).catch(() => {});
+    api.hub().then(setHub).catch(() => {});
     if (onLaptop) api.phones().then(setPhones).catch(() => setPhones(null));
   }, []);
   useEffect(refresh, [refresh, page]);
@@ -76,7 +78,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         <h2>Crew</h2>
         {card("routines", "⏰", "Routines", routines.length ? `${routines.length} scheduled` : "None yet: “every Monday at 9am, …”")}
         <h2>Devices</h2>
-        {card("phone", "📱", "Your phone", onLaptop ? (phones ? `${phones.length} paired` : "Pair a phone with a QR code") : "This phone is paired")}
+        {card("phone", "📱", "Your phone", `${onLaptop ? (phones ? `${plural(phones.length, "phone")} paired` : "Pair a phone with a QR code") : "This phone is paired"} · ${hub?.connected ? "fixed link on" : hub?.configured ? "fixed link connecting" : "fixed link not set up"}`)}
         {card("chrome", "🌐", "Crew's Chrome", "Sign in to sites once; bots read and draft, you send")}
         <h2>Safety</h2>
         {card("allowed", "✅", "Always-allowed actions", rules.length ? `${plural(rules.length, "rule")} · the crew goes ahead without asking` : "None: every risky action asks first")}
@@ -138,7 +140,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
           {note && <div className="note">{note}</div>}
         </>
       )}
-      {page === "phone" && <PhonePage header={header("📱 Your phone")} phones={phones} refresh={refresh} />}
+      {page === "phone" && <PhonePage header={header("📱 Your phone")} phones={phones} refresh={refresh} hub={hub} setHub={setHub} />}
       {page === "chrome" && (
         <>
           {header("🌐 Crew's Chrome")}
@@ -283,7 +285,40 @@ function ModelsPage({ header, models, settings, bots, save, note, setNote, refre
   );
 }
 
-function PhonePage({ header, phones, refresh }: { header: React.ReactNode; phones: Phone[] | null; refresh: () => void }) {
+function HubBox({ hub, setHub }: { hub: HubStatus | null; setHub: (h: HubStatus) => void }) {
+  const running = !!hub?.setup && !/^(Done|Failed)/.test(hub.setup);
+  useEffect(() => {
+    if (!running) return;
+    const t = window.setInterval(() => api.hub().then(setHub).catch(() => {}), 2000); // follow the setup steps
+    return () => window.clearInterval(t);
+  }, [running, setHub]);
+  if (!hub) return null;
+  return (
+    <div className="hub-box">
+      <div className="switch-row">
+        <span>
+          <b>Fixed phone link {hub.connected ? "· on ✅" : hub.configured ? "· connecting…" : ""}</b>
+          <small>{hub.connected && hub.url ? <>The phone app's permanent address: <a href={hub.url} target="_blank" rel="noreferrer">{hub.url}</a>. It keeps working after the laptop restarts.</>
+            : hub.configured ? `Set up at ${hub.url}; this laptop is reconnecting${hub.error ? ` (${hub.error})` : ""}.`
+            : "Without it the phone link changes every time the laptop restarts. With it, the phone app keeps one address: a tiny free hub on your own Cloudflare account that this laptop dials out to (nothing at home is opened, $0)."}</small>
+        </span>
+        {onLaptop && !hub.connected && (
+          <button className="primary" disabled={running} onClick={() => api.hubSetup().then(setHub).catch((e: Error) => setHub({ ...hub, setup: `Failed: ${e.message}` }))}>
+            {running ? "Setting up…" : hub.configured ? "Set up again" : "Set up"}
+          </button>
+        )}
+      </div>
+      {hub.setup && <div className="note">{hub.setup}</div>}
+      {onLaptop && !hub.configured && !running && (
+        <p className="quiet">Set up opens your browser once: sign in to a free Cloudflare account (or make one, no card) and press Allow. The rest runs by itself.</p>
+      )}
+    </div>
+  );
+}
+
+function PhonePage({ header, phones, refresh, hub, setHub }: {
+  header: React.ReactNode; phones: Phone[] | null; refresh: () => void; hub: HubStatus | null; setHub: (h: HubStatus) => void;
+}) {
   const [pairing, setPairing] = useState<Pairing | null>(null);
   const [note, setNote] = useState("");
   useEffect(() => {
@@ -298,6 +333,7 @@ function PhonePage({ header, phones, refresh }: { header: React.ReactNode; phone
       <>
         {header}
         <p className="lead">This phone is paired with the laptop. Chats, approvals, routines and every setting work here while the laptop is on. Pairing or removing phones is done on the laptop: Settings → Your phone.</p>
+        <HubBox hub={hub} setHub={setHub} />
         <p className="lead">New version on the laptop? You'll see “A new version is ready · Update” at the top, or use Settings → Appearance & updates.</p>
       </>
     );
@@ -305,7 +341,8 @@ function PhonePage({ header, phones, refresh }: { header: React.ReactNode; phone
   return (
     <>
       {header}
-      <p className="lead">Use TeamLoop on your phone while this laptop is on. Press Pair, scan the code with the phone camera (or open the link and type the code), then “Add to Home screen”.</p>
+      <HubBox hub={hub} setHub={setHub} />
+      <p className="lead">Use TeamLoop on your phone while this laptop is on. Press Pair, scan the code with the phone camera (or open the link and type the code), then “Add to Home screen”.{hub?.connected ? " The code uses the fixed link." : ""}</p>
       <button className="primary" onClick={async () => {
         setNote("Opening a secure link to this laptop…");
         try { setPairing(await api.pairPhone()); setNote(""); } catch (e) { setNote((e as Error).message); }
