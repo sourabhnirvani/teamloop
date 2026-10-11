@@ -20,7 +20,9 @@ if TYPE_CHECKING:
 
 MAX_WORDS = 8
 MAX_SEARCH_WORDS = 12
-_JOINERS = re.compile(r"\b(and|then|after|before|if|but|also|aur|phir|fir)\b|[,;]", re.I)
+# "close notepad without saving" is not a plain one-step command: the bots handle it
+_JOINERS = re.compile(r"\b(and|then|after|before|if|but|also|aur|phir|fir|without|with|except|unless|until)\b|[,;]",
+                      re.I)
 _POLITE = re.compile(r"^(?:(?:hey|hi|ok|okay)\s+)?(?:s\b[,:]?\s*)?(?:please\s+|pls\s+|can you\s+|could you\s+)?|"
                      r"\s+(?:please|pls|for me|now)$", re.I)
 _URL = re.compile(r"^(?:https?://\S+|(?:www\.)?[\w-]+(?:\.[\w-]+)*\.(?:com|org|net|io|ai|dev|in|co|edu|gov|app|me|so)"
@@ -41,7 +43,7 @@ def _app_or_site(target: str) -> Match:
 RULES: list[tuple[re.Pattern, Callable[[re.Match], Match | None]]] = [
     (re.compile(r"^(?:open|launch)\s+(?:the\s+)?(.+)$", re.I), lambda m: _app_or_site(m.group(1))),
     (re.compile(r"^(.+?)\s+(?:kholo|khol do|chalu karo)$", re.I), lambda m: _app_or_site(m.group(1))),
-    (re.compile(r"^(?:close|quit)\s+(?:the\s+)?(.+?)(?:\s+app)?$", re.I),
+    (re.compile(r"^(?:close|quit)\s+(?:the\s+)?((?:\S+\s+){0,2}?\S+?)(?:\s+app)?$", re.I),  # app names: 1-3 words
      lambda m: ("close_app", {"name": m.group(1)})),
     (re.compile(r"^(.+?)\s+band karo$", re.I), lambda m: ("close_app", {"name": m.group(1)})),
 

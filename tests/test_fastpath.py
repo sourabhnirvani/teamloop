@@ -47,9 +47,22 @@ def test_plain_commands_match(text, hit):
     "how are you",
     "open the report I wrote yesterday on the desktop",
     "search the web then summarize it",
+    "close notepad without saving",  # Yang's debug pass row 15: was close_app("notepad without saving")
+    "close the window with the report in it",
+    "close every app that is using too much memory",
 ])
 def test_anything_else_goes_to_the_bots(text):
     assert fastpath.match(text) is None
+
+
+@pytest.mark.parametrize("text,name", [
+    ("close notepad", "notepad"),
+    ("close google chrome", "google chrome"),
+    ("quit the calculator app", "calculator"),
+    ("close visual studio code", "visual studio code"),
+])
+def test_close_takes_only_the_app_name(text, name):
+    assert fastpath.match(text) == ("close_app", {"name": name})
 
 
 @pytest.fixture
