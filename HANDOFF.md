@@ -346,3 +346,30 @@ Suggested order, highest value first: **C, E, B, A/H, G, F, I, D**, and J (video
 
 Rules unchanged: free models only, never ask for or share keys, small commits with pytest green, `git pull --rebase`
 before every push, contract changes go in PLAN.md §4 and get a note here.
+
+## 11. Sun 11 Oct, ~21:30: more work for jrkrishh (also sent on the bridge, room bridge-3e4d1806)
+From Sourabh: do the tasks properly and end to end. Run everything yourself and prove it (screenshots, logs, test
+output) before calling it done; a PASS you didn't see is not a PASS. The earlier app UI had to be rebuilt.
+
+- **K. Other local model servers** (`teamloop/models/providers.py` + tests; backend only). Add LM Studio
+  (`http://localhost:1234/v1`) as provider `lmstudio`: no key, OpenAI-compatible, models from `GET /v1/models` (skip
+  "embed"), no slots when it isn't running, after `ollama` in `DEFAULT_CHAIN`. Leave `_call_ollama` alone; turn the
+  router's `provider.id == "ollama"` checks into a `LOCAL = {"ollama", "lmstudio"}` set. Live run if you have LM Studio
+  → `evidence/runs/local-models-yang.md`.
+- **L. Adversarial security review** of `phone-hub/src/worker.js`, `teamloop/server/phones.py`, `teamloop/server/hub.py`,
+  `teamloop/computer/gate.py`, run against `npx wrangler@4 dev --config phone-hub/wrangler.jsonc` (free, local). Try:
+  - laptop-only paths through the hub (encoded or double slashes, `/__laptop/..`, case)
+  - a spoofed x-forwarded-for
+  - an expired, used or brute-forced pairing code
+  - a removed phone's cookie
+  - answering approvals from an unpaired phone
+  - CSRF on `/pair` and `POST /api/approvals`
+
+  Write `evidence/runs/security-review-yang.md` with the request, the response and PASS/FAIL for each. Send FAILs to
+  Sourabh's side as repros; we fix them.
+- **M. UI audit, report only** (`ui/` is Sourabh's). Check every tab, Settings page, sheet and button at 375×812,
+  1100×760 and 1440×900, in light and dark. Log everything broken, ugly, cropped, overlapping, slow, confusing or
+  useless, one row each with a screenshot, worst first, in `evidence/runs/ui-audit-yang.md`. The bar is "a finished
+  product".
+
+Order now: C, E, L, M, B, A/H, K, G, F, I, D; J after the freeze (Mon 12:30).
