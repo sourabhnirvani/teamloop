@@ -74,7 +74,7 @@ def test_settings_change_is_announced_and_state_is_served(tmp_path):
         assert client.post("/api/settings", json={"save_tokens": True}).json()["save_tokens"] is True
         assert client.get("/api/state").json() == {"typing": {}, "approvals": [], "asleep": False, "save_tokens": True}
         assert client.get("/api/approvals").json() == []
-    assert ("settings", {"chat_id": None, "save_tokens": True, "crew_model": None, "bot_models": {}}) in seen
+    assert ("settings", {"chat_id": None, "save_tokens": True, "crew_model": None, "bot_models": {}, "bot_only": {}}) in seen
 
 
 def test_console_page_stays_on_the_laptop(tmp_path):

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
 import { Avatar, botColor, type Move } from "./Avatar";
+import { ModelChip } from "./ModelChip";
 import { RichText } from "./RichText";
 import type { Item } from "./store";
 
@@ -183,6 +184,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
           <b>{chat.title}</b>
           <small>{typing.length ? `${typing.map((id) => bots[id]?.name ?? id).join(", ")} working…` : members.map((b) => b.name).join(" · ")}</small>
         </div>
+        <ModelChip bot={members.length === 1 ? members[0] : undefined} />
         {busy && <button className="stop" onClick={() => api.stop(chat.id)}>■ Stop</button>}
       </header>
 

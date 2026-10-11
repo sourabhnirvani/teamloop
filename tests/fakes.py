@@ -21,8 +21,9 @@ class FakeRouter:
         self.calls = []
         self.dead_models = set()
 
-    async def chat(self, messages, tools=None, prefer=None, purpose="", max_tokens=None):
-        self.calls.append({"messages": [dict(m) for m in messages], "tools": tools, "purpose": purpose})
+    async def chat(self, messages, tools=None, prefer=None, purpose="", max_tokens=None, only=False):
+        self.calls.append({"messages": [dict(m) for m in messages], "tools": tools, "purpose": purpose,
+                           "prefer": prefer, "only": only})
         step = self.script.pop(0) if self.script else "Done."
         if callable(step):
             step = step(messages, tools, purpose)

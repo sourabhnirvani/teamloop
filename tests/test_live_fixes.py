@@ -112,3 +112,19 @@ async def test_not_mine_in_a_one_to_one_chat_goes_to_the_named_teammate(tmp_path
     said = [(m["sender"], m["kind"], m["text"]) for m in crew.store.messages("dm-scout")]
     assert said[-2] == ("scout", "handoff", "@Desk open notepad")
     assert said[-1] == ("desk", "chat", "Opened Notepad.")
+
+
+async def test_only_this_model_never_falls_back(tmp_path):
+    """The model chip's "Only this model (no fallback)": the router is told to try that model alone."""
+    crew = make_crew(tmp_path, ["hi", "hi again", "hello"])
+    crew.store.set_setting("bot_models", {"scout": "groq"})
+    crew.store.set_setting("bot_only", {"scout": True, "writer": True})
+    await crew.post("dm-scout", "hello")
+    await crew.wait_idle("dm-scout")
+    await crew.post("dm-writer", "hello")  # "only" without a model picked means nothing: normal fallback
+    await crew.wait_idle("dm-writer")
+    crew.store.set_setting("bot_only", {})
+    await crew.post("dm-scout", "hello")
+    await crew.wait_idle("dm-scout")
+    picks = [(c["purpose"], c["prefer"], c["only"]) for c in crew.router.calls]
+    assert picks == [("turn:scout", "groq", True), ("turn:writer", None, False), ("turn:scout", "groq", False)]

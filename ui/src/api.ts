@@ -1,12 +1,12 @@
 // The TeamLoop server API (PLAN.md section 4).
 
-export type Bot = { id: string; name: string; role: string; emoji: string; model: string };
+export type Bot = { id: string; name: string; role: string; emoji: string; model: string; only?: boolean };
 export type LastMessage = { sender: string; text: string; kind: string; ts: number };
 export type Chat = { id: string; title: string; members: string[]; created: number; last?: LastMessage | null };
 export type Message = { id: number; chat_id: string; sender: string; text: string; kind: string; ts: number };
 export type KeyInfo = { id: string; name: string; needs_key: boolean; keys: string[] };
 export type ModelInfo = { provider: string; name: string; has_key: boolean; models: { id: string; dead: boolean; ok?: boolean | null }[] };
-export type Settings = { save_tokens: boolean; crew_model: string | null; bot_models: Record<string, string> };
+export type Settings = { save_tokens: boolean; crew_model: string | null; bot_models: Record<string, string>; bot_only?: Record<string, boolean> };
 export type Usage = { day: string; provider: string; model: string; requests: number; tokens_in: number; tokens_out: number };
 export type Routine = { id: string; chat_id: string; text: string; schedule: string; next_run: number };
 export type Phone = { id: string; name: string; paired: number; last_seen: number };

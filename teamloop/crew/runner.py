@@ -28,7 +28,8 @@ REPEATED = ("SKIPPED: you already made this exact call twice and the result won'
 
 async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: str, ctx: TurnCtx,
                        prefer: str | None = None, members: list[str] | None = None,
-                       max_steps: int = MAX_STEPS) -> str:
+                       max_steps: int = MAX_STEPS, only: bool = False) -> str:
+    pick = {"prefer": prefer, "only": True} if only and prefer else {"prefer": prefer}  # only: no fallback
     tools = registry.tools_for_kits(list(bot.kits))
     tool_schemas = registry.schemas(tools) or None
     messages: list[dict] = [{"role": "system", "content": system_prompt(bot, members, facts=_facts(ctx))}, *history,
@@ -42,7 +43,7 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
         while steps > 0:
             steps -= 1
             ctx.check_stop()
-            reply = await router.chat(messages, tools=tool_schemas, prefer=prefer, purpose=f"turn:{bot.id}")
+            reply = await router.chat(messages, tools=tool_schemas, purpose=f"turn:{bot.id}", **pick)
             if not reply.tool_calls:
                 text = clean_reply(reply.text)
                 back = None if checked else _check_lead(bot, ctx, user_text, text, history)
@@ -72,8 +73,7 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
                     content += RETRY_NUDGE
                 messages.append({"role": "tool", "tool_call_id": call.id, "content": content})
         ctx.check_stop()
-        final = await router.chat(messages + [{"role": "user", "content": WRAP_UP}], prefer=prefer,
-                                  purpose=f"wrapup:{bot.id}")
+        final = await router.chat(messages + [{"role": "user", "content": WRAP_UP}], purpose=f"wrapup:{bot.id}", **pick)
         text = clean_reply(final.text)
         sp.set("output.value", text)
         return text

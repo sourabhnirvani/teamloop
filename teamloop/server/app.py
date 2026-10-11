@@ -128,7 +128,7 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     def bots() -> list[dict]:
         c = get_crew()
         return [{"id": b.id, "name": b.name, "role": b.role, "emoji": b.emoji,
-                 "model": c.model_for(b.id) or "auto"} for b in ROSTER]
+                 "model": c.model_for(b.id) or "auto", "only": c.only_for(b.id)} for b in ROSTER]
 
     @app.get("/api/chats")
     def chats() -> list[dict]:
@@ -238,12 +238,13 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         s = get_crew().store
         return {"save_tokens": bool(s.get_setting("save_tokens", False)),
                 "crew_model": s.get_setting("crew_model"),
-                "bot_models": s.get_setting("bot_models", {}) or {}}
+                "bot_models": s.get_setting("bot_models", {}) or {},
+                "bot_only": s.get_setting("bot_only", {}) or {}}
 
     @app.post("/api/settings")
     async def set_settings(body: dict) -> dict:
         s = get_crew().store
-        for key in ("save_tokens", "crew_model", "bot_models"):
+        for key in ("save_tokens", "crew_model", "bot_models", "bot_only"):
             if key in body:
                 s.set_setting(key, body[key])
         now = settings()

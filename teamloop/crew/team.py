@@ -58,6 +58,10 @@ class Crew:
         per_bot = self.store.get_setting("bot_models", {}) or {}
         return per_bot.get(bot_id) or self.store.get_setting("crew_model")
 
+    def only_for(self, bot_id: str) -> bool:
+        """"Only this model (no fallback)": set per bot, and only means something with a model picked."""
+        return bool((self.store.get_setting("bot_only", {}) or {}).get(bot_id)) and bool(self.model_for(bot_id))
+
     def saving(self) -> bool:
         return bool(self.store.get_setting("save_tokens", False))
 
@@ -201,7 +205,8 @@ class Crew:
         try:
             reply = await run_bot_turn(bot, self.router,
                                        self.history(chat["id"], bot.id, SAVE_HISTORY_LIMIT if saving else HISTORY_LIMIT),
-                                       prompt, ctx, prefer=self.model_for(bot.id), members=chat["members"],
+                                       prompt, ctx, prefer=self.model_for(bot.id), only=self.only_for(bot.id),
+                                       members=chat["members"],
                                        max_steps=SAVE_MAX_STEPS if saving else MAX_STEPS)
         except AllModelsBusy as e:
             reply = f"Failed: {e}"
@@ -264,6 +269,7 @@ class Crew:
         await self.typing(ctx.chat_id, bot.id, True)
         try:
             reply = await run_bot_turn(bot, self.router, [], instruction, sub, prefer=self.model_for(bot.id),
+                                       only=self.only_for(bot.id),
                                        max_steps=SAVE_MAX_STEPS if self.saving() else MAX_STEPS)
         except AllModelsBusy as e:
             reply = f"Failed: {e}"

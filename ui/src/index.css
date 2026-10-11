@@ -456,3 +456,16 @@ button.link { background: none; border: none; color: var(--accent); padding: 4px
 .activity.allowed { color: var(--muted); }
 .activity.allowed .mark { color: var(--ok); }
 .activity.allowed a { color: var(--accent); font-size: 12px; }
+
+/* ---- model chip ------------------------------------------------------------------------------------ */
+.chip-wrap { position: relative; flex: none; }
+.model-chip { border-radius: 20px; padding: 5px 12px; font-size: 13px; background: var(--soft); white-space: nowrap; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 12; width: 300px; max-height: 70vh; overflow-y: auto; background: var(--solid); border: 1px solid var(--line2); border-radius: 16px; padding: 8px; box-shadow: 0 20px 50px rgb(0 0 0 / .45); display: flex; flex-direction: column; gap: 2px; animation: pop .15s ease-out; }
+.menu-title { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--faint); padding: 6px 10px 4px; font-weight: 700; }
+.menu button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; background: none; border: 1px solid transparent; border-radius: 10px; padding: 7px 10px; }
+.menu button:hover:not(:disabled) { background: var(--soft); }
+.menu button.on { background: var(--soft2); border-color: var(--line2); }
+.menu button small { color: var(--muted); font-size: 12px; }
+.menu button small.ok { color: var(--ok); }
+.menu-check { display: flex; align-items: center; gap: 8px; padding: 8px 10px 4px; border-top: 1px solid var(--line); margin-top: 4px; font-size: 13.5px; }
+@media (max-width: 760px) { .model-chip { max-width: 110px; padding: 4px 9px; } .menu { position: fixed; left: 10px; right: 10px; top: auto; bottom: 10px; width: auto; } }
