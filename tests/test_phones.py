@@ -94,3 +94,18 @@ async def test_first_poll_brings_cards_still_waiting(tmp_path):
         assert later["seq"] == first["seq"]  # a stale number from before a restart starts over
         crew.gate.answer(first["events"][0]["id"], False)
         assert await asked is False
+
+
+def test_pairing_qr_scales_without_cropping(tmp_path, monkeypatch):
+    app, client = app_and_client(tmp_path)
+
+    async def fake_tunnel():
+        return "https://colours-birthday-spies-app.trycloudflare.com"
+
+    monkeypatch.setattr(app.state.phones, "tunnel", fake_tunnel)
+    with client:
+        qr = client.post("/api/phones/pair").json()["qr"]
+    head = qr[:qr.index(">")]
+    assert "viewBox" in head and "width=" not in head and "height=" not in head  # CSS sizes it, nothing cut off
+    size = int(head.split('viewBox="0 0 ')[1].split()[0])
+    assert size in {21 + 4 * v + 8 for v in range(1, 41)}  # a whole QR symbol plus 4 modules of quiet zone each side

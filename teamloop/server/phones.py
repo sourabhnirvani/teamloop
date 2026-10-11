@@ -215,7 +215,9 @@ def install(app: FastAPI, phones: Phones) -> None:
         code = phones.new_code()
         link = f"{url}/pair?code={code}"
         return {"code": f"{code[:4]}-{code[4:]}", "link": link, "expires": time.time() + CODE_SECONDS,
-                "qr": segno.make(link, error="m").svg_inline(scale=5, border=2, light="white")}
+                # a viewBox (no fixed size) so CSS can scale it without cropping; 4 modules of quiet zone so
+                # phone cameras find it
+                "qr": segno.make(link, error="m").svg_inline(border=4, light="white", omitsize=True)}
 
     @app.get("/api/phones")
     def list_phones() -> list[dict]:

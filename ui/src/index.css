@@ -282,7 +282,8 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 .pick button.on { border-color: var(--accent); background: var(--soft2); box-shadow: inset 0 0 0 1px var(--accent); }
 .dialog-btns { display: flex; justify-content: flex-end; gap: 8px; }
 .pairing { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-.pairing .qr svg { display: block; width: 180px; height: 180px; border-radius: 12px; }
+.pairing .qr { background: #fff; border-radius: 12px; padding: 6px; flex: none; }
+.pairing .qr svg { display: block; width: 220px; height: 220px; shape-rendering: crispEdges; }
 .pairing .code { font-size: 24px; letter-spacing: .14em; font-weight: 700; }
 
 /* ---- phone ------------------------------------------------------------------------------------- */
