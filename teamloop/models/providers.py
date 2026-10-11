@@ -107,6 +107,12 @@ def models_for(provider: Provider, env: Mapping[str, str] | None = None) -> list
 
 
 _ollama_seen: dict[str, tuple[float, list[str]]] = {}
+# what Ollama says about each installed model: {"tools": bool | None, "ctx": int | None} (None: it didn't say)
+_ollama_info: dict[str, dict[str, dict]] = {}
+
+
+def ollama_root(base_url: str) -> str:
+    return base_url.rstrip("/").removesuffix("/v1")
 
 
 def installed_ollama_models(base_url: str, ttl: float = 60.0) -> list[str]:
@@ -116,15 +122,28 @@ def installed_ollama_models(base_url: str, ttl: float = 60.0) -> list[str]:
     if cached and now - cached[0] < ttl:
         return cached[1]
     models: list[str] = []
+    info: dict[str, dict] = {}
     try:
         import httpx
 
-        tags = httpx.get(base_url.rstrip("/").removesuffix("/v1") + "/api/tags", timeout=0.5).json()
-        models = [m["name"] for m in tags.get("models", []) if "embed" not in m.get("name", "")]
+        tags = httpx.get(ollama_root(base_url) + "/api/tags", timeout=0.5).json()
+        for m in tags.get("models", []):
+            name, caps = m.get("name", ""), m.get("capabilities")
+            if "embed" in name or (isinstance(caps, list) and caps and "completion" not in caps):
+                continue  # an embedding model can't chat
+            models.append(name)
+            info[name] = {"tools": ("tools" in caps) if isinstance(caps, list) and caps else None,
+                          "thinking": isinstance(caps, list) and "thinking" in caps,
+                          "ctx": (m.get("details") or {}).get("context_length")}
     except Exception:
         pass  # not running: the default model name stays, and a call fails fast
     _ollama_seen[base_url] = (now, models)
+    _ollama_info[ollama_root(base_url)] = info
     return models
+
+
+def ollama_model_info(base_url: str, model: str) -> dict:
+    return _ollama_info.get(ollama_root(base_url), {}).get(model, {})
 
 
 def base_url_for(provider: Provider, env: Mapping[str, str] | None = None) -> str:

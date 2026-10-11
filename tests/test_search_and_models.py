@@ -4,7 +4,7 @@ import httpx
 import openai
 
 from teamloop.models import providers as P
-from teamloop.models.router import Router
+from teamloop.models.router import Reply, Router
 from teamloop.tools import web
 
 WIKI = {"query": {"search": [{"title": "Large language model", "snippet": "a <b>model</b>"}]}}
@@ -151,6 +151,12 @@ async def test_a_resting_cloud_key_still_falls_back_to_local(monkeypatch):
     router = Router(env=env)
     monkeypatch.setattr(router, "_client", lambda provider, key: SimpleNamespace(
         chat=SimpleNamespace(completions=SimpleNamespace(create=create))))
+
+    async def local_call(provider, model, messages, tools, max_tokens):  # local models go through Ollama's own API
+        used.append(model)
+        return Reply(text="ok", tool_calls=[], provider=provider.id, model=model)
+
+    monkeypatch.setattr(router, "_call_ollama", local_call)
     router.state("groq", env["GROQ_API_KEY"]).rest_until = router.clock() + 300  # a real 429 earlier
     await router.chat([{"role": "user", "content": "hi"}])
     assert used == ["local"]

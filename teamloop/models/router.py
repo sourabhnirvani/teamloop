@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
 from teamloop import trace
+from teamloop.models import local
 from teamloop.models import providers as P
 from teamloop.models import textcalls
 
@@ -118,6 +119,7 @@ class Router:
         self.sleep: Callable[[float], Any] = asyncio.sleep
         self.keys: dict[tuple[str, str], KeyState] = {}
         self.dead_models: set[tuple[str, str]] = set()
+        self.text_only: set[tuple[str, str]] = set()  # local models that can't take native tools
         self.last_doctor: list[dict] = []  # the latest model doctor results
         self._clients: dict[tuple[str, str], Any] = {}
 
@@ -204,7 +206,8 @@ class Router:
                     errors.append(f"{provider.name} {model}: broken tool call ({type(e).__name__})")
                     continue
             except Transient as e:
-                st.rest_until = self.clock() + 20
+                if provider.id != "ollama":  # every local model shares one "key": one model's trouble mustn't bench the rest
+                    st.rest_until = self.clock() + 20
                 errors.append(f"{provider.name} {model}: {e}")
                 continue
             if errors:
@@ -238,6 +241,8 @@ class Router:
 
     async def _call(self, provider: P.Provider, key: str, model: str, messages: list[dict],
                     tools: list[dict] | None, max_tokens: int | None) -> Reply:
+        if provider.id == "ollama":
+            return await self._call_ollama(provider, model, messages, tools, max_tokens)
         import openai
 
         kwargs: dict[str, Any] = {"model": model, "messages": messages}
@@ -275,13 +280,68 @@ class Router:
         calls = [ToolCall(c.id or f"call_{i}", c.function.name, _parse_args(c.function.arguments))
                  for i, c in enumerate(msg.tool_calls or [])]
         text = msg.content or ""
-        if not calls and tools and text:  # the model wrote its tool calls as text: run them anyway
-            found, text = textcalls.extract(text, [t["function"]["name"] for t in tools])
-            calls = [ToolCall(f"text_call_{i}", name, args) for i, (name, args) in enumerate(found)]
+        calls, text = _settle(calls, text, tools)
         usage = resp.usage
         return Reply(text=text, tool_calls=calls, provider=provider.id, model=model,
                      tokens_in=getattr(usage, "prompt_tokens", 0) or 0,
                      tokens_out=getattr(usage, "completion_tokens", 0) or 0)
+
+
+    async def _call_ollama(self, provider: P.Provider, model: str, messages: list[dict], tools: list[dict] | None,
+                           max_tokens: int | None) -> Reply:
+        """A local model through Ollama's own API (see models/local.py for why not the OpenAI-style one)."""
+        import httpx
+
+        base = P.base_url_for(provider, self._env)
+        info = P.ollama_model_info(base, model)
+        text_tools = bool(tools) and ((provider.id, model) in self.text_only or info.get("tools") is False)
+        body = local.request(model, messages, tools, max_tokens, info, text_tools, self._env)
+        with trace.span(f"{model} (local)", "llm", model=model) as sp:
+            try:
+                async with httpx.AsyncClient(timeout=local.TIMEOUT) as client:
+                    res = await client.post(P.ollama_root(base) + "/api/chat", json=body)
+            except httpx.HTTPError as e:
+                raise Transient(f"local model didn't answer ({type(e).__name__})") from e
+            if res.status_code != 200:
+                detail = _ollama_error(res)
+                if tools and not text_tools and local.no_tool_support(res.status_code, detail):
+                    self.text_only.add((provider.id, model))  # from now on: tools written into its prompt
+                    return await self._call_ollama(provider, model, messages, tools, max_tokens)
+                if res.status_code == 404:
+                    raise ModelGone()
+                raise Transient(f"local model: {detail[:140]}")
+            data = res.json()
+            msg = data.get("message") or {}
+            text = local.strip_think(msg.get("content") or "")
+            calls = [ToolCall(f"call_{i}", c["function"]["name"], local._args(c["function"].get("arguments")))
+                     for i, c in enumerate(msg.get("tool_calls") or []) if (c.get("function") or {}).get("name")]
+            calls, text = _settle(calls, text, tools)
+            if not text and not calls:
+                raise Transient("empty reply")
+            sp.set("output.value", text or json.dumps([[c.name, c.args] for c in calls]))
+        return Reply(text=text, tool_calls=calls, provider=provider.id, model=model,
+                     tokens_in=data.get("prompt_eval_count") or 0, tokens_out=data.get("eval_count") or 0)
+
+
+def _settle(calls: list[ToolCall], text: str, tools: list[dict] | None) -> tuple[list[ToolCall], str]:
+    """The tool calls a reply really makes: native ones, else ones written as text (JSON or code-style), with
+    arguments a model wrapped one level too deep unwrapped."""
+    if not tools:
+        return calls, text
+    if not calls and text:  # the model wrote its tool calls as text: run them anyway
+        found, text = textcalls.extract(text, [t["function"]["name"] for t in tools])
+        if not found:
+            found, text = textcalls.extract_python(text, tools)
+        calls = [ToolCall(f"text_call_{i}", name, args) for i, (name, args) in enumerate(found)]
+    fixed = textcalls.tidy([(c.name, c.args) for c in calls], tools)
+    return [ToolCall(c.id, name, args) for c, (name, args) in zip(calls, fixed)], text
+
+
+def _ollama_error(res: Any) -> str:
+    try:
+        return str(res.json().get("error") or res.text)
+    except Exception:
+        return res.text or f"HTTP {res.status_code}"
 
 
 def _failed_tool_call(err: Exception) -> str | None:
