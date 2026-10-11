@@ -453,3 +453,6 @@ button.link { background: none; border: none; color: var(--accent); padding: 4px
   .column h2 { display: none; }
   .tabbar small { font-size: 10px; }
 }
+.activity.allowed { color: var(--muted); }
+.activity.allowed .mark { color: var(--ok); }
+.activity.allowed a { color: var(--accent); font-size: 12px; }

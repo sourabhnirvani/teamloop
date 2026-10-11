@@ -44,6 +44,7 @@ class NewMessage(BaseModel):
 
 class Answer(BaseModel):
     ok: bool
+    always: bool = False
 
 
 class KeyText(BaseModel):
@@ -162,8 +163,19 @@ def create_app(crew: Crew | None = None) -> FastAPI:
 
     @app.post("/api/approvals/{approval_id}")
     def answer(approval_id: str, body: Answer) -> dict:
-        if not get_crew().gate.answer(approval_id, body.ok):
+        result = get_crew().gate.answer(approval_id, body.ok, body.always)
+        if not result:
             raise HTTPException(404, "That approval is no longer waiting.")
+        return {"ok": True, "rule": result if isinstance(result, dict) else None}
+
+    @app.get("/api/allowed")
+    def allowed() -> list[dict]:
+        return get_crew().gate.rules()
+
+    @app.delete("/api/allowed/{rule_id}")
+    def forget_allowed(rule_id: str) -> dict:
+        if not get_crew().gate.forget_rule(rule_id):
+            raise HTTPException(404, "No such rule.")
         return {"ok": True}
 
     @app.get("/api/events")

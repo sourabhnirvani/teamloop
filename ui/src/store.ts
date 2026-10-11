@@ -10,7 +10,8 @@ import type { Handoff } from "./CrewRoom";
 export type Item =
   | { kind: "msg"; key: string; ts: number; sender: string; text: string; mkind: string }
   | { kind: "step"; key: string; ts: number; bot: string; tool: string; status: "start" | "done" | "fail"; text?: string }
-  | { kind: "approval"; key: string; ts: number; id: string; bot: string; title: string; details: string; screenshot?: string | null; status?: string }
+  | { kind: "approval"; key: string; ts: number; id: string; bot: string; title: string; details: string; screenshot?: string | null; status?: string; canAlways?: boolean }
+  | { kind: "allowed"; key: string; ts: number; bot: string; title: string }
   | { kind: "shot"; key: string; ts: number; bot: string; url: string };
 
 const now = () => Date.now() / 1000;
@@ -18,7 +19,7 @@ let seq = 0;
 const uid = (p: string) => `${p}${++seq}`;
 
 const msgItem = (m: Message): Item => ({ kind: "msg", key: `m${m.id}`, ts: m.ts, sender: m.sender, text: m.text, mkind: m.kind });
-const cardItem = (e: ApprovalEvent): Item => ({ kind: "approval", key: `a${e.id}`, ts: now(), id: e.id, bot: e.bot, title: e.title, details: e.details, screenshot: e.screenshot });
+const cardItem = (e: ApprovalEvent): Item => ({ kind: "approval", key: `a${e.id}`, ts: now(), id: e.id, bot: e.bot, title: e.title, details: e.details, screenshot: e.screenshot, canAlways: e.can_always });
 const byTime = (a: Item, b: Item) => a.ts - b.ts;
 const FAILED = /^failed\b/i;
 
@@ -213,6 +214,9 @@ export function useCrew(active: string | null) {
         }
         case "screenshot":
           add(chat, { kind: "shot", key: uid("p"), ts: now(), bot: e.bot, url: e.url });
+          break;
+        case "allowed":
+          add(chat, { kind: "allowed", key: uid("w"), ts: now(), bot: e.bot, title: e.title });
           break;
       }
     };

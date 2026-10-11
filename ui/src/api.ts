@@ -11,7 +11,8 @@ export type Usage = { day: string; provider: string; model: string; requests: nu
 export type Routine = { id: string; chat_id: string; text: string; schedule: string; next_run: number };
 export type Phone = { id: string; name: string; paired: number; last_seen: number };
 export type Pairing = { code: string; link: string; expires: number; qr: string };
-export type ApprovalEvent = { type: "approval"; chat_id: string; id: string; bot: string; title: string; details: string; screenshot?: string | null };
+export type ApprovalEvent = { type: "approval"; chat_id: string; id: string; bot: string; title: string; details: string; screenshot?: string | null; can_always?: boolean };
+export type AllowRule = { id: string; title: string; key: string; label: string; bot: string; added: number };
 export type CrewState = { typing: Record<string, string[]>; approvals: ApprovalEvent[]; asleep: boolean; save_tokens: boolean };
 export type TaskStatus = "todo" | "doing" | "blocked" | "done";
 export type Task = { id: number; title: string; status: TaskStatus; bot: string | null; by: string | null; chat_id: string | null;
@@ -24,6 +25,7 @@ export type ServerEvent =
   | { type: "step"; chat_id: string; bot: string; tool: string; status: "start" | "done" | "fail"; text?: string; args?: unknown }
   | ApprovalEvent
   | { type: "approval_done"; chat_id: string; id: string; status: string }
+  | { type: "allowed"; chat_id: string; bot: string; title: string; details: string; rule: string }
   | { type: "screenshot"; chat_id: string; bot: string; url: string }
   | { type: "settings"; chat_id: null } & Settings
   | { type: "task"; chat_id: null; task: Task | { id: number; deleted: true } }
@@ -54,7 +56,10 @@ export const api = {
   messages: (chatId: string) => call<Message[]>(`/api/chats/${chatId}/messages`),
   send: (chatId: string, text: string) => post<Message>(`/api/chats/${chatId}/messages`, { text }),
   stop: (chatId: string) => post<{ stopped: boolean }>(`/api/chats/${chatId}/stop`),
-  answer: (approvalId: string, ok: boolean) => post<{ ok: boolean }>(`/api/approvals/${approvalId}`, { ok }),
+  answer: (approvalId: string, ok: boolean, always = false) =>
+    post<{ ok: boolean; rule: AllowRule | null }>(`/api/approvals/${approvalId}`, { ok, always }),
+  allowed: () => call<AllowRule[]>("/api/allowed"),
+  forgetAllowed: (id: string) => call<{ ok: boolean }>(`/api/allowed/${id}`, { method: "DELETE" }),
   state: () => call<CrewState>("/api/state"),
   keys: () => call<KeyInfo[]>("/api/keys"),
   addKeys: (text: string) => post<{ provider: string; status: string; text: string }[]>("/api/keys", { text }),

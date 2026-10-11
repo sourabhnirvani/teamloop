@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, onLaptop, type Bot, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
+import { api, onLaptop, type AllowRule, type Bot, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
 import { go, href } from "./router";
 import { applyUpdate, runningVersion, updateAvailable } from "./update";
 
 // Settings: a home page of cards (each with a live status line) that open their own page, on laptop and phone.
 
-type Page = "keys" | "models" | "usage" | "routines" | "phone" | "chrome" | "appearance";
+type Page = "keys" | "models" | "usage" | "routines" | "phone" | "chrome" | "allowed" | "appearance";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -27,6 +27,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
   const [usage, setUsage] = useState<Usage[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [phones, setPhones] = useState<Phone[] | null>(null);
+  const [rules, setRules] = useState<AllowRule[]>([]);
   const [note, setNote] = useState("");
 
   const refresh = useCallback(() => {
@@ -35,6 +36,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
     api.settings().then(setSettings).catch(() => {});
     api.usage().then(setUsage).catch(() => {});
     api.routines().then(setRoutines).catch(() => {});
+    api.allowed().then(setRules).catch(() => {});
     if (onLaptop) api.phones().then(setPhones).catch(() => setPhones(null));
   }, []);
   useEffect(refresh, [refresh, page]);
@@ -56,7 +58,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
     }
   }
 
-  if (!page || !(["keys", "models", "usage", "routines", "phone", "chrome", "appearance"] as string[]).includes(page)) {
+  if (!page || !(["keys", "models", "usage", "routines", "phone", "chrome", "allowed", "appearance"] as string[]).includes(page)) {
     const card = (p: Page, icon: string, title: string, status: string) => (
       <button className="set-card" onClick={() => go(href("settings", p))}>
         <span className="set-icon">{icon}</span>
@@ -76,6 +78,8 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         <h2>Devices</h2>
         {card("phone", "📱", "Your phone", onLaptop ? (phones ? `${phones.length} paired` : "Pair a phone with a QR code") : "This phone is paired")}
         {card("chrome", "🌐", "Crew's Chrome", "Sign in to sites once; bots read and draft, you send")}
+        <h2>Safety</h2>
+        {card("allowed", "✅", "Always-allowed actions", rules.length ? `${plural(rules.length, "rule")} · the crew goes ahead without asking` : "None: every risky action asks first")}
         <h2>App</h2>
         {card("appearance", "🎨", "Appearance & updates", `${theme === "dark" ? "Dark" : "Light"} · version ${version}`)}
       </div>
@@ -149,6 +153,22 @@ export function SettingsView({ page, bots, theme, setTheme }: {
                   setNote(`Opening ${s.name} in the crew's Chrome…`);
                   try { setNote((await api.signIn(s.url)).text); } catch (e) { setNote((e as Error).message); }
                 }}>Open sign-in</button>
+              </li>
+            ))}
+          </ul>
+          {note && <div className="note">{note}</div>}
+        </>
+      )}
+      {page === "allowed" && (
+        <>
+          {header("✅ Always-allowed actions")}
+          <p className="lead">“Always allow” on an approval card adds a rule here, and the crew then does that exact action without asking. It's never offered for sending, posting, buying, deleting, replacing files or power. Remove a rule and the card comes back.</p>
+          <ul className="list">
+            {rules.length === 0 && <li><span>None yet.</span></li>}
+            {rules.map((r) => (
+              <li key={r.id}>
+                <span>{r.label}<br /><small>added {new Date(r.added * 1000).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</small></span>
+                <button className="deny" onClick={() => api.forgetAllowed(r.id).then(refresh).catch((e) => setNote(String(e.message)))}>Remove</button>
               </li>
             ))}
           </ul>

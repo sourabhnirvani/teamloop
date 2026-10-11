@@ -84,10 +84,10 @@ const DONE_LABEL: Record<string, string> = {
 
 function Approval({ item, bots, onAnswered }: { item: Extract<Item, { kind: "approval" }>; bots: Record<string, Bot>; onAnswered: (id: string, status: string) => void }) {
   const [sending, setSending] = useState(false);
-  const answer = async (ok: boolean) => {
+  const answer = async (ok: boolean, always = false) => {
     setSending(true); // one press only: a second click can't send a second answer
     try {
-      await api.answer(item.id, ok);
+      await api.answer(item.id, ok, always);
     } catch {
       onAnswered(item.id, "answered"); // it was already answered (on the phone, by typing yes/no, or it expired)
     }
@@ -108,6 +108,10 @@ function Approval({ item, bots, onAnswered }: { item: Extract<Item, { kind: "app
       ) : (
         <div className="approval-btns">
           <button className="primary" disabled={sending} onClick={() => answer(true)}>Approve</button>
+          {item.canAlways && (
+            <button disabled={sending} title="Do this again without asking. You can undo it in Settings → Always-allowed actions."
+                    onClick={() => answer(true, true)}>Always allow</button>
+          )}
           <button className="deny" disabled={sending} onClick={() => answer(false)}>Deny</button>
         </div>
       )}
@@ -246,6 +250,15 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
           lastSender = "";
           if (item.kind === "step") return <Step key={item.key} item={item} bots={bots} />;
           if (item.kind === "shot") return <img key={item.key} className="shot" src={item.url} alt="screenshot" />;
+          if (item.kind === "allowed") {
+            return (
+              <div key={item.key} className="activity allowed">
+                <span className="mark">✓</span>
+                <span><b style={{ color: botColor(item.bot) }}>{bots[item.bot]?.name ?? item.bot}</b> went ahead: {item.title} (you always allow this)</span>
+                <a href="#/settings/allowed">change</a>
+              </div>
+            );
+          }
           return <Approval key={item.key} item={item} bots={bots} onAnswered={onAnswered} />;
         })}
         {typing.length > 0 && (
