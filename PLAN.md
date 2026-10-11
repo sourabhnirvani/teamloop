@@ -132,6 +132,7 @@ Coming next (Phase 2, 11-12 Oct; each lands with tests, the UI follows):
 | `GET /api/jobs` · `GET /api/jobs/{id}` · `POST /api/jobs/{id}/stop` | Desk's background terminal jobs `{id, chat_id, command, state, exit_code, started, ended}` (+ `output`); event `job` |
 | `POST /api/approvals/{id} {ok, always?}` · `GET /api/allowed` · `DELETE /api/allowed/{id}` | "Always allow" rules (never for power, delete, send, buy); a matched card emits `allowed` instead of `approval` |
 | `GET /api/bots` (more fields) · `POST /api/bots` · `PATCH/DELETE /api/bots/{id}` | look `{body, accessory, eyes, colour}`, personality, persona (job & rules), muted, custom, tools; custom bots get a 1:1 chat and join Team |
+| `GET /api/personalities` | `[{id, label, emoji, blurb}]`, 12 of them; a bot's `personality` (one of these ids; `default_personality` for built-ins) sets its "Your manner" prompt line and how it idles in the app. `PATCH {personality: ""}` puts a built-in's own back |
 | `POST /api/routines {chat_id, text, schedule}` | add a routine (400 says why a schedule can't be read) |
 | `POST /api/settings {bot_only: {bot: bool}}` | "only this model, no fallback" per bot |
 | `GET /api/overview` · `GET /api/security` | Settings home status lines; key vault count + blocked key-leak attempts |

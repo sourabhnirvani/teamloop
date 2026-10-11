@@ -252,14 +252,15 @@ function LookBody({ look, mood, fill }: { look: Look; mood: Move; fill: string }
   );
 }
 
-export function Mascot({ id, move = "idle", size = 36, title, look }: { id: string; move?: Move; size?: number; title?: string; look?: Look | null }) {
+// `personality` (a bot people built, or a built-in given another one) changes how it idles; see .pers-* in index.css
+export function Mascot({ id, move = "idle", size = 36, title, look, personality }: { id: string; move?: Move; size?: number; title?: string; look?: Look | null; personality?: string | null }) {
   const uid = useId().replace(/:/g, "");
   const built = look && Object.keys(look).length ? look : null;
   const colour = built?.colour && built.colour !== "rainbow" ? built.colour : botColor(id);
   const [top, bottom] = built ? [lighten(colour), colour] : BODY[id] ?? ["#ffffff", botColor(id)];
   const known = id in BODY ? id : "custom";
   return (
-    <svg className={`mascot move-${move} p-${known}`} width={size} height={size} viewBox="0 0 64 64" role="img" aria-label={title}>
+    <svg className={`mascot move-${move} p-${known}${personality ? ` pers-${personality}` : ""}`} width={size} height={size} viewBox="0 0 64 64" role="img" aria-label={title}>
       {title && <title>{title}</title>}
       <defs>
         {built?.colour === "rainbow" ? (
@@ -301,11 +302,18 @@ export function toolSign(tool: string): string {
   return TOOL_SIGNS.find(([re]) => re.test(tool))?.[1] ?? "🛠️";
 }
 
+// A built-in bot with its own personality keeps its own habits (compass, flicker, hops...); any other gets the
+// personality's idle animation.
+export function ownPersonality(bot?: Bot): string | null {
+  if (!bot?.personality) return null;
+  return bot.custom || bot.personality !== bot.default_personality ? bot.personality : null;
+}
+
 export function Avatar({ bot, move = "idle", size = 36, sign }: { bot?: Bot; move?: Move; size?: number; sign?: string | null }) {
   const id = bot?.id ?? "?";
   return (
     <span className="avatar" style={{ width: size, height: size }} title={bot ? `${bot.name} · ${bot.role}` : ""}>
-      <Mascot id={id} move={move} size={size} title={bot?.name} look={bot?.look} />
+      <Mascot id={id} move={move} size={size} title={bot?.name} look={bot?.look} personality={ownPersonality(bot)} />
       {sign && size >= 26 && <span key={sign} className="sign" style={{ fontSize: Math.max(10, Math.round(size * 0.34)) }} aria-hidden="true">{sign}</span>}
     </span>
   );

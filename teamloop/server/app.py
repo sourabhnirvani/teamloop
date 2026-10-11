@@ -83,6 +83,7 @@ class NewBot(BaseModel):
     role: str = ""
     persona: str = ""
     look: dict = {}
+    personality: str = "cheerful"
 
 
 class BotPatch(BaseModel):
@@ -91,6 +92,7 @@ class BotPatch(BaseModel):
     persona: str | None = None  # "" puts a built-in bot's own job & rules back
     muted: bool | None = None
     look: dict | None = None
+    personality: str | None = None  # "" puts a built-in bot's own personality back
 
 
 class NewRoutine(BaseModel):
@@ -193,8 +195,21 @@ def create_app(crew: Crew | None = None) -> FastAPI:
                         "model": c.model_for(b.id) or "auto", "only": c.only_for(b.id),
                         "custom": b.custom, "muted": b.muted, "persona": b.persona, "look": look,
                         "default_persona": builtin[b.id].persona if b.id in builtin else None,
+                        "personality": b.personality,
+                        "default_personality": builtin[b.id].personality if b.id in builtin else None,
                         "tools": [t.name for t in registry.tools_for_kits(list(b.kits))]})
         return out
+
+    @app.get("/api/personalities")
+    def personalities() -> list[dict]:
+        """The personalities a bot can have: how it talks, and how it moves in the app."""
+        return [{"id": k, "label": p.label, "emoji": p.emoji, "blurb": p.blurb}
+                for k, p in crew_bots.PERSONALITIES.items()]
+
+    def check_personality(key: str) -> str:
+        if key not in crew_bots.PERSONALITIES:
+            raise HTTPException(400, "Pick one of the listed personalities.")
+        return key
 
     async def bots_changed() -> None:
         crew = get_crew()
@@ -214,7 +229,7 @@ def create_app(crew: Crew | None = None) -> FastAPI:
             bot_id, n = f"{crew_bots.slug(name)}-{n}", n + 1
         row = {"id": bot_id, "name": name, "role": body.role.strip()[:40] or "Helper",
                "persona": body.persona.strip()[:2000] or crew_bots.DEFAULT_PERSONA, "look": _look(body.look),
-               "kits": list(crew_bots.CUSTOM_KITS)}
+               "kits": list(crew_bots.CUSTOM_KITS), "personality": check_personality(body.personality)}
         crew.store.set_setting(crew_bots.CUSTOM, [*(crew.store.get_setting(crew_bots.CUSTOM, []) or []), row])
         crew.store.create_chat(name, [bot_id], chat_id=f"dm-{bot_id}")
         team = crew.store.get_chat("team")
@@ -239,6 +254,11 @@ def create_app(crew: Crew | None = None) -> FastAPI:
             mine["muted"] = body.muted
         if body.look is not None:
             mine["look"] = _look(body.look)
+        if body.personality is not None:
+            if body.personality:
+                mine["personality"] = check_personality(body.personality)
+            else:
+                mine.pop("personality", None)
         over[bot_id] = mine
         crew.store.set_setting(crew_bots.OVERRIDES, over)
         if BOTS[bot_id].custom and (body.name or body.role):

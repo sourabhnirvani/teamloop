@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { api, type Bot, type BotLook } from "./api";
+import { useEffect, useState } from "react";
+import { api, type Bot, type BotLook, type Personality } from "./api";
 import { Mascot } from "./Avatar";
 import { ACCESSORIES, BODIES, EYES, PALETTE, randomLook } from "./Look";
 import { Sheet } from "./Sheet";
@@ -39,11 +39,44 @@ export function LookPicker({ look, onChange }: { look: BotLook; onChange: (l: Bo
   );
 }
 
+let personalities: Personality[] | null = null; // the same twelve for the whole session: fetched once
+
+export function usePersonalities(): Personality[] {
+  const [list, setList] = useState<Personality[]>(personalities ?? []);
+  useEffect(() => {
+    if (personalities) return;
+    api.personalities().then((l) => { personalities = l; setList(l); }).catch(() => {});
+  }, []);
+  return list;
+}
+
+// How the bot talks and moves: one tap picks it, and the line under the chips says what it means.
+export function PersonalityPicker({ value, onChange, busy }: { value: string; onChange: (id: string) => void; busy?: boolean }) {
+  const list = usePersonalities();
+  const now = list.find((p) => p.id === value);
+  return (
+    <div className="pick-row">
+      <h4>Personality</h4>
+      <div className="pers-grid" role="radiogroup" aria-label="Personality">
+        {list.map((p) => (
+          <button key={p.id} role="radio" aria-checked={p.id === value} className={p.id === value ? "on" : ""} disabled={busy}
+                  title={p.blurb} onClick={() => onChange(p.id)}>
+            <span aria-hidden="true">{p.emoji}</span> {p.label}
+          </button>
+        ))}
+      </div>
+      {now && <small className="pers-blurb">{now.emoji} {now.label}: {now.blurb.toLowerCase()}. It talks this way, and moves this way here.</small>}
+    </div>
+  );
+}
+
 export function NewBotSheet({ onClose, onMade }: { onClose: () => void; onMade: (bot: Bot) => void }) {
   const [look, setLook] = useState<BotLook>(() => randomLook());
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [persona, setPersona] = useState("");
+  const [personality, setPersonality] = useState("cheerful");
+  const kinds = usePersonalities();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [bounce, setBounce] = useState(0);
@@ -54,13 +87,17 @@ export function NewBotSheet({ onClose, onMade }: { onClose: () => void; onMade: 
     <Sheet title="Build a bot" onClose={onClose} wide>
       <div className="builder">
         <div className="builder-preview">
-          <Mascot key={bounce} id="preview" size={150} move={bounce ? "cheer" : "idle"} look={look} />
+          <Mascot key={bounce} id="preview" size={150} move={bounce ? "cheer" : "idle"} look={look} personality={personality} />
           <b>{name || "Your bot"}</b>
           <small>{role || "its job"}</small>
-          <button onClick={() => change(randomLook())}>🎲 Surprise me</button>
+          <button onClick={() => {
+            change(randomLook());
+            if (kinds.length) setPersonality(kinds[Math.floor(Math.random() * kinds.length)].id);
+          }}>🎲 Surprise me</button>
         </div>
         <div className="builder-form">
           <LookPicker look={look} onChange={change} />
+          <PersonalityPicker value={personality} onChange={(p) => { setPersonality(p); setBounce(0); }} />
           <div className="two">
             <label className="field">Name<input value={name} maxLength={24} onChange={(e) => setName(e.target.value)} placeholder="e.g. Blog Pulse" /></label>
             <label className="field">Role<input value={role} maxLength={40} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Content" /></label>
@@ -77,7 +114,7 @@ export function NewBotSheet({ onClose, onMade }: { onClose: () => void; onMade: 
               setBusy(true);
               setError("");
               try {
-                onMade(await api.createBot({ name: name.trim(), role: role.trim(), persona: persona.trim(), look }));
+                onMade(await api.createBot({ name: name.trim(), role: role.trim(), persona: persona.trim(), look, personality }));
               } catch (e) {
                 setError((e as Error).message);
                 setBusy(false);

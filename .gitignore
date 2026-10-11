@@ -10,3 +10,4 @@ workspace/
 
 .mcp.json.*.bak
 .claude/settings.local.json
+phone-hub/.wrangler/

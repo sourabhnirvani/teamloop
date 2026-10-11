@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Bot, type BotLook, type Chat, type Routine } from "./api";
 import { Avatar, colorOf, type Move } from "./Avatar";
-import { LookPicker } from "./BotBuilder";
+import { LookPicker, PersonalityPicker } from "./BotBuilder";
 import { Sheet } from "./Sheet";
 
 export const RULES: Record<string, { alone: string[]; asks: string[]; never: string[] }> = {
@@ -30,6 +30,7 @@ export function BotProfile({ bot, bots, chats, typing, look, onChat, onBot, onCl
   const [task, setTask] = useState("");
   const [when, setWhen] = useState("");
   const [note, setNote] = useState("");
+  const [noteAt, setNoteAt] = useState<"top" | "personality">("top"); // shown next to what was just changed
   const [busy, setBusy] = useState(false);
   const loadRoutines = () => api.routines().then(setRoutines).catch(() => {});
   useEffect(() => { loadRoutines(); }, []);
@@ -40,9 +41,10 @@ export function BotProfile({ bot, bots, chats, typing, look, onChat, onBot, onCl
   const dm = chats.find((c) => c.members.length === 1 && c.members[0] === bot.id);
   const mine = routines.filter((r) => r.chat_id === dm?.id);
   const edited = persona.trim() !== (bot.persona ?? "").trim();
-  const act = async (work: () => Promise<unknown>, done: string) => {
+  const act = async (work: () => Promise<unknown>, done: string, at: "top" | "personality" = "top") => {
     setBusy(true);
     setNote("");
+    setNoteAt(at);
     try { await work(); setNote(done); } catch (e) { setNote((e as Error).message); } finally { setBusy(false); }
   };
   const shown = editLook ? { ...bot, look: editLook } : bot;
@@ -51,7 +53,7 @@ export function BotProfile({ bot, bots, chats, typing, look, onChat, onBot, onCl
     <Sheet title={bot.name} onClose={onClose} className="profile" wide={!!editLook}>
       <div style={{ "--bot": colorOf(bot) } as React.CSSProperties}>
         <div className="profile-hero">
-          <Avatar bot={shown} {...(look(bot.id).sign ? look(bot.id) : { move: "cheer" as Move, sign: null })} size={120} />
+          <Avatar bot={shown} {...(look(bot.id).sign ? look(bot.id) : { move: "idle" as Move, sign: null })} size={120} />
           <div>
             <h2>{bot.name}</h2>
             <div className="role">{bot.role}{bot.custom ? " · built by you" : ""}</div>
@@ -81,7 +83,18 @@ export function BotProfile({ bot, bots, chats, typing, look, onChat, onBot, onCl
             </div>
           </div>
         )}
-        {note && <div className="note">{note}</div>}
+        {note && noteAt === "top" && <div className="note">{note}</div>}
+
+        <section className="profile-sec">
+          <PersonalityPicker value={bot.personality ?? "cheerful"} busy={busy}
+            onChange={(p) => p !== bot.personality && act(() => api.patchBot(bot.id, { personality: p }), "New personality: it talks this way from its next message.", "personality")} />
+          {!bot.custom && bot.default_personality && bot.personality !== bot.default_personality && (
+            <div className="row-btns">
+              <button disabled={busy} onClick={() => act(() => api.patchBot(bot.id, { personality: "" }), `Back to ${bot.name}'s own personality.`, "personality")}>Reset personality</button>
+            </div>
+          )}
+          {note && noteAt === "personality" && <div className="note">{note}</div>}
+        </section>
 
         <section className="profile-sec">
           <h4>Job & rules</h4>

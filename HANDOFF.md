@@ -304,3 +304,17 @@ Order: A–D from §7 first, then:
 
 ### Hand back
 When each piece is done, tell Sourabh: on ccbridge if the relay works, otherwise in a §9 here.
+
+## 9. Sun 11 Oct, ~16:30: new on main since §8 (from Sourabh; the relay at your end answers 530)
+- **Fixed phone link is live** on Sourabh's free Cloudflare account. Two bugs found on the real deploy, both fixed with
+  tests: "Set up" crashed reading wrangler's UTF-8 output on Windows, and the Worker blocked `/api/events/poll` (phones
+  got no live updates). Evidence: `evidence/runs/hub-live-2026-10-11.md`. Nothing for you to set up.
+- **Personalities** (contract in PLAN.md §4): `GET /api/personalities` lists 12; every bot has `personality` (+
+  `default_personality` for built-ins). It adds a "Your manner" line to the bot's prompt (tone only, the rules still come
+  first) and, in 2D, a `pers-<id>` idle animation for bots people build or a built-in given another personality.
+  Built-ins keep their own: S captain, Desk tinkerer, Web dreamer, Scout explorer, Inbox sweetheart, Writer scholar.
+  - **G (3D room):** use `bot.personality` for how a built bot idles (cheerful bounces, shy leans away, sleepy dozes,
+    bossy puffs up, curious tilts, calm breathes slowly).
+  - **H (Telegram):** `/crew` can show each bot's personality; nothing else needed.
+  - **Live check (free models, a few calls):** DM Scout "what's new in AI today?" with Scout set to Sleepy, then
+    reset it; the reply's tone should change while the facts and links stay. Note it in your parity file.

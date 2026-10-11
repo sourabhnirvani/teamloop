@@ -111,6 +111,31 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 @keyframes breathe { 50% { transform: scale(1.035, .97); } }
 @keyframes float { 50% { transform: translateY(-2.5px) rotate(-3deg); } }
 @keyframes peek { 0%, 70%, 100% { transform: none; } 78% { transform: translateY(-3px) rotate(6deg); } 86% { transform: translateY(0) rotate(-4deg); } }
+/* personalities: how a bot people built (or a built-in given another personality) idles */
+.pers-captain.move-idle { animation: proud 4s ease-in-out infinite; }
+.pers-tinkerer.move-idle { animation: twitch 4.6s ease-in-out infinite; }
+.pers-dreamer.move-idle { animation: float 4.2s ease-in-out infinite; }
+.pers-explorer.move-idle { animation: peek 5.2s ease-in-out infinite; }
+.pers-sweetheart.move-idle { animation: waddle 2.6s ease-in-out infinite; }
+.pers-scholar.move-idle { animation: nod 5s ease-in-out infinite; }
+.pers-cheerful.move-idle { animation: bounce 1.4s ease-in-out infinite; }
+.pers-calm.move-idle { animation: breathe 5.5s ease-in-out infinite; }
+.pers-curious.move-idle { animation: tilt 4.4s ease-in-out infinite; }
+.pers-shy.move-idle { animation: shy 5s ease-in-out infinite; }
+.pers-bossy.move-idle { animation: puff 2.4s ease-in-out infinite; }
+.pers-sleepy.move-idle { animation: doze 4.8s ease-in-out infinite; }
+.pers-sleepy.move-idle .eyes { animation: droop 4.8s ease-in-out infinite; }
+.pers-cheerful { --blink: 3s; } .pers-calm { --blink: 6s; } .pers-curious { --blink: 2.6s; } .pers-shy { --blink: 2.2s; }
+@keyframes proud { 50% { transform: translateY(-1.5px) scale(1.03); } }
+@keyframes twitch { 0%, 78%, 100% { transform: none; } 82% { transform: rotate(-5deg); } 86% { transform: rotate(4deg); } 90% { transform: rotate(-2deg); } }
+@keyframes waddle { 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+@keyframes nod { 0%, 60%, 100% { transform: none; } 68% { transform: rotate(4deg) translateY(1px); } 76% { transform: none; } 84% { transform: rotate(3deg) translateY(1px); } }
+@keyframes bounce { 50% { transform: translateY(-4px) scale(.98, 1.03); } }
+@keyframes tilt { 0%, 15%, 70%, 100% { transform: none; } 25%, 60% { transform: rotate(-10deg); } }
+@keyframes shy { 0%, 25%, 85%, 100% { transform: none; } 35%, 75% { transform: translateX(-2px) rotate(-7deg) scale(.95); } }
+@keyframes puff { 50% { transform: scale(1.07) translateY(-1px); } }
+@keyframes doze { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(7deg) translateY(1.5px); } }
+@keyframes droop { 0%, 100% { transform: scaleY(.6); } 40%, 60% { transform: scaleY(.15); } }
 .move-idle .quirk.bulb, .move-listen .quirk.bulb { animation: glow 2.4s ease-in-out infinite; }
 .move-idle .quirk.screen { animation: flicker 7s steps(1) infinite; }
 .move-idle .quirk.monocle { animation: zoom 3.4s ease-in-out infinite; }
@@ -512,3 +537,9 @@ button.link { background: none; border: none; color: var(--accent); padding: 4px
 /* a phone showing the "desktop site": phone layout, scaled up to fill the screen (see phoneMode.ts) */
 html.phone-forced #root { zoom: var(--fz); width: calc(100vw / var(--fz)); height: calc(100dvh / var(--fz)); }
 html.phone-forced, html.phone-forced body { overflow: hidden; }
+
+/* personality picker (Build a bot, profile) */
+.pers-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.pers-grid button { padding: 6px 11px; border-radius: 999px; font-size: 13px; background: var(--soft); border: 1px solid transparent; }
+.pers-grid button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--soft2); color: var(--text); font-weight: 600; }
+.pers-blurb { display: block; margin-top: 6px; color: var(--muted); }
