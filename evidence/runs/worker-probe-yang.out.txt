@@ -1,0 +1,9 @@
+/api/events        | the SSE stream (blocked on purpose)      | stopped by the Worker (404)
+/api/%65vents      | same stream, one letter percent-encoded  | PASSED ON to the laptop as /api/%65vents
+//x/api/events     | same stream behind a double slash        | PASSED ON to the laptop as //x/api/events
+/api/events/       | trailing slash                           | PASSED ON to the laptop as /api/events/
+/console           | laptop console                           | stopped by the Worker (404)
+/c%6Fnsole         | console, percent-encoded                 | PASSED ON to the laptop as /c%6Fnsole
+//x/console        | console behind a double slash            | PASSED ON to the laptop as //x/console
+/docs/../console   | dot segments                             | stopped by the Worker (404)
+/__laptop          | the laptop socket without the secret     | stopped by the Worker (404)
