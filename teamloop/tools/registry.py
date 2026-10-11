@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
@@ -100,6 +101,26 @@ def _say_how_the_card_ended(result: ToolResult, answer: str) -> ToolResult:
     return result
 
 
+BLOCKED = "security_blocked"   # store setting: the last calls refused for carrying a key (no key text)
+KEEP_BLOCKED = 50
+
+
+def _block_key_leak(name: str, args: dict, ctx: Any) -> ToolResult | None:
+    """A tool call whose input holds a known key never runs; it is logged without the key."""
+    from teamloop.keys.redact import redact_obj
+
+    if redact_obj(args) == args:
+        return None
+    store = getattr(getattr(ctx, "crew", None), "store", None)
+    if store is not None:
+        entry = {"ts": time.time(), "bot": getattr(ctx, "bot_id", ""), "tool": name,
+                 "what": "an API key or token in its input"}
+        store.set_setting(BLOCKED, [*(store.get_setting(BLOCKED, []) or []), entry][-KEEP_BLOCKED:])
+    log.warning("blocked %s: its input carried a key", name)
+    return ToolResult(False, f"Refused: the {name} call carried an API key, and keys never leave TeamLoop. "
+                             "Do it without the key.")
+
+
 async def run(name: str, args: dict, ctx: Any) -> ToolResult:
     found = REGISTRY.get(name)
     if found is None:
@@ -110,7 +131,7 @@ async def run(name: str, args: dict, ctx: Any) -> ToolResult:
     with trace.span(name, "tool", tool=name, bot=getattr(ctx, "bot_id", ""), chat=getattr(ctx, "chat_id", "")) as sp:
         sp.set("input.value", args or {})
         try:
-            result = await found.handler(args or {}, ctx)
+            result = _block_key_leak(name, args or {}, ctx) or await found.handler(args or {}, ctx)
         except Exception as e:  # a broken tool must not kill the bot's turn
             if type(e).__name__ == "Stopped":
                 raise

@@ -58,5 +58,6 @@ def test_turns_and_tools_are_visible_spans_with_inputs_and_outputs(tmp_path):
     assert turn["parent"] == flow["id"] and tool["parent"] == turn["id"]
     assert flow["internal"] is False and turn["internal"] is False and tool["internal"] is False
     assert flow["input"] == "note that I like tea" and turn["output"] == "Noted."
-    assert "likes tea" in tool["input"] and tool["output"].startswith("OK: ")
+    # the fact carries a key, so the call is refused (Build C) but still shows as a span
+    assert "likes tea" in tool["input"] and tool["output"].startswith("FAILED: Refused")
     assert "gsk_" not in json.dumps(spans)  # keys are hidden before they reach neatlogs

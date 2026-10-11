@@ -24,6 +24,11 @@ def known_secrets() -> set[str]:
     return values | _extra
 
 
+def scrubbed_env() -> dict[str, str]:
+    """This process's environment minus every key-like name, for programs the bots start."""
+    return {k: v for k, v in os.environ.items() if not _SECRET_NAME.search(k.upper())}
+
+
 def redact(text: str) -> str:
     if not text:
         return text

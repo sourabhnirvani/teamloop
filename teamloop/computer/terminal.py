@@ -22,7 +22,7 @@ from pathlib import Path
 
 from teamloop import config
 from teamloop.computer import risk
-from teamloop.keys.redact import redact
+from teamloop.keys.redact import redact, scrubbed_env
 from teamloop.tools.registry import ToolResult, tool
 
 TIMEOUT = 60
@@ -117,7 +117,7 @@ async def run(command: str, cwd: Path, timeout: float = TIMEOUT) -> tuple[int | 
     """(exit code or None on timeout, stdout, stderr, the folder the command ended in)."""
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
         proc = subprocess.Popen(_argv(command, cwd), stdin=subprocess.DEVNULL, stdout=out, stderr=err,
-                                cwd=cwd, creationflags=_NO_WINDOW)
+                                cwd=cwd, env=scrubbed_env(), creationflags=_NO_WINDOW)
         deadline = time.monotonic() + timeout
         timed_out = False
         try:
@@ -194,7 +194,7 @@ def start_job(command: str, cwd: Path, chat_id: str) -> ToolResult:
     log = folder / f"{job_id}.log"
     with open(log, "wb") as fh:
         proc = subprocess.Popen(_argv(command, cwd), stdin=subprocess.DEVNULL, stdout=fh, stderr=subprocess.STDOUT,
-                                cwd=cwd, creationflags=_NO_WINDOW | _NEW_GROUP)
+                                cwd=cwd, env=scrubbed_env(), creationflags=_NO_WINDOW | _NEW_GROUP)
     _jobs[job_id] = Job(job_id, chat_id, command, proc, log, time.time())
     return ToolResult(True, f"Started {job_id} in the background in {cwd}.", {"job": job_id, "pid": proc.pid})
 

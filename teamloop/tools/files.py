@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from teamloop import config
+from teamloop.keys import vault
 from teamloop.tools.registry import ToolResult, tool
 
 READ_CHARS = 8000
@@ -69,7 +70,19 @@ def resolve(raw: str) -> Path:
     path = path.resolve()
     if not any(path == r.resolve() or path.is_relative_to(r.resolve()) for r in folders.values()):
         raise ValueError(f"{raw} is outside Desktop, Documents, Downloads and the workspace.")
+    if _holds_secrets(path):
+        raise ValueError(f"{path.name} holds keys or app data, so bots can't open it.")
     return path
+
+
+def _holds_secrets(path: Path) -> bool:
+    """The key vault, .env files (not .env.example) and databases."""
+    name = path.name.lower()
+    if path == vault.path().resolve() or name == "keys.vault":
+        return True
+    if name == ".env" or (name.startswith(".env.") and name != ".env.example"):
+        return True
+    return name.endswith((".db", ".db-wal", ".db-shm", ".sqlite"))
 
 
 @tool("write_file", "Save text to a file. Paths can start with Desktop, Documents, Downloads or workspace.",

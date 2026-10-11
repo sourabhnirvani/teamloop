@@ -354,6 +354,16 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
+    @app.get("/api/security")
+    def security() -> dict:
+        """Names only: how many keys the vault locks, and the tool calls refused for carrying one."""
+        try:
+            names = sorted(vault.load())
+        except (OSError, ValueError):
+            names = []
+        return {"locked": len(names), "names": names,
+                "blocked": get_crew().store.get_setting(registry.BLOCKED, []) or []}
+
     @app.get("/api/keys")
     def keys() -> list[dict]:
         return [{"id": p.id, "name": p.name, "needs_key": p.needs_key,

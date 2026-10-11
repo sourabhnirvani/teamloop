@@ -23,6 +23,7 @@ export type CrewState = { typing: Record<string, string[]>; approvals: ApprovalE
 export type TaskStatus = "todo" | "doing" | "blocked" | "done";
 export type Task = { id: number; title: string; status: TaskStatus; bot: string | null; by: string | null; chat_id: string | null;
   note: string; source: "manual" | "delegate"; created: number; updated: number };
+export type SecurityInfo = { locked: number; names: string[]; blocked: { ts: number; bot: string; tool: string; what: string }[] };
 export type Job = { id: string; chat_id: string; command: string; state: "running" | "done" | "failed" | "stopped"; exit_code: number | null; started: number; output?: string };
 
 export type ServerEvent =
@@ -57,6 +58,7 @@ const post = <T,>(path: string, body?: unknown) =>
   call<T>(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) });
 
 export const api = {
+  security: () => call<SecurityInfo>("/api/security"),
   bots: () => call<Bot[]>("/api/bots"),
   chats: () => call<Chat[]>("/api/chats"),
   newChat: (title: string, members: string[]) => post<Chat>("/api/chats", { title, members }),
