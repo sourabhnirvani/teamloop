@@ -18,6 +18,7 @@ export type ServerEvent =
   | { type: "approval"; chat_id: string; id: string; bot: string; title: string; details: string; screenshot?: string | null }
   | { type: "approval_done"; chat_id: string; id: string; status: string }
   | { type: "screenshot"; chat_id: string; bot: string; url: string }
+  | { type: "usage"; chat_id: null; provider: string; model: string; tokens_in: number; tokens_out: number }
   | { type: "error"; chat_id: string; text: string };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {

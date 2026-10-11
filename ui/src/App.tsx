@@ -40,7 +40,7 @@ export default function App() {
     loadChats().catch(() => setLive(false));
   }, [loadChats]);
 
-  // Today's model calls: refreshed on load and after each bot reply, so free-tier use stays visible.
+  // Today's model calls: loaded once, then counted live from usage events, so free-tier use stays visible.
   const [usage, setUsage] = useState({ req: 0, tok: 0 });
   const loadUsage = useCallback(() => {
     api.usage().then((rows) => setUsage(rows.reduce(
@@ -62,6 +62,10 @@ export default function App() {
   useEffect(() => {
     const add = (chat: string, item: Item) => setItems((all) => ({ ...all, [chat]: [...(all[chat] ?? []), item] }));
     const onEvent = (e: ServerEvent) => {
+      if (e.type === "usage") {
+        setUsage((u) => ({ req: u.req + 1, tok: u.tok + e.tokens_in + e.tokens_out }));
+        return;
+      }
       const chat = e.chat_id;
       switch (e.type) {
         case "message": {
@@ -73,7 +77,6 @@ export default function App() {
           if (e.message.sender !== "user") {
             const failed = /^(failed:|not mine:)/i.test(e.message.text);
             move(e.message.sender, failed ? "oops" : e.message.kind === "handoff" ? "talk" : "cheer");
-            loadUsage();
           }
           if (chat !== activeRef.current) setUnread((u) => ({ ...u, [chat]: (u[chat] ?? 0) + 1 }));
           break;
@@ -121,7 +124,7 @@ export default function App() {
       }
     };
     return listen(onEvent, setLive);
-  }, [move, loadUsage]);
+  }, [move]);
 
   const chat = chats.find((c) => c.id === active);
   const dms = chats.filter((c) => c.members.length === 1);
