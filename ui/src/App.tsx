@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
-import { Avatar, botColor } from "./Avatar";
+import { Avatar, botColor, SIGNS, toolSign, type Move } from "./Avatar";
 import { BotProfile } from "./BotProfile";
 import { ChatView } from "./ChatView";
 import { CrewView } from "./CrewView";
@@ -47,7 +47,9 @@ export default function App() {
   const narrow = useNarrow();
   const chatId = route.tab === "chats" ? route.id ?? (narrow ? null : DEFAULT_CHAT) : null;
   const crew = useCrew(chatId);
-  const { bots, chats, items, typing, unread, moves, handoff, live, ready } = crew;
+  const { bots, chats, items, typing, unread, moves, handoff, tools, asleep, live, ready } = crew;
+  const [listening, setListening] = useState<string[]>([]);
+  const quiet = useRef<number | undefined>(undefined);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [theme, setTheme] = useState(() => stored("tl-theme", "dark"));
   const [updateReady, setUpdateReady] = useState(false);
@@ -93,6 +95,29 @@ export default function App() {
     .filter((i) => i.kind === "approval" && !i.status).map((i) => (i as { bot: string }).bot))], [items]);
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
 
+  // You typing in a chat: the bot you're talking to perks up and listens (2.5 s after your last key it relaxes).
+  const onTyping = useCallback((c: Chat, text: string) => {
+    window.clearTimeout(quiet.current);
+    if (!text.trim()) { setListening([]); return; }
+    const named = [...text.matchAll(/@(\w+)|^\s*(\w+)[,:]/g)].map((m) => (m[1] || m[2]).toLowerCase())
+      .map((n) => Object.values(bots).find((b) => b.id === n || b.name.toLowerCase() === n)?.id)
+      .filter((id): id is string => !!id && c.members.includes(id));
+    setListening(named.length ? named : c.members.length === 1 ? c.members : c.members.includes("s") ? ["s"] : [c.members[0]]);
+    quiet.current = window.setTimeout(() => setListening([]), 2500);
+  }, [bots]);
+  useEffect(() => () => window.clearTimeout(quiet.current), []);
+
+  // what each bot looks like right now: its move, and the sign over its head
+  const look = useCallback((id: string): { move: Move; sign: string | null } => {
+    const m = moves[id] ?? "idle";
+    if (asking.includes(id)) return { move: "ask", sign: SIGNS.ask! };
+    if (tools[id]) return { move: m === "idle" ? "think" : m, sign: toolSign(tools[id]) };
+    if (m !== "idle") return { move: m, sign: SIGNS[m] ?? null };
+    if (listening.includes(id)) return { move: "listen", sign: SIGNS.listen! };
+    if (asleep) return { move: "sleep", sign: SIGNS.sleep! };
+    return { move: "idle", sign: null };
+  }, [moves, asking, tools, listening, asleep]);
+
   const preview = (c: Chat) => {
     const busy = typing[c.id] ?? [];
     if (busy.length) return { text: `${busy.map((id) => bots[id]?.name ?? id).join(", ")} working…`, busy: true };
@@ -108,7 +133,7 @@ export default function App() {
     return (
       <button key={c.id} className={`chat-row ${c.id === chatId ? "on" : ""}`} onClick={() => openChat(c.id)}>
         {c.members.length === 1 ? (
-          <Avatar bot={first} move={moves[first?.id ?? ""]} size={40} />
+          <Avatar bot={first} {...look(first?.id ?? "")} size={40} />
         ) : (
           <span className="group-badge">{c.members.slice(0, 4).map((m) => <Avatar key={m} bot={bots[m]} size={21} />)}</span>
         )}
@@ -127,7 +152,7 @@ export default function App() {
       {lead && leadChat && (
         <button className={`hero ${leadChat.id === chatId ? "on" : ""}`} style={{ "--bot": botColor("s") } as React.CSSProperties}
                 onClick={() => openChat(leadChat.id)}>
-          <Avatar bot={lead} move={moves.s} size={56} />
+          <Avatar bot={lead} {...look("s")} size={56} />
           <span className="row-text">
             <span className="row-top"><b>{lead.name} <em>LEAD</em></b><time>{ago(leadChat.last?.ts)}</time></span>
             <small className={preview(leadChat).busy ? "busy" : ""}>{preview(leadChat).text || "Plans jobs and hands steps to the crew"}</small>
@@ -145,13 +170,13 @@ export default function App() {
 
   let main: React.ReactNode;
   if (route.tab === "crew") {
-    main = <CrewView bots={crewList} moves={moves} working={working} asking={asking} handoff={handoff} onBot={(id) => openOverlay("bot", id)} />;
+    main = <CrewView bots={crewList} moves={moves} look={look} working={working} asking={asking} handoff={handoff} onBot={(id) => openOverlay("bot", id)} />;
   } else if (route.tab === "settings") {
     main = <SettingsView page={route.id} bots={bots} theme={theme} setTheme={setTheme} />;
   } else if (chat) {
     main = (
-      <ChatView key={chat.id} chat={chat} bots={bots} items={items[chat.id] ?? []} typing={typing[chat.id] ?? []} moves={moves}
-                draft={drafts[chat.id] ?? ""} setDraft={(t) => setDrafts((d) => ({ ...d, [chat.id]: t }))}
+      <ChatView key={chat.id} chat={chat} bots={bots} items={items[chat.id] ?? []} typing={typing[chat.id] ?? []} moves={moves} look={look}
+                draft={drafts[chat.id] ?? ""} setDraft={(t) => { setDrafts((d) => ({ ...d, [chat.id]: t })); onTyping(chat, t); }}
                 onBack={() => go(href("chats"))} onBot={(id) => openOverlay("bot", id)}
                 onAnswered={(id, status) => crew.markAnswered(chat.id, id, status)} />
     );
@@ -205,7 +230,7 @@ export default function App() {
       )}
 
       {profileBot && (
-        <BotProfile bot={profileBot} bots={bots} chats={chats} typing={typing} onClose={closeOverlay}
+        <BotProfile bot={profileBot} bots={bots} chats={chats} typing={typing} look={look} onClose={closeOverlay}
                     onBot={(id) => go(withOverlay(route, "bot", id), true)}
                     onChat={(id) => { pushed.current = false; go(href("chats", id), true); }} />
       )}

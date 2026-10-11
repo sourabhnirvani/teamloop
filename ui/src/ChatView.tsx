@@ -10,6 +10,7 @@ type Props = {
   items: Item[];
   typing: string[];
   moves: Record<string, Move>;
+  look: (botId: string) => { move: Move; sign: string | null };
   draft: string;
   setDraft: (text: string) => void;
   onBack: () => void;
@@ -114,7 +115,7 @@ function Approval({ item, bots, onAnswered }: { item: Extract<Item, { kind: "app
   );
 }
 
-export function ChatView({ chat, bots, items, typing, moves, draft, setDraft, onBack, onBot, onAnswered }: Props) {
+export function ChatView({ chat, bots, items, typing, moves, look, draft, setDraft, onBack, onBot, onAnswered }: Props) {
   const [error, setError] = useState("");
   const [behind, setBehind] = useState(false);
   const log = useRef<HTMLDivElement>(null);
@@ -131,8 +132,9 @@ export function ChatView({ chat, bots, items, typing, moves, draft, setDraft, on
   };
   useLayoutEffect(() => toEnd(false), [chat.id]);
   useEffect(() => {
-    // follow new messages only while reading the newest; otherwise show the "New messages" pill
-    if (atEnd.current) toEnd(true);
+    // follow new messages only while reading the newest (instantly: a smooth scroll still moving when the next
+    // message lands would look like "scrolled up"); otherwise show the "New messages" pill
+    if (atEnd.current) toEnd(false);
     else setBehind(true);
   }, [count]);
 
@@ -169,7 +171,7 @@ export function ChatView({ chat, bots, items, typing, moves, draft, setDraft, on
         <div className="crew">
           {members.map((b) => (
             <button key={b.id} className="crew-btn" title={`${b.name}: profile`} aria-label={`${b.name} profile`} onClick={() => onBot(b.id)}>
-              <Avatar bot={b} move={moves[b.id]} size={30} />
+              <Avatar bot={b} {...look(b.id)} size={34} />
             </button>
           ))}
         </div>
@@ -248,7 +250,7 @@ export function ChatView({ chat, bots, items, typing, moves, draft, setDraft, on
         })}
         {typing.length > 0 && (
           <div className="typing">
-            <span className="typing-avatars">{typing.map((id) => <Avatar key={id} bot={bots[id]} move="think" size={24} />)}</span>
+            <span className="typing-avatars">{typing.map((id) => <Avatar key={id} bot={bots[id]} {...look(id)} size={30} />)}</span>
             <span>{typing.map((id) => bots[id]?.name ?? id).join(", ")} {typing.length > 1 ? "are" : "is"} working</span>
             <span className="dots"><i /><i /><i /></span>
           </div>

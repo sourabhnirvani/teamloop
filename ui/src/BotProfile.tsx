@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Bot, type Chat, type Routine } from "./api";
-import { Avatar, botColor } from "./Avatar";
+import { Avatar, botColor, type Move } from "./Avatar";
 import { Sheet } from "./Sheet";
 
 export const RULES: Record<string, { alone: string[]; asks: string[]; never: string[] }> = {
@@ -18,8 +18,9 @@ export const RULES: Record<string, { alone: string[]; asks: string[]; never: str
     asks: ["replace an existing file"], never: ["write outside those folders"] },
 };
 
-export function BotProfile({ bot, bots, chats, typing, onChat, onBot, onClose }: {
+export function BotProfile({ bot, bots, chats, typing, look, onChat, onBot, onClose }: {
   bot: Bot; bots: Record<string, Bot>; chats: Chat[]; typing: Record<string, string[]>;
+  look: (id: string) => { move: Move; sign: string | null };
   onChat: (chatId: string) => void; onBot: (botId: string) => void; onClose: () => void;
 }) {
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -32,7 +33,7 @@ export function BotProfile({ bot, bots, chats, typing, onChat, onBot, onClose }:
     <Sheet title={bot.name} onClose={onClose} className="profile">
       <div style={{ "--bot": botColor(bot.id) } as React.CSSProperties}>
         <div className="profile-hero">
-          <Avatar bot={bot} move={busyIn.length ? "think" : "cheer"} size={112} />
+          <Avatar bot={bot} {...(look(bot.id).sign ? look(bot.id) : { move: "cheer" as Move, sign: null })} size={120} />
           <div>
             <h2>{bot.name}</h2>
             <div className="role">{bot.role}</div>

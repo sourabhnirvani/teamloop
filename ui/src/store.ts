@@ -34,6 +34,8 @@ export function useCrew(active: string | null) {
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [moves, setMoves] = useState<Record<string, Move>>({});
   const [handoff, setHandoff] = useState<Handoff | null>(null);
+  const [tools, setTools] = useState<Record<string, string>>({}); // bot -> the tool it's using right now
+  const [asleep, setAsleep] = useState(false);
   const [live, setLive] = useState(false);
   const [ready, setReady] = useState(false);
   const activeRef = useRef(active);
@@ -68,6 +70,8 @@ export function useCrew(active: string | null) {
     try {
       const [state] = await Promise.all([api.state(), loadBots(), loadChats()]);
       setTyping(state.typing);
+      setAsleep(state.asleep);
+      setTools({});
       setMoves((all) => {
         const next: Record<string, Move> = {};
         for (const [id, m] of Object.entries(all)) next[id] = m === "think" || m === "ask" ? "idle" : m;
@@ -122,6 +126,9 @@ export function useCrew(active: string | null) {
           });
           setChats((cs) => cs.map((c) => (c.id === chat ? { ...c, last: { sender: e.message.sender, text: e.message.text, kind: e.message.kind, ts: e.message.ts } } : c)));
           const m = e.message;
+          // the sleep / wake replies (crew/commands.py) switch the 💤 sign
+          if (m.sender !== "user" && /^(Going to sleep|The crew is asleep)/.test(m.text)) setAsleep(true);
+          if (m.sender !== "user" && /^(Awake and ready|Already awake)/.test(m.text)) setAsleep(false);
           if (m.sender !== "user") {
             if (m.kind === "handoff") {
               const name = m.text.match(/^@(\w+)/)?.[1]?.toLowerCase();
@@ -145,12 +152,17 @@ export function useCrew(active: string | null) {
             return { ...t, [chat]: [...set] };
           });
           if (e.on) move(e.bot, "think");
-          else setMoves((all) => (all[e.bot] === "think" ? { ...all, [e.bot]: "idle" } : all)); // never stuck thinking
+          else {
+            setMoves((all) => (all[e.bot] === "think" ? { ...all, [e.bot]: "idle" } : all)); // never stuck thinking
+            setTools((t) => (e.bot in t ? Object.fromEntries(Object.entries(t).filter(([k]) => k !== e.bot)) : t));
+          }
           break;
         case "step":
           if (e.status === "start") {
             add(chat, { kind: "step", key: uid("s"), ts: now(), bot: e.bot, tool: e.tool, status: "start" });
+            setTools((t) => ({ ...t, [e.bot]: e.tool }));
           } else {
+            setTools((t) => (t[e.bot] === e.tool ? Object.fromEntries(Object.entries(t).filter(([k]) => k !== e.bot)) : t));
             setItems((all) => {
               const list = [...(all[chat] ?? [])];
               for (let i = list.length - 1; i >= 0; i--) {
@@ -207,5 +219,5 @@ export function useCrew(active: string | null) {
     }));
   }, []);
 
-  return { bots, chats, items, typing, unread, moves, handoff, live, ready, loadChats, loadBots, markAnswered };
+  return { bots, chats, items, typing, unread, moves, handoff, tools, asleep, live, ready, loadChats, loadBots, markAnswered };
 }
