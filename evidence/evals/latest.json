@@ -1,13 +1,13 @@
 {
-  "when": "20261011-125356",
-  "passed": 7,
-  "total": 7,
+  "when": "20261011-132522",
+  "passed": 10,
+  "total": 10,
   "results": [
     {
       "task": "battery",
       "checks": "the battery number matches the machine",
       "ok": true,
-      "seconds": 2.6,
+      "seconds": 1.9,
       "detail": "no battery on this machine; status read back",
       "live": false
     },
@@ -16,7 +16,7 @@
       "checks": "a file exists with the exact content",
       "ok": true,
       "seconds": 0.0,
-      "detail": "note-1791703406686.txt has the exact text",
+      "detail": "note-1791705282839.txt has the exact text",
       "live": false
     },
     {
@@ -31,7 +31,7 @@
       "task": "terminal",
       "checks": "cd sticks and exit codes are real",
       "ok": true,
-      "seconds": 20.7,
+      "seconds": 18.2,
       "detail": "cd stuck between runs; exit code 7 read back",
       "live": false
     },
@@ -39,7 +39,7 @@
       "task": "secrets_hidden",
       "checks": "a pasted key never reaches the chat log",
       "ok": true,
-      "seconds": 1.2,
+      "seconds": 1.3,
       "detail": "the pasted key never reached the chat log",
       "live": false
     },
@@ -47,17 +47,41 @@
       "task": "fast_path_volume",
       "checks": "a plain command runs with no model",
       "ok": true,
-      "seconds": 0.1,
-      "detail": "volume read back 44% with no model call",
+      "seconds": 0.2,
+      "detail": "volume read back 7% with no model call",
       "live": false
     },
     {
       "task": "notepad",
       "checks": "an app really opens and closes",
       "ok": true,
-      "seconds": 7.4,
+      "seconds": 6.6,
       "detail": "opened, seen on screen, closed after approval",
       "live": false
+    },
+    {
+      "task": "live_writer",
+      "checks": "S hands a file job to Writer",
+      "ok": true,
+      "seconds": 4.5,
+      "detail": "live-1791705309.txt written through S -> Writer",
+      "live": true
+    },
+    {
+      "task": "live_desk",
+      "checks": "S hands an app job to Desk",
+      "ok": true,
+      "seconds": 4.1,
+      "detail": "S handed it to Desk and Notepad really opened",
+      "live": true
+    },
+    {
+      "task": "live_recovery",
+      "checks": "a failed step is retried until the outcome is real",
+      "ok": true,
+      "seconds": 5.2,
+      "detail": "write_file failed once (simulated) and the crew retried until the file existed",
+      "live": true
     }
   ]
 }
