@@ -30,7 +30,7 @@ export function SecurityPage({ header }: { header: React.ReactNode }) {
       <ul className="list">
         {PROMISES.map((p) => <li key={p}><span>✅ {p}</span></li>)}
       </ul>
-      <h2>Blocked</h2>
+      <h3>Blocked</h3>
       <ul className="list">
         {info && info.blocked.length === 0 && <li><span>Nothing blocked yet.</span></li>}
         {info && [...info.blocked].reverse().map((b, i) => (

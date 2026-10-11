@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { canDo, choices, labelOf, localState, type Choice } from "./models";
-import { api, onLaptop, type AllowRule, type Bot, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
+import { api, onLaptop, type AllowRule, type Bot, type SecurityInfo, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
+import { SecurityPage } from "./settings/SecurityPage";
 import { go, href } from "./router";
 import { applyUpdate, askToNotify, runningVersion, updateAvailable } from "./update";
 
 // Settings: a home page of cards (each with a live status line) that open their own page, on laptop and phone.
 
-type Page = "keys" | "models" | "usage" | "routines" | "phone" | "chrome" | "allowed" | "appearance";
+type Page = "keys" | "models" | "usage" | "routines" | "phone" | "chrome" | "allowed" | "security" | "appearance";
+const PAGES: string[] = ["keys", "models", "usage", "routines", "phone", "chrome", "allowed", "security", "appearance"];
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -30,6 +32,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
   const [phones, setPhones] = useState<Phone[] | null>(null);
   const [rules, setRules] = useState<AllowRule[]>([]);
   const [hub, setHub] = useState<HubStatus | null>(null);
+  const [security, setSecurity] = useState<SecurityInfo | null>(null);
   const [note, setNote] = useState("");
 
   const refresh = useCallback(() => {
@@ -40,6 +43,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
     api.routines().then(setRoutines).catch(() => {});
     api.allowed().then(setRules).catch(() => {});
     api.hub().then(setHub).catch(() => {});
+    api.security().then(setSecurity).catch(() => {});
     if (onLaptop) api.phones().then(setPhones).catch(() => setPhones(null));
   }, []);
   useEffect(refresh, [refresh, page]);
@@ -61,7 +65,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
     }
   }
 
-  if (!page || !(["keys", "models", "usage", "routines", "phone", "chrome", "allowed", "appearance"] as string[]).includes(page)) {
+  if (!page || !PAGES.includes(page)) {
     const card = (p: Page, icon: string, title: string, status: string) => (
       <button className="set-card" onClick={() => go(href("settings", p))}>
         <span className="set-icon">{icon}</span>
@@ -83,6 +87,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         {card("chrome", "🌐", "Crew's Chrome", "Sign in to sites once; bots read and draft, you send")}
         <h2>Safety</h2>
         {card("allowed", "✅", "Always-allowed actions", rules.length ? `${plural(rules.length, "rule")} · the crew goes ahead without asking` : "None: every risky action asks first")}
+        {card("security", "🔒", "Key security", security ? `${plural(security.locked, "key")} locked · ${security.blocked.length ? `${plural(security.blocked.length, "call")} blocked` : "nothing blocked"}` : "Keys stay in the vault, never in tools or programs")}
         <h2>App</h2>
         {card("appearance", "🎨", "Appearance & updates", `${theme === "dark" ? "Dark" : "Light"} · version ${version}`)}
       </div>
@@ -178,6 +183,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
           {note && <div className="note">{note}</div>}
         </>
       )}
+      {page === "security" && <SecurityPage header={header("🔒 Key security")} />}
       {page === "appearance" && (
         <>
           {header("🎨 Appearance & updates")}
