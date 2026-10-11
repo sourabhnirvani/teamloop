@@ -144,3 +144,29 @@ def test_calls_written_like_code_and_over_wrapped_arguments_are_understood():
     obj = [{"type": "function", "function": {"name": "set", "parameters": {"type": "object", "properties": {
         "options": {"type": "object"}}}}}]
     assert textcalls.tidy([("set", {"options": {"options": 1}})], obj) == [("set", {"options": {"options": 1}})]  # real object
+
+
+def test_the_app_lists_each_local_model_with_what_it_can_do_and_says_when_ollama_is_off(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from fakes import FakeRouter
+    from teamloop.server.app import build_crew, create_app
+
+    monkeypatch.setenv("TEAMLOOP_CHAIN", "ollama")
+    monkeypatch.setenv("OLLAMA_URL", ENV["OLLAMA_URL"])
+    installed(monkeypatch, [{"name": "qwen2.5:7b", "capabilities": ["completion", "tools"], "details": {"context_length": 32768}},
+                            {"name": "gemma3:1b", "capabilities": ["completion"]},
+                            {"name": "qwen3:4b", "capabilities": ["completion", "tools", "thinking"]}])
+    with TestClient(create_app(build_crew(tmp_path / "m.db", router=FakeRouter([])))) as client:
+        local = client.get("/api/models").json()[0]
+        assert (local["provider"], local["local"], local["running"]) == ("ollama", True, True)
+        got = {m["id"]: (m["tools"], m["thinking"], m["ctx"]) for m in local["models"]}
+        assert got == {"qwen2.5:7b": (True, False, 32768), "gemma3:1b": (False, False, None), "qwen3:4b": (True, True, None)}
+
+        def down(url, timeout):
+            raise httpx.ConnectError("refused")
+
+        P._ollama_seen.clear()
+        monkeypatch.setattr(httpx, "get", down)
+        off = client.get("/api/models").json()[0]
+        assert off["running"] is False and off["models"] == []  # no made-up "qwen2.5:7b" when Ollama is off

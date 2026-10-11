@@ -109,6 +109,7 @@ def models_for(provider: Provider, env: Mapping[str, str] | None = None) -> list
 _ollama_seen: dict[str, tuple[float, list[str]]] = {}
 # what Ollama says about each installed model: {"tools": bool | None, "ctx": int | None} (None: it didn't say)
 _ollama_info: dict[str, dict[str, dict]] = {}
+_ollama_up: dict[str, bool] = {}  # did Ollama answer at the last look
 
 
 def ollama_root(base_url: str) -> str:
@@ -123,10 +124,12 @@ def installed_ollama_models(base_url: str, ttl: float = 60.0) -> list[str]:
         return cached[1]
     models: list[str] = []
     info: dict[str, dict] = {}
+    up = False
     try:
         import httpx
 
         tags = httpx.get(ollama_root(base_url) + "/api/tags", timeout=0.5).json()
+        up = True
         for m in tags.get("models", []):
             name, caps = m.get("name", ""), m.get("capabilities")
             if "embed" in name or (isinstance(caps, list) and caps and "completion" not in caps):
@@ -139,7 +142,13 @@ def installed_ollama_models(base_url: str, ttl: float = 60.0) -> list[str]:
         pass  # not running: the default model name stays, and a call fails fast
     _ollama_seen[base_url] = (now, models)
     _ollama_info[ollama_root(base_url)] = info
+    _ollama_up[ollama_root(base_url)] = up
     return models
+
+
+def ollama_running(base_url: str) -> bool:
+    installed_ollama_models(base_url)  # refreshed at most once a minute
+    return _ollama_up.get(ollama_root(base_url), False)
 
 
 def ollama_model_info(base_url: str, model: str) -> dict:

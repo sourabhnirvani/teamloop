@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { canDo, choices, labelOf, localState, type Choice } from "./models";
 import { api, onLaptop, type AllowRule, type Bot, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
 import { go, href } from "./router";
@@ -46,7 +47,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
 
   const totals = usage.reduce((a, u) => ({ req: a.req + u.requests, tok: a.tok + u.tokens_in + u.tokens_out }), { req: 0, tok: 0 });
   const keyCount = keys.reduce((n, k) => n + k.keys.length, 0);
-  const ready = models.filter((m) => m.has_key && m.models.some((x) => !x.dead)).length;
+  const ready = models.filter((m) => m.has_key && m.running !== false && m.models.some((x) => !x.dead)).length;
   const providerName = (id: string | null | undefined) => models.find((m) => m.provider === id)?.name ?? "Auto";
   const version = runningVersion()?.replace(/^index-|\.js$/g, "") ?? "dev";
 
@@ -73,7 +74,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         <h1>Settings</h1>
         <h2>AI</h2>
         {card("keys", "🔑", "API keys", keyCount ? `${keyCount} key${keyCount > 1 ? "s" : ""} for ${plural(keys.filter((k) => k.keys.length).length, "service")} · locked in the vault` : "No keys yet: paste a free Gemini or Groq key")}
-        {card("models", "🧠", "AI models", `${ready} free provider${ready === 1 ? "" : "s"} ready · crew uses ${providerName(settings?.crew_model)}`)}
+        {card("models", "🧠", "AI models", `${ready} free provider${ready === 1 ? "" : "s"} ready · crew uses ${labelOf(models, settings?.crew_model)}`)}
         {card("usage", "📊", "Usage & Save tokens", `Save tokens ${settings?.save_tokens ? "ON" : "OFF"} · ${totals.req} requests today · $0`)}
         <h2>Crew</h2>
         {card("routines", "⏰", "Routines", routines.length ? `${routines.length} scheduled` : "None yet: “every Monday at 9am, …”")}
@@ -242,7 +243,8 @@ function ModelsPage({ header, models, settings, bots, save, note, setNote, refre
   save: (p: Partial<Settings>) => Promise<void>; note: string; setNote: (s: string) => void; refresh: () => void;
 }) {
   const [checking, setChecking] = useState(false);
-  const usable = models.filter((m) => m.has_key);
+  const usable = choices(models).filter((c) => !c.disabled);
+  const option = (c: Choice) => <option key={c.value} value={c.value}>{c.label}{c.value.includes(":") ? "" : " (any free model)"}</option>;
   return (
     <>
       {header}
@@ -250,7 +252,7 @@ function ModelsPage({ header, models, settings, bots, save, note, setNote, refre
       <label className="field">Model for the whole crew
         <select value={settings.crew_model ?? ""} onChange={(e) => save({ crew_model: e.target.value || null })}>
           <option value="">Auto: the best free model that answers</option>
-          {usable.map((m) => <option key={m.provider} value={m.provider}>{m.name}</option>)}
+          {usable.map(option)}
         </select>
       </label>
       <h3>Each bot</h3>
@@ -264,7 +266,7 @@ function ModelsPage({ header, models, settings, bots, save, note, setNote, refre
             save({ bot_models: next });
           }}>
             <option value="">same as the crew</option>
-            {usable.map((m) => <option key={m.provider} value={m.provider}>{m.name}</option>)}
+            {usable.map(option)}
           </select>
         </label>
       ))}
@@ -278,11 +280,20 @@ function ModelsPage({ header, models, settings, bots, save, note, setNote, refre
         {models.map((m) => {
           const live = m.models.filter((x) => !x.dead);
           return (
-            <li key={m.provider}>
+            <li key={m.provider} className={m.local ? "local-row" : ""}>
               <b>{m.name}</b>
-              <span className={m.has_key && live.length ? "ok" : ""}>
-                {!m.has_key ? "No key: add one in API keys" : live.length ? `Ready · ${live.map((x) => x.id).join(", ")}` : "Not answering right now"}
-              </span>
+              {m.local ? (
+                <span className={m.running && live.length ? "ok" : ""}>
+                  {localState(m)}
+                  {m.running && m.models.map((x) => (
+                    <small key={x.id} className="local-model"><code>{x.id}</code> {x.dead ? "not answering" : canDo(x)}</small>
+                  ))}
+                </span>
+              ) : (
+                <span className={m.has_key && live.length ? "ok" : ""}>
+                  {!m.has_key ? "No key: add one in API keys" : live.length ? `Ready · ${live.map((x) => x.id).join(", ")}` : "Not answering right now"}
+                </span>
+              )}
             </li>
           );
         })}

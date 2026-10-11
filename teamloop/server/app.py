@@ -386,10 +386,22 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         router = get_crew().router
         dead = getattr(router, "dead_models", set())
         checked = {(r["provider"], r["model"]): r["ok"] for r in getattr(router, "last_doctor", [])}
-        return [{"provider": p.id, "name": p.name, "has_key": bool(P.keys_for(p)),
-                 "models": [{"id": m, "dead": (p.id, m) in dead, "ok": checked.get((p.id, m))}
-                            for m in P.models_for(p)]}
-                for p in P.chain()]
+        out = []
+        for p in P.chain():
+            local = p.id == "ollama"
+            base = P.base_url_for(p)
+            running = P.ollama_running(base) if local else None
+            names = P.models_for(p) if not local or running else []  # Ollama off: no made-up model names
+            rows = []
+            for m in names:
+                row = {"id": m, "dead": (p.id, m) in dead, "ok": checked.get((p.id, m))}
+                if local:  # what Ollama says the model can do: tools natively, or written into its prompt
+                    info = P.ollama_model_info(base, m)
+                    row.update(tools=info.get("tools"), thinking=bool(info.get("thinking")), ctx=info.get("ctx"))
+                rows.append(row)
+            out.append({"provider": p.id, "name": p.name, "has_key": bool(P.keys_for(p)), "local": local,
+                        "running": running, "models": rows})
+        return out
 
     @app.get("/api/settings")
     def settings() -> dict:
