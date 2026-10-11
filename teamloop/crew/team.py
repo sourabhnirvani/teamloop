@@ -161,22 +161,35 @@ class Crew:
                 for i, bot in enumerate(order):
                     reply = await self._turn(bot, chat, text, TurnCtx(chat["id"], bot.id, self, stop),
                                              note=ROUND_NOTE if is_round and i > 0 else None)
-                    if bot.id != LEAD and len(chat["members"]) == 1 and reply and reply.lower().startswith("not mine:"):
-                        # a one-to-one chat has no S to re-route, so the named teammate takes it from here
-                        target = self._named_teammate(reply)
-                        if target and target.id != bot.id:
-                            await self.delegate(TurnCtx(chat["id"], bot.id, self, stop), target.id, text)
-                        continue
-                    if bot.id == LEAD and reply and reply.lower().startswith("not mine:"):
-                        # S must never stop at "Not mine": hand the request to the teammate it named.
-                        target = self._named_teammate(reply)
-                        if target:
-                            await self.delegate(TurnCtx(chat["id"], LEAD, self, stop), target.id, text)
-                        continue
-                    if reply is not None and len(chat["members"]) > 1:
-                        await self._follow_up(chat, bot, reply, text, stop)
+                    await self._after_reply(chat, bot, reply, text, stop)
         except (Stopped, asyncio.CancelledError):
-            await self.say(chat["id"], lead.id, "Stopped.")
+            await self.say(chat["id"], lead.id, "Stopped.", kind="stopped")
+
+    async def _after_reply(self, chat: dict, bot: Bot, reply: str | None, text: str, stop: asyncio.Event,
+                           depth: int = 0) -> None:
+        """What a reply leads to: "Not mine" re-routing, or one visible handoff in a group chat."""
+        if not reply:
+            return
+        if reply.lower().startswith("not mine:"):
+            target = self._named_teammate(reply)
+            if bot.id == LEAD:
+                # S never stops at "Not mine" (and that line isn't posted): the teammate it named takes the job,
+                # or, when it named nobody real, S is told the job is its to plan
+                if target:
+                    await self.delegate(TurnCtx(chat["id"], LEAD, self, stop), target.id, text)
+                elif depth == 0:
+                    ask = (f"The person asked: {text}\nYou lead, so this is yours: answer it, or plan it and hand "
+                           f"the steps to teammates with delegate. Don't reply \"Not mine\".")
+                    again = await self._turn(BOTS[LEAD], chat, ask, TurnCtx(chat["id"], LEAD, self, stop))
+                    await self._after_reply(chat, BOTS[LEAD], again, text, stop, depth + 1)
+                return
+            if len(chat["members"]) == 1:
+                # a one-to-one chat has no S to re-route, so the named teammate takes it from here
+                if target and target.id != bot.id:
+                    await self.delegate(TurnCtx(chat["id"], bot.id, self, stop), target.id, text)
+                return
+        if len(chat["members"]) > 1 and depth == 0:
+            await self._follow_up(chat, bot, reply, text, stop)
 
     async def _turn(self, bot: Bot, chat: dict, text: str, ctx: TurnCtx, note: str | None = None) -> str | None:
         saving = self.saving()
@@ -195,7 +208,8 @@ class Crew:
             await self.bus.emit("typing", chat_id=chat["id"], bot=bot.id, on=False)
         if note and reply.strip().upper().startswith("SKIP"):
             return None
-        await self.say(chat["id"], bot.id, reply)
+        if not (bot.id == LEAD and reply.lower().startswith("not mine:")):  # S's "Not mine" is re-routed, not shown
+            await self.say(chat["id"], bot.id, reply)
         return reply
 
     async def _follow_up(self, chat: dict, bot: Bot, reply: str, original: str, stop: asyncio.Event) -> None:
@@ -203,7 +217,8 @@ class Crew:
         if reply.lower().startswith("not mine:") and bot.id != LEAD and LEAD in chat["members"]:
             ask = (f"The person asked: {original}\n{bot.name} said it isn't theirs: {reply}\n"
                    f"Hand the job to the right teammate.")
-            await self._turn(BOTS[LEAD], chat, ask, TurnCtx(chat["id"], LEAD, self, stop))
+            again = await self._turn(BOTS[LEAD], chat, ask, TurnCtx(chat["id"], LEAD, self, stop))
+            await self._after_reply(chat, BOTS[LEAD], again, original, stop, depth=1)
             return
         for target in self.mentioned(chat, reply):
             if target.id != bot.id:

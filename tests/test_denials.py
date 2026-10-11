@@ -84,3 +84,6 @@ async def test_stop_is_not_remembered_as_a_no(tmp_path, monkeypatch):
         await asyncio.sleep(0.01)
     await crew.stop("dm-desk")
     assert crew.gate._denied == {}
+    await crew.wait_idle("dm-desk")
+    last = crew.store.messages("dm-desk")[-1]
+    assert (last["text"], last["kind"]) == ("Stopped.", "stopped")  # the UI shows it plainly, no cheer
