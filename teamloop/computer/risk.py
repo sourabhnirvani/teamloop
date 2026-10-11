@@ -154,3 +154,25 @@ def command_risk(command: str) -> str:
     if COMMAND_ASK.search(command or ""):
         return ASK
     return SAFE
+
+
+_ACTS = [
+    ("delete", r"\b(remove-item|rm|rmdir|rd|del|erase|ri|clear-content|clear-recyclebin)\b"),
+    ("kill", r"\b(stop-process|spps|kill|taskkill|pskill)\b"),
+    ("registry", r"\breg(\.exe)?\s|itemproperty|\bhk(lm|cu|cr|u|cc):"),
+    ("service", r"-service\b|\bsc(\.exe)?\s"),
+    ("power", r"\b(stop|restart)-computer\b|\bshutdown\b|\blogoff\b"),
+    ("run-code", r"\b(iex|invoke-expression|set-executionpolicy)\b"),
+]
+_NAMEISH = re.compile(r"[\w.~-]+\.\w{1,8}\b|\b[\w-]+\.exe\b")
+_PROCNAME = re.compile(r"(?:-name|-processname|/im)\s+['\"]?([\w.-]+)")
+
+
+def command_key(command: str) -> str:
+    """What a risky command does and to which files, so a "no" still holds when the bot re-words it:
+    "Remove-Item 'C:\\x\\a.txt' -Force" and "del a.txt -ErrorAction SilentlyContinue" are the same request."""
+    low = (command or "").lower()
+    acts = [name for name, pattern in _ACTS if re.search(pattern, low)] or ["other"]
+    names = set(_NAMEISH.findall(low))
+    names |= {n.removesuffix(".exe") + ".exe" for n in _PROCNAME.findall(low)}
+    return "+".join(acts) + ":" + ",".join(sorted(names))

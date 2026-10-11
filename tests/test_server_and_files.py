@@ -42,7 +42,7 @@ def test_settings_key_box_saves_telegram_and_neatlogs_keys(tmp_path):
 
 
 class Ctx(SimpleNamespace):
-    async def approve(self, title, details, screenshot=None):
+    async def approve(self, title, details, screenshot=None, key=None):
         self.asked = title
         return self.answer
 

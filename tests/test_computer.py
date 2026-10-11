@@ -94,7 +94,7 @@ async def test_open_and_close_calculator():
     from teamloop.computer import tools
 
     class Ctx(SimpleNamespace):
-        async def approve(self, *a):
+        async def approve(self, *a, **k):
             return True
 
         async def emit(self, *a, **k):

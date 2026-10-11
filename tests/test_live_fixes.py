@@ -64,3 +64,51 @@ def test_a_report_lists_each_source_once():
     assert dedupe_link_lines(report) == ("# Free LLM APIs\nGemini: see https://ai.google.dev (free tier).\n\nSources\n"
                                          "- https://ai.google.dev\n- https://groq.com/pricing\n"
                                          "Compare https://a.example and https://b.example on one line.\n")
+
+
+def test_reworded_commands_count_as_the_same_request():
+    from teamloop.computer import risk
+
+    a = risk.command_key(r"Remove-Item 'C:\Users\me\Desktop\debugpass.txt' -Force")
+    b = risk.command_key(r"Remove-Item -Path C:\Users\me\Desktop\debugpass.txt -ErrorAction SilentlyContinue")
+    assert a == b == "delete:debugpass.txt"
+    assert risk.command_key("del other.txt") != a
+    assert risk.command_key("taskkill /im chrome.exe /f") == risk.command_key("Stop-Process -Name chrome")
+    assert risk.command_key("Stop-Process -Name notepad") != risk.command_key("Stop-Process -Name chrome")
+
+
+async def test_a_no_holds_for_the_same_request_in_new_words(tmp_path):
+    import asyncio
+
+    crew = make_crew(tmp_path, [])
+    asked = []
+
+    async def answer():
+        with crew.bus.subscribe() as q:
+            while True:
+                e = await q.get()
+                if e["type"] == "approval":
+                    asked.append(e["details"])
+                    crew.gate.answer(e["id"], False)
+
+    task = asyncio.create_task(answer())
+    await asyncio.sleep(0)
+    assert not await crew.gate.ask("dm-desk", "desk", "Run a command", "Remove-Item a.txt -Force", key="cmd:delete:a.txt")
+    assert not await crew.gate.ask("dm-desk", "desk", "Run a command", "del a.txt", key="cmd:delete:a.txt")
+    task.cancel()
+    assert asked == ["Remove-Item a.txt -Force"]  # the re-worded second ask got no new card
+
+
+def test_workers_know_the_crew_and_a_no_is_not_a_failure():
+    prompt = system_prompt(BOTS["scout"])
+    assert "- Desk: Computer" in prompt and "- Scout:" not in prompt
+    assert "that is not a failure" in prompt
+
+
+async def test_not_mine_in_a_one_to_one_chat_goes_to_the_named_teammate(tmp_path):
+    crew = make_crew(tmp_path, ["Not mine: Desk opens apps.", "Opened Notepad."])
+    await crew.post("dm-scout", "open notepad")
+    await crew.wait_idle("dm-scout")
+    said = [(m["sender"], m["kind"], m["text"]) for m in crew.store.messages("dm-scout")]
+    assert said[-2] == ("scout", "handoff", "@Desk open notepad")
+    assert said[-1] == ("desk", "chat", "Opened Notepad.")

@@ -27,6 +27,9 @@ kits.load_all()
     ("wifi off", ("set_wifi", {"on": False})),
     ("turn on the wi-fi", ("set_wifi", {"on": True})),
     ("what's my battery?", ("system_status", {})),
+    ("brightness?", ("system_status", {})),
+    ("is wifi on?", ("system_status", {})),
+    ("volume?", ("system_status", {})),
     ("what apps are open", ("list_windows", {})),
     ("take a screenshot", ("screenshot", {})),
     ("lock the laptop", ("power", {"action": "lock"})),
@@ -71,10 +74,11 @@ async def test_fast_path_runs_one_tool_with_no_model_call(tmp_path, fake_volume)
 
 
 async def test_fast_path_skips_chats_without_the_right_bot(tmp_path, fake_volume):
-    crew = make_crew(tmp_path, ["Not mine: Desk does volume."])
+    crew = make_crew(tmp_path, ["Not mine: Desk does volume.", "Volume is 30%."])
     await crew.post("dm-writer", "volume 30")
     await crew.wait_idle("dm-writer")
-    assert fake_volume == [] and len(crew.router.calls) == 1
+    # no fast path in Writer's chat: Writer answers, says it's Desk's job, and Desk takes it from there
+    assert fake_volume == [] and [c["purpose"] for c in crew.router.calls] == ["turn:writer", "turn:desk"]
 
 
 async def test_a_plain_failure_goes_back_to_the_bots(tmp_path, monkeypatch):
@@ -118,7 +122,7 @@ async def test_sleep_and_wake_up(tmp_path, fake_volume):
 
 
 class Ctx(SimpleNamespace):
-    async def approve(self, title, details, screenshot=None):
+    async def approve(self, title, details, screenshot=None, key=None):
         self.asked = title
         return self.answer
 

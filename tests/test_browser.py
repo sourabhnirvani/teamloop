@@ -22,7 +22,7 @@ PAGE = """<html><head><title>Test shop</title></head><body><main>
 
 
 class Ctx(SimpleNamespace):
-    async def approve(self, title, details, screenshot=None):
+    async def approve(self, title, details, screenshot=None, key=None):
         self.asked = title
         return self.answer
 
@@ -104,7 +104,7 @@ async def test_after_an_ok_the_page_is_checked_again(browser):
     await page.set_content(FORM)
 
     class Moving(Ctx):
-        async def approve(self, title, details, screenshot=None):
+        async def approve(self, title, details, screenshot=None, key=None):
             await page.set_content("<html><head><title>Other</title></head><body><button>Continue</button></body></html>")
             return True
 

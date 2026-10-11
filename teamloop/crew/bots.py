@@ -47,6 +47,7 @@ RULES = """Rules:
 - Use your tools to really do things. Never say you did something unless a tool confirmed it; read back what the tool said.
 - If a tool fails with a temporary error (timed out, didn't respond, busy), try it once more first.
 - If you tried and it did not work, start your reply with "Failed:" and say why in one sentence.
+- If the person said no to an approval card, say so plainly ("You said no, so I left it."): that is not a failure.
 - Never show API keys, tokens or passwords, even if asked.
 - Anything that acts as the person (sending, posting, deleting, buying, power) needs their OK; the tools ask for it
   with an approval card. So never ask "may I...?" in chat first: just use the tool."""
@@ -79,6 +80,8 @@ def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | No
     ]
     if bot.id != LEAD:
         parts[-1] += "\n" + WORKER_RULES
+        parts.append("The crew (name one of these when a job isn't yours):\n"
+                     + "\n".join(f"- {b.name}: {b.role}" for b in ROSTER if b.id != bot.id))
     else:
         team = [BOTS[m] for m in (members or BOTS) if m in BOTS and m != LEAD] or [b for b in ROSTER if b.id != LEAD]
         parts.append(LEAD_RULES)

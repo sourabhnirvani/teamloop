@@ -161,6 +161,12 @@ class Crew:
                 for i, bot in enumerate(order):
                     reply = await self._turn(bot, chat, text, TurnCtx(chat["id"], bot.id, self, stop),
                                              note=ROUND_NOTE if is_round and i > 0 else None)
+                    if bot.id != LEAD and len(chat["members"]) == 1 and reply and reply.lower().startswith("not mine:"):
+                        # a one-to-one chat has no S to re-route, so the named teammate takes it from here
+                        target = self._named_teammate(reply)
+                        if target and target.id != bot.id:
+                            await self.delegate(TurnCtx(chat["id"], bot.id, self, stop), target.id, text)
+                        continue
                     if bot.id == LEAD and reply and reply.lower().startswith("not mine:"):
                         # S must never stop at "Not mine": hand the request to the teammate it named.
                         target = self._named_teammate(reply)

@@ -24,8 +24,10 @@ class Gate:
         self._stopped: set[str] = set()
         self.last: dict[str, str] = {}  # chat id -> how the latest card there ended
 
-    async def ask(self, chat_id: str, bot: str, title: str, details: str, screenshot: str | None = None) -> bool:
-        key = (chat_id, title, details)
+    async def ask(self, chat_id: str, bot: str, title: str, details: str, screenshot: str | None = None,
+                  key: str | None = None) -> bool:
+        # `key` says what the request really is (e.g. "delete:notes.txt"), so a re-worded repeat is still a no
+        key = (chat_id, title, key or details)
         said_no = self._denied.get(key)
         if said_no is not None and time.monotonic() - said_no < DENY_MEMORY:
             self.last[chat_id] = "denied_before"

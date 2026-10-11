@@ -63,6 +63,9 @@ RULES: list[tuple[re.Pattern, Callable[[re.Match], Match | None]]] = [
     (re.compile(r"^(?:what(?:'s| is)\s+(?:my\s+|the\s+)?|how much\s+|check\s+(?:the\s+)?)?"
                 r"(?:battery(?:\s+(?:level|left|status))?|system status|laptop status)\??$", re.I),
      lambda m: ("system_status", {})),
+    (re.compile(r"^(?:what(?:'s| is)\s+(?:my\s+|the\s+)?|how\s+(?:loud|bright)\s+is\s+(?:it|the\s+\w+)\s*|is\s+(?:the\s+)?)?"
+                r"(?:brightness|volume|sound level|wi-?fi(?:\s+(?:on|connected|status))?)\??$", re.I),
+     lambda m: ("system_status", {})),
     (re.compile(r"^(?:what|which)\s+(?:apps|windows|programs)\s+(?:are\s+)?(?:open|running)\??$|"
                 r"^(?:list|show)\s+(?:the\s+|my\s+)?(?:open\s+)?windows$", re.I),
      lambda m: ("list_windows", {})),

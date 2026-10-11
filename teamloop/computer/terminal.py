@@ -139,7 +139,8 @@ async def _allowed(command: str, cwd: Path, ctx) -> ToolResult | None:
     level = risk.command_risk(command)
     if level == risk.NEVER:
         return ToolResult(False, "Refused: that command can wipe disks or boot settings, so the crew never runs it.")
-    if level == risk.ASK and not await ctx.approve("Run a command", f"{command}\n\nin {cwd}"):
+    if level == risk.ASK and not await ctx.approve("Run a command", f"{command}\n\nin {cwd}",
+                                                   key=f"cmd:{risk.command_key(command)}"):
         return ToolResult(False, f"The person said no, so I didn't run it: {command}")
     return None
 

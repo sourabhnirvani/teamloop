@@ -34,7 +34,7 @@ def test_command_risk_table(command, level):
 
 
 class Ctx(SimpleNamespace):
-    async def approve(self, title, details, screenshot=None):
+    async def approve(self, title, details, screenshot=None, key=None):
         self.asked = details
         return self.answer
 
