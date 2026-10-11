@@ -136,3 +136,59 @@ the app; the forced-failure recovery run (`TEAMLOOP_FAIL_ONCE=write_file`).
 
 Sourabh's laptop is doing the same now: the demo goal on a free NVIDIA model with a live neatlogs
 trace, then the forced-failure recovery run. Results will be in `evidence/runs/`.
+
+## 6. Sun 11 Oct, afternoon: from Sourabh (ccbridge relay down again, join 500)
+
+Sourabh, relayed plainly: he is very unhappy with both of us. He says you have been lazy and have been
+making blind assumptions. Research and check end to end, think harder, and back every claim with evidence:
+screens, logs, DB rows, traces. Never write PASS unless you saw the outcome yourself.
+
+**Pull, then run `cd ui && npm run build`** (ui/dist isn't in git). main is at df35be1 or later.
+
+What landed (all with tests, 220 passing):
+- Debug-pass fixes:
+  - **Row 14:** typing runs on the COM thread, and focus falls back to SwitchToThisWindow.
+  - **Row 15:** "close notepad without saving" is not on the fast path any more.
+  - **Row 11:** an unanswered card counts as a no for the rest of the job, and `{username}` paths are refused.
+  - **Rows 22/23:** S is sent back once if it skips a requested step (open, save, remind, research, ...) or claims a teammate's result it never got.
+  - S's own "Not mine" is never shown.
+- **Contract (PLAN.md §4):**
+  - `GET /api/state`, `GET /api/approvals`, `GET /api/version`
+  - poll replies carry `oldest`
+  - a `settings` event
+  - `last` on each chat
+  - message kind `stopped`
+  - "Coming next" lists the Phase 2 calls.
+- **UI rebuilt:**
+  - tabs Chats / Crew (3D) / Settings, with a bottom tab bar on phones
+  - Settings as a page of cards, one per area
+  - one Sheet component for dialogs, so Back/Esc/✕ always close them
+  - the store reloads after a reconnect or a poll gap
+  - Approve/Deny lock after one press
+  - drafts are kept per chat
+  - Update bar plus "Check for updates"
+- **New logo and mascots:**
+  - The logo is `ui/public/logo.svg`; `scripts/make_icons.py` renders every icon size.
+  - The desktop app now fetches `/app-icon.png` after each load, so its icon updates itself. That's in desktop/main.js, your file: please review it.
+  - Cute 2D/3D mascots with personalities and signs (👂 💭 🔎 🙋 ✨ 💦 💤).
+- **`scripts/rehearse.py`:** the real app on :8791 with a scripted model. UI checks there cost zero tokens.
+
+Your list, in order:
+1. **Parity analysis.** Use Agent S's *app* on your laptop as the reference (never its source, which is the hackathon rule). Go screen by screen against TeamLoop main:
+   - chat list
+   - chat and model chip
+   - profile (look, job & rules, mute, tools, routines)
+   - Build a bot
+   - Jobs, Board
+   - every Settings page
+   - mobile layout
+   - approvals, Stop, sleep/wake, Telegram
+
+   Mark each PASS / FAIL / MISSING, with repro steps and a screenshot path, in `evidence/runs/parity-yang.md`. Push in parts.
+2. **Re-run debug rows 6, 9, 10, 11, 14, 15, 22, 23** on main, with evidence.
+3. **Live free-model demo goal**, 3 runs each on Groq, Gemini and NVIDIA. Use the exact prompt in `tests/test_lead_coverage.py`. Record every step done or not, whether S was sent back ("Not done yet" in the log or trace), call counts and seconds. Write it to `evidence/runs/demo-goal-after-coverage.md`.
+4. **UI checklist on your laptop:** `scripts/rehearse.py` at 1440x900, the Electron window, and your phone. Compare with `evidence/runs/ui-check-2026-10-11.md`.
+5. **desktop/:**
+   - min window 900x640
+   - `waitForServer` shows an error page with the log path after 45 s, keeps retrying, and reloads when the server answers.
+6. Your evidence items: video, cfo.ai, posts, hackathon.md.
