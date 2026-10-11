@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import re
@@ -257,6 +258,16 @@ def create_app(crew: Crew | None = None) -> FastAPI:
             raise HTTPException(503, f"Couldn't open the crew's Chrome: {str(e).splitlines()[0][:160]}") from None
         return {"ok": True, "url": page.url,
                 "text": "The crew's Chrome is open on the sign-in page. Sign in there yourself; the bots use it after."}
+
+    @app.get("/api/version")
+    def version() -> dict:
+        """Which UI build the laptop serves; an open app (the phone's above all) compares it with its own to offer Update."""
+        page = config.ROOT / "ui" / "dist" / "index.html"
+        if not page.is_file():
+            return {"version": "dev"}
+        html = page.read_text(encoding="utf-8", errors="replace")
+        bundle = re.search(r"assets/(index-[\w-]+\.js)", html)  # the app compares this with the bundle it runs
+        return {"version": bundle.group(1) if bundle else hashlib.sha1(html.encode()).hexdigest()[:10]}
 
     @app.get("/api/shots/{name}")
     def shot(name: str) -> FileResponse:

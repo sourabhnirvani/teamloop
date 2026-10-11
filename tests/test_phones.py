@@ -109,3 +109,18 @@ def test_pairing_qr_scales_without_cropping(tmp_path, monkeypatch):
     assert "viewBox" in head and "width=" not in head and "height=" not in head  # CSS sizes it, nothing cut off
     size = int(head.split('viewBox="0 0 ')[1].split()[0])
     assert size in {21 + 4 * v + 8 for v in range(1, 41)}  # a whole QR symbol plus 4 modules of quiet zone each side
+
+
+def test_version_changes_when_the_ui_is_rebuilt(tmp_path, monkeypatch):
+    from teamloop import config
+
+    (tmp_path / "ui" / "dist").mkdir(parents=True)
+    page = tmp_path / "ui" / "dist" / "index.html"
+    page.write_text("<script src=/assets/index-aaa.js></script>")
+    monkeypatch.setattr(config, "ROOT", tmp_path)
+    app, client = app_and_client(tmp_path)
+    with client:
+        first = client.get("/api/version").json()["version"]
+        page.write_text("<script src=/assets/index-bbb.js></script>")
+        second = client.get("/api/version").json()["version"]
+    assert (first, second) == ("index-aaa.js", "index-bbb.js")  # the open app sees a new build and offers Update

@@ -16,7 +16,7 @@ type Props = {
   typing: string[];
   moves: Record<string, Move>;
   onMenu: () => void;
-  stage?: React.ReactNode;
+  onBot: (botId: string) => void;
 };
 
 const HINTS = ["team, plan my evening", "@desk what's my battery?", "@web open news.ycombinator.com", "check models", "remember I like short answers"];
@@ -79,7 +79,7 @@ function Step({ item, bots }: { item: Extract<Item, { kind: "step" }>; bots: Rec
   );
 }
 
-export function ChatView({ chat, bots, items, typing, moves, onMenu, stage }: Props) {
+export function ChatView({ chat, bots, items, typing, moves, onMenu, onBot }: Props) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const log = useRef<HTMLDivElement>(null);
@@ -114,7 +114,11 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu, stage }: Pr
       <header className="chat-head">
         <button className="icon menu" onClick={onMenu} aria-label="Chats">☰</button>
         <div className="crew">
-          {members.map((b) => <Avatar key={b.id} bot={b} move={moves[b.id]} size={30} />)}
+          {members.map((b) => (
+            <button key={b.id} className="crew-btn" title={`${b.name}: what it does`} onClick={() => onBot(b.id)}>
+              <Avatar bot={b} move={moves[b.id]} size={30} />
+            </button>
+          ))}
         </div>
         <div className="chat-title">
           <b>{chat.title}</b>
@@ -122,8 +126,6 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu, stage }: Pr
         </div>
         {busy && <button className="stop" onClick={() => api.stop(chat.id)}>■ Stop</button>}
       </header>
-
-      {stage}
 
       <div className="log" ref={log}>
         {items.length === 0 && (
@@ -158,7 +160,9 @@ export function ChatView({ chat, bots, items, typing, moves, onMenu, stage }: Pr
             return (
               <div key={item.key} className={`row bot ${head ? "head" : "cont"} ${failed ? "failed" : ""}`}
                    style={{ "--bot": botColor(item.sender) } as React.CSSProperties}>
-                <div className="gutter">{head && <Avatar bot={bot} move={moves[item.sender]} size={38} />}</div>
+                <div className="gutter">
+                  {head && bot && <button className="crew-btn" title={`${bot.name}: what it does`} onClick={() => onBot(bot.id)}><Avatar bot={bot} move={moves[item.sender]} size={38} /></button>}
+                </div>
                 <div className="body">
                   {head && (
                     <div className="who">

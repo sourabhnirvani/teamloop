@@ -403,9 +403,9 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
       const back = rest.slice(0, Math.ceil(rest.length / 2)), front = rest.slice(back.length);
       const row = (list: Rig[], z: number, spread: number) =>
         list.forEach((r, i) => r.home.set(list.length === 1 ? 0 : ((i / (list.length - 1)) - 0.5) * 2 * spread, z));
-      row(back, -0.95, bounds.x * 0.62);
+      row(back, -1.05, bounds.x * 0.78);
       const fr = [...front.slice(0, Math.floor(front.length / 2)), rigs[0], ...front.slice(Math.floor(front.length / 2))].filter(Boolean);
-      row(fr, 0.45, bounds.x * 0.66);
+      row(fr, 0.55, bounds.x * 0.82);
     }
 
     // pooled particles: work sparks and confetti
@@ -450,10 +450,16 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
       camera.aspect = w / Math.max(h, 1);
       camera.fov = 38;
       camera.updateProjectionMatrix();
-      // the walking area follows the panel: wide panels get a wide floor, narrow ones a deeper one
-      bounds.x = THREE.MathUtils.clamp(camera.aspect * 1.9, 1.6, 3.2);
-      bounds.z = 1.15;
-      camDist = camera.aspect < 1.1 ? 6.3 : 6.6;
+      // the walking area follows the panel, but never so narrow that the bots pile up
+      bounds.x = THREE.MathUtils.clamp(camera.aspect * 1.9, 2.3, 3.2);
+      bounds.z = camera.aspect < 1 ? 1.5 : 1.15;
+      // back the camera off until the whole floor (plus a bot's width each side) fits across
+      const halfWidth = bounds.x + 0.9;
+      const fit = halfWidth / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect) - 0.35;
+      camDist = Math.max(camera.aspect < 1.1 ? 6.3 : 6.6, fit);
+      const fog = scene.fog as THREE.Fog;
+      fog.near = 9 * camDist / 6.6;
+      fog.far = 17 * camDist / 6.6;
       layoutHomes();
     };
     const ro = new ResizeObserver(size);
@@ -495,7 +501,7 @@ export function CrewRoom({ bots, moves, working, asking, handoff, onPick, height
 
       // camera: a slow drift plus a little parallax from the pointer
       const px = ptr.x > -2 ? ptr.x : 0;
-      camera.position.set(Math.sin(t * 0.1) * 0.3 * amp + px * 0.35, 2.7, camDist);
+      camera.position.set(Math.sin(t * 0.1) * 0.3 * amp + px * 0.35, 2.7 * camDist / 6.6, camDist);
       camera.lookAt(0, 0.5, -0.35);
       camPos.copy(camera.position);
 

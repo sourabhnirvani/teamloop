@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Bot, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
+import { applyUpdate, runningVersion, updateAvailable } from "./update";
 
 type Section = "keys" | "models" | "usage" | "routines" | "phone";
 
@@ -63,6 +64,16 @@ export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; on
     }
   }
 
+  async function checkUpdate() {
+    setNote("Checking for a new version…");
+    if (await updateAvailable()) {
+      setNote("Updating…");
+      await applyUpdate();
+    } else {
+      setNote("You have the latest version.");
+    }
+  }
+
   async function update(patch: Partial<Settings>) {
     setSettings(await api.setSettings(patch));
   }
@@ -83,6 +94,10 @@ export function SettingsPanel({ bots, onClose }: { bots: Record<string, Bot>; on
             </button>
           ))}
         </nav>
+        <div className="app-version">
+          <span>App version <code>{runningVersion()?.replace(/^index-|\.js$/g, "") ?? "dev"}</code></span>
+          <button onClick={checkUpdate}>Check for updates</button>
+        </div>
         {note && <div className="note">{note}</div>}
 
         {section === "keys" && (

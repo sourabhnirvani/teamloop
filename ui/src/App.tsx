@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, listen, type Bot, type Chat, type Message, type ServerEvent } from "./api";
-import { ActivityPanel, BotProfile } from "./ActivityPanel";
+import { BotProfile } from "./BotProfile";
 import { Avatar, type Move } from "./Avatar";
 import { ChatView, type Item } from "./ChatView";
 import { CrewRoom, type Handoff } from "./CrewRoom";
 import { SettingsPanel } from "./SettingsPanel";
+import { applyUpdate, updateAvailable } from "./update";
 
 const msgItem = (m: Message): Item => ({ kind: "msg", key: `m${m.id}`, sender: m.sender, text: m.text, mkind: m.kind, ts: m.ts });
 
@@ -31,7 +32,9 @@ export default function App() {
   const [showNew, setShowNew] = useState(false);
   const [profile, setProfile] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [roomOpen, setRoomOpen] = useState(() => localStorage.getItem("tl-room") !== "0");
+  const [roomOpen, setRoomOpen] = useState(() => {
+    try { return localStorage.getItem("tl-room") === "1"; } catch { return false; }
+  });
   const [handoff, setHandoff] = useState<Handoff | null>(null);
   const [theme, setTheme] = useState(() => localStorage.getItem("tl-theme") ?? "dark");
   const activeRef = useRef(active);
@@ -40,6 +43,18 @@ export default function App() {
   activeRef.current = active;
   botsRef.current = bots;
   const wide = useWide(1240);
+  const phone = !useWide(761);
+  const [updateReady, setUpdateReady] = useState(false);
+
+  useEffect(() => {
+    // the laptop got a new build: offer Update (checked every minute and whenever the app comes back to the front)
+    const check = () => updateAvailable().then((yes) => yes && setUpdateReady(true));
+    check();
+    const t = window.setInterval(check, 60000);
+    const onShow = () => document.visibilityState === "visible" && check();
+    document.addEventListener("visibilitychange", onShow);
+    return () => { window.clearInterval(t); document.removeEventListener("visibilitychange", onShow); };
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -48,6 +63,19 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem("tl-room", roomOpen ? "1" : "0"); } catch { /* private mode */ }
   }, [roomOpen]);
+  useEffect(() => {
+    // Esc closes whatever is on top: a dialog, the bot profile, Settings, the chat list, then the Crew Room
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showNew) setShowNew(false);
+      else if (profile) setProfile(null);
+      else if (showSettings) setShowSettings(false);
+      else if (menuOpen) setMenuOpen(false);
+      else if (roomOpen && !wide) setRoomOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showNew, profile, showSettings, menuOpen, roomOpen, wide]);
 
   const move = useCallback((bot: string, m: Move, ms = 1500) => {
     setMoves((all) => ({ ...all, [bot]: m }));
@@ -64,12 +92,6 @@ export default function App() {
   }, []);
   useEffect(() => { loadChats().catch(() => setLive(false)); }, [loadChats]);
 
-  const [usage, setUsage] = useState({ req: 0, tok: 0 });
-  useEffect(() => {
-    api.usage().then((rows) => setUsage(rows.reduce(
-      (a, u) => ({ req: a.req + u.requests, tok: a.tok + u.tokens_in + u.tokens_out }), { req: 0, tok: 0 }))).catch(() => {});
-  }, []);
-
   useEffect(() => {
     api.messages(active).then((ms) =>
       setItems((all) => {
@@ -84,10 +106,7 @@ export default function App() {
   useEffect(() => {
     const add = (chat: string, item: Item) => setItems((all) => ({ ...all, [chat]: [...(all[chat] ?? []), item] }));
     const onEvent = (e: ServerEvent) => {
-      if (e.type === "usage") {
-        setUsage((u) => ({ req: u.req + 1, tok: u.tok + e.tokens_in + e.tokens_out }));
-        return;
-      }
+      if (e.type === "usage") return;
       const chat = e.chat_id;
       switch (e.type) {
         case "message": {
@@ -192,9 +211,8 @@ export default function App() {
     <div className={`app ${menuOpen ? "menu-open" : ""}`}>
       <nav className="rail">
         <div className="logo" title="TeamLoop"><span>⟳</span></div>
-        <button className="rail-btn on" title="Chats" onClick={() => setMenuOpen(!menuOpen)}>💬</button>
-        <button className={`rail-btn ${roomOpen ? "on" : ""}`} title="Crew Room" onClick={() => setRoomOpen(!roomOpen)}>🏠</button>
-        <button className="rail-btn" title="Meet the crew" onClick={() => setProfile("s")}>👥</button>
+        <button className={`rail-btn ${roomOpen ? "on" : ""}`} title={roomOpen ? "Hide the Crew Room" : "Show the Crew Room (3D)"}
+                onClick={() => setRoomOpen(!roomOpen)}>🏠</button>
         <div className="rail-spacer" />
         <button className="rail-btn" title={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☀" : "☾"}</button>
         <button className="rail-btn" title="Settings" onClick={() => setShowSettings(true)}>⚙</button>
@@ -208,29 +226,33 @@ export default function App() {
         <button className="new-group" onClick={() => setShowNew(true)}>＋ New group</button>
         <div className="section">The crew</div>
         {dms.map(row)}
+        <button className="sidebar-settings" onClick={() => { setMenuOpen(false); setShowSettings(true); }}>⚙ Settings</button>
       </aside>
       <div className="scrim" onClick={() => setMenuOpen(false)} />
 
       <main className="main">
+        {updateReady && (
+          <div className="update-bar">
+            <span>A new version of TeamLoop is ready.</span>
+            <button className="primary" onClick={applyUpdate}>Update</button>
+          </div>
+        )}
         {chat ? (
           <ChatView chat={chat} bots={bots} items={items[active] ?? []} typing={typing[active] ?? []} moves={moves}
-                    onMenu={() => setMenuOpen(true)}
-                    stage={!wide && roomOpen ? <div className="room-strip">{room(230)}</div> : null} />
+                    onMenu={() => setMenuOpen(true)} onBot={setProfile} />
         ) : (
           <section className="chat loading">{live ? "Loading…" : "Waiting for the TeamLoop server on port 8790…"}</section>
         )}
       </main>
 
-      {wide && (
-        <aside className="crewpanel">
-          {roomOpen && (
-            <div className="room-card">
-              <div className="room-head"><b>Crew Room</b><small>{working.length ? `${working.length} working` : asking.length ? "waiting for you" : "all free"}</small></div>
-              {room("100%")}
-            </div>
-          )}
-          <ActivityPanel bots={bots} chats={chats} items={items} typing={typing} moves={moves} usage={usage}
-                         onOpenChat={setActive} onOpenBot={setProfile} />
+      {roomOpen && !phone && (
+        <aside className={`crewpanel ${wide ? "" : "floating"}`}>
+          <div className="room-head">
+            <b>Crew Room</b>
+            <small>{working.length ? `${working.length} working` : asking.length ? "waiting for you" : "all free"}</small>
+            <button className="icon room-close" onClick={() => setRoomOpen(false)} aria-label="Close the Crew Room">✕</button>
+          </div>
+          {room("100%")}
         </aside>
       )}
 

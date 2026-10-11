@@ -69,7 +69,12 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 .group-badge { width: 38px; height: 38px; flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
 .badge { background: var(--grad); color: #fff; border-radius: 10px; font-size: 11.5px; font-weight: 700; padding: 1px 8px; }
 .new-group { margin: 6px 10px; text-align: left; background: transparent; border-style: dashed; color: var(--muted); }
-.main { flex: 1; min-width: 0; display: flex; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.update-bar { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 14px; background: var(--soft2); border-bottom: 1px solid var(--line2); font-size: 14px; }
+.update-bar button { padding: 5px 14px; }
+.sidebar-settings { display: none; margin: auto 10px 6px; text-align: left; background: transparent; }
+.app-version { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 20px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.app-version button { padding: 5px 12px; font-size: 13px; }
 .scrim { display: none; }
 
 /* ---- mascots ----------------------------------------------------------------------------------- */
@@ -98,7 +103,8 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 .chat-title b { font-size: 16px; }
 .chat-title small { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stop { border-color: color-mix(in srgb, var(--bad) 60%, transparent); color: var(--bad); background: rgb(255 107 129 / .08); font-weight: 600; }
-.room-strip { border-bottom: 1px solid var(--line); }
+.crew-btn { padding: 0; border: none; background: none; border-radius: 50%; cursor: pointer; }
+.crew-btn:hover { background: none; filter: brightness(1.15); }
 
 .log { flex: 1; overflow-y: auto; padding: 22px 26px 12px; display: flex; flex-direction: column; gap: 4px; }
 .empty { margin: auto; text-align: center; color: var(--muted); display: flex; flex-direction: column; gap: 8px; align-items: center; }
@@ -184,13 +190,15 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 .send { border-radius: 12px; padding: 8px 18px; }
 
 /* ---- crew room + activity --------------------------------------------------------------------- */
-.crewpanel { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; border-left: 1px solid var(--line); background: rgb(0 0 0 / .1); min-height: 0; }
-.room-card { height: 46%; min-height: 260px; display: flex; flex-direction: column; border-bottom: 1px solid var(--line); background: radial-gradient(circle at 50% 30%, #1c2552, #0a0e1c 75%); position: relative; }
-.room-head { position: absolute; top: 10px; left: 14px; right: 14px; z-index: 2; display: flex; justify-content: space-between; align-items: baseline; pointer-events: none; }
+.crewpanel { width: clamp(400px, 38vw, 640px); flex-shrink: 0; display: flex; flex-direction: column; border-left: 1px solid var(--line); min-height: 0; position: relative; background: radial-gradient(circle at 50% 30%, #1c2552, #0a0e1c 75%); }
+.crewpanel.floating { position: fixed; top: 12px; right: 12px; bottom: 12px; width: min(420px, calc(100% - 24px)); z-index: 15; border: 1px solid var(--line2); border-radius: 18px; overflow: hidden; box-shadow: 0 30px 80px rgb(0 0 0 / .5); animation: slide .2s ease-out; }
+.room-head { position: absolute; top: 10px; left: 14px; right: 10px; z-index: 2; display: flex; gap: 10px; align-items: center; }
+.room-head small { flex: 1; }
+.room-close { color: #c9d1f5; background: rgb(10 14 30 / .6); border-color: rgb(255 255 255 / .15); }
 .room-head b { color: #fff; font-size: 14px; letter-spacing: .02em; }
 .room-head small { color: #aab3dd; font-size: 12px; }
 .room { position: relative; width: 100%; flex: 1; overflow: hidden; background: radial-gradient(circle at 50% 30%, #1c2552, #0a0e1c 75%); }
-.room-card .room { background: transparent; }
+.crewpanel .room { background: transparent; }
 .room canvas { display: block; width: 100%; height: 100%; }
 .room-labels { position: absolute; inset: 0; pointer-events: none; }
 .room-label { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; white-space: nowrap; transition: opacity .2s; }
@@ -201,36 +209,6 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
 .room-label.ask i { color: #ffcf5c; }
 .room-label.hover b { transform: scale(1.12); }
 
-.activity-panel { flex: 1; overflow-y: auto; padding: 8px 14px 16px; display: flex; flex-direction: column; gap: 6px; }
-.activity-panel section { padding: 6px 0 4px; }
-.activity-panel h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); margin: 8px 2px 8px; display: flex; align-items: center; gap: 8px; font-weight: 700; }
-.count { font-size: 11px; letter-spacing: 0; background: var(--soft2); color: var(--text); border-radius: 10px; padding: 0 7px; }
-.count.warn { background: #ffcf5c; color: #1b1f2e; }
-.quiet { color: var(--faint); font-size: 13px; margin: 0 2px; }
-.card { background: var(--panel); border: 1px solid var(--line2); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--shadow); }
-.card.ask { border-color: rgb(255 207 92 / .45); background: linear-gradient(135deg, rgb(255 207 92 / .12), var(--panel)); }
-.card-head { display: flex; gap: 8px; align-items: center; cursor: pointer; }
-.card-head small { display: block; color: var(--muted); font-size: 11.5px; }
-.card p { margin: 6px 0; font-size: 13px; color: var(--muted); white-space: pre-wrap; max-height: 4.8em; overflow: hidden; }
-.card-btns { display: flex; gap: 8px; }
-.card-btns button { padding: 6px 12px; font-size: 13px; }
-.line { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 12px; padding: 7px 8px; font-size: 13.5px; }
-.line:hover { background: var(--soft); border-color: var(--line); }
-.line > span:not(.clock):not(.mark) { min-width: 0; flex: 1; }
-.line .clock, .line .mark { flex: none; }
-.line small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.line b { font-weight: 600; }
-.line code { font-size: 11.5px; background: var(--soft2); padding: 0 6px; border-radius: 6px; }
-.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--bot, var(--accent)); box-shadow: 0 0 0 0 var(--bot, var(--accent)); animation: pulse 1.4s infinite; flex-shrink: 0; }
-@keyframes pulse { 70% { box-shadow: 0 0 0 8px transparent; } }
-.clock { width: 26px; text-align: center; font-size: 16px; }
-.step-line .mark { width: 26px; text-align: center; font-weight: 800; color: var(--ok); }
-.step-line.fail .mark { color: var(--bad); }
-.usage-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
-.usage-box div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; text-align: center; }
-.usage-box b { display: block; font-size: 18px; }
-.usage-box small { color: var(--muted); font-size: 11px; }
-.usage-box .free { color: var(--ok); }
 
 /* ---- overlays: settings, profile, dialogs ----------------------------------------------------- */
 .overlay { position: fixed; inset: 0; background: rgb(5 8 20 / .55); backdrop-filter: blur(6px); display: flex; justify-content: flex-end; z-index: 20; animation: fade .15s; }
@@ -291,6 +269,7 @@ code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
   .rail { display: none; }
   .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 10; transform: translateX(-100%); transition: transform .2s; width: 84%; max-width: 310px; background: var(--solid); }
   .app.menu-open .sidebar { transform: none; }
+  .sidebar-settings { display: block; }
   .app.menu-open .scrim { display: block; position: fixed; inset: 0; background: rgb(0 0 0 / .4); z-index: 5; }
   .chat-head { padding: 10px 12px; }
   .chat-head .menu { display: inline-block; }
