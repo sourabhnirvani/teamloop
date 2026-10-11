@@ -51,4 +51,6 @@ test("laptop-only pages and a wrong secret get 404 before reaching the hub", asy
   const wrong = new Request("https://h.dev/__laptop", { headers: { "x-link-secret": "guess" } });
   assert.equal((await w.default.fetch(wrong, env)).status, 404);
   assert.equal(await (await w.default.fetch(new Request("https://h.dev/api/chats"), env)).text(), "hub");
+  // the phone's live updates come by long-poll under /api/events/: they must reach the laptop
+  assert.equal(await (await w.default.fetch(new Request("https://h.dev/api/events/poll?after=3"), env)).text(), "hub");
 });

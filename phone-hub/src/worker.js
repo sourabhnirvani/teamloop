@@ -10,7 +10,8 @@ import { DurableObject } from "cloudflare:workers";
 const TIMEOUT_MS = 45_000; // long-polls wait up to 25 s on the laptop
 const HOP = new Set(["connection", "keep-alive", "upgrade", "transfer-encoding", "te", "trailer", "proxy-authorization",
   "proxy-authenticate", "host", "content-length", "x-link-secret"]);
-const LAPTOP_ONLY = ["/console", "/docs", "/redoc", "/openapi.json", "/api/events"]; // /api/events is SSE: phones long-poll
+const LAPTOP_ONLY = ["/console", "/docs", "/redoc", "/openapi.json"]; // and everything under them
+const SSE = "/api/events"; // the laptop's stream, which a hub can't carry; phones long-poll /api/events/poll instead
 
 export function sameSecret(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || !a || a.length !== b.length) return false;
@@ -125,7 +126,7 @@ export default {
       if (!sameSecret(request.headers.get("x-link-secret") || "", env.LINK_SECRET || "")) {
         return new Response("not found", { status: 404 });
       }
-    } else if (LAPTOP_ONLY.some((p) => url.pathname === p || url.pathname.startsWith(p + "/"))) {
+    } else if (url.pathname === SSE || LAPTOP_ONLY.some((p) => url.pathname === p || url.pathname.startsWith(p + "/"))) {
       return new Response("not found", { status: 404 });
     }
     const hub = env.HUB.get(env.HUB.idFromName("teamloop"));
