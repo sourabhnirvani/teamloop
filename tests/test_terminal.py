@@ -103,3 +103,23 @@ async def test_stop_job_kills_a_running_job():
 async def test_secrets_in_output_are_hidden(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "gsk_" + "z" * 40)
     assert "gsk_" not in terminal._tail("key is gsk_" + "z" * 40)
+
+
+async def test_placeholder_paths_are_refused_before_asking():
+    """Yang's debug pass row 11: Desk ran a command on a {username} path, which doesn't exist."""
+    from teamloop.computer import terminal
+
+    asked = []
+
+    class Ctx:
+        chat_id = "t"
+
+        async def approve(self, *a, **k):
+            asked.append(a)
+            return True
+
+    for command in (r"Remove-Item C:\Users\{username}\Desktop\x.txt", r"dir <user>\Documents", "ls { User Name }"):
+        refused = await terminal._allowed(command, terminal.Path("."), Ctx())
+        assert refused is not None and "$env:USERPROFILE" in refused.text
+    assert asked == []  # refused before any approval card
+    assert await terminal._allowed(r"Get-ChildItem $env:USERPROFILE\Desktop", terminal.Path("."), Ctx()) is None

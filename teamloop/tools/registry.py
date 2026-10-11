@@ -84,7 +84,11 @@ def _say_how_the_card_ended(result: ToolResult, answer: str) -> ToolResult:
     if result.ok or not result.text.startswith(SAID_NO):
         return result
     if answer == "expired":
-        result.text = "No one answered the approval card in time" + result.text[len(SAID_NO):]
+        result.text = ("No one answered the approval card in time, so it counts as a no" + result.text[len(SAID_NO):]
+                       + " Don't try it again: tell the person it's waiting for their OK.")
+    elif answer == "expired_before":
+        result.text = ("No one answered the card for this a moment ago, so it still counts as a no (not asked again)"
+                       + result.text[len(SAID_NO):] + " Tell the person it's waiting for their OK.")
     elif answer == "denied_before":
         result.text = ("The person already said no to this a few minutes ago (not asked again)"
                        + result.text[len(SAID_NO):] + " Don't try it again unless they ask for it.")

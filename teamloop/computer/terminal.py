@@ -11,6 +11,7 @@ import asyncio
 import base64
 import contextlib
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -135,7 +136,13 @@ async def run(command: str, cwd: Path, timeout: float = TIMEOUT) -> tuple[int | 
         return code, stdout, _read(err).strip("\n"), new_cwd
 
 
+_PLACEHOLDER = re.compile(r"[{<]\s*(?:user\s*name|user|your\s*name|name)\s*[}>]", re.I)
+
+
 async def _allowed(command: str, cwd: Path, ctx) -> ToolResult | None:
+    if _PLACEHOLDER.search(command):  # e.g. C:\Users\{username}\Desktop: a guess, not a real path
+        return ToolResult(False, "That command has a placeholder like {username} in a path. Use the real folder: "
+                                 "$env:USERPROFILE (or $HOME) is the person's home folder.")
     level = risk.command_risk(command)
     if level == risk.NEVER:
         return ToolResult(False, "Refused: that command can wipe disks or boot settings, so the crew never runs it.")

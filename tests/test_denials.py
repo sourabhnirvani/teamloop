@@ -53,9 +53,11 @@ async def test_a_no_is_not_asked_again_until_the_person_says_so(tmp_path, monkey
     assert asked == ["Run a command", "Run a command"] and tool_texts(crew)[-1] == "OK: Deleted test.txt."
 
 
-async def test_no_answer_is_not_called_a_no_and_is_not_remembered(tmp_path, monkeypatch):
+async def test_no_answer_counts_as_a_no_for_the_rest_of_the_job(tmp_path, monkeypatch):
+    """Yang's debug pass row 11: the card expired and Desk at once re-ran the command and raised a second card."""
     install_risky(monkeypatch)
-    crew = make_crew(tmp_path, [call("risky"), "Nobody answered.", call("risky"), "Asked again."])
+    crew = make_crew(tmp_path, [call("risky"), call("risky"), "It's waiting for your OK.",  # one job, tried twice
+                                call("risky"), "Asked again."])                             # a new message
     crew.gate.timeout = 0.05
     asked = []
     with crew.bus.subscribe() as queue:
@@ -66,8 +68,10 @@ async def test_no_answer_is_not_called_a_no_and_is_not_remembered(tmp_path, monk
             e = queue.get_nowait()
             if e["type"] == "approval":
                 asked.append(e["id"])
-    assert len(asked) == 2  # an expired card doesn't stop the next ask
-    assert tool_texts(crew)[0].startswith("FAILED: No one answered the approval card in time")
+    texts = list(dict.fromkeys(tool_texts(crew)))  # each model call re-sends earlier tool results
+    assert texts[0].startswith("FAILED: No one answered the approval card in time, so it counts as a no")
+    assert "not asked again" in texts[1]
+    assert len(asked) == 2  # one card per message: the retry in the same job didn't ask again; the new message did
 
 
 async def test_stop_is_not_remembered_as_a_no(tmp_path, monkeypatch):
