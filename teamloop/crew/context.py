@@ -25,6 +25,8 @@ class TurnCtx:
     # Cards nobody answered in this job (shared with teammates' sub-turns): no answer counts as a no, so the same
     # request isn't asked again until the person sends a new message.
     unanswered: set = field(default_factory=set)
+    used: set = field(default_factory=set)   # tools any bot called in this job (an attempt counts)
+    spoke: set = field(default_factory=set)  # bots that really ran a turn in this job
 
     async def emit(self, type: str, **data: Any) -> None:
         await self.crew.bus.emit(type, chat_id=self.chat_id, **data)

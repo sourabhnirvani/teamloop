@@ -8,7 +8,8 @@ import re
 from typing import Any
 
 from teamloop import trace
-from teamloop.crew.bots import Bot, system_prompt
+from teamloop.crew import coverage
+from teamloop.crew.bots import BOTS, LEAD, Bot, system_prompt
 from teamloop.crew.context import TurnCtx
 from teamloop.tools import registry
 
@@ -33,18 +34,30 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
     messages: list[dict] = [{"role": "system", "content": system_prompt(bot, members, facts=_facts(ctx))}, *history,
                             {"role": "user", "content": user_text}]
     seen: dict[tuple[str, str], int] = {}
+    ctx.spoke.add(bot.id)
+    checked = False  # the lead is sent back at most once per job for a skipped step or an invented result
     with trace.span(f"{bot.name} turn", "agent", bot=bot.id, chat=ctx.chat_id, depth=ctx.depth) as sp:
         sp.set("input.value", user_text)
-        for _ in range(max_steps):
+        steps = max_steps
+        while steps > 0:
+            steps -= 1
             ctx.check_stop()
             reply = await router.chat(messages, tools=tool_schemas, prefer=prefer, purpose=f"turn:{bot.id}")
             if not reply.tool_calls:
                 text = clean_reply(reply.text)
+                back = None if checked else _check_lead(bot, ctx, user_text, text, history)
+                if back:
+                    checked = True
+                    sp.set("coverage.nudge", back)
+                    messages += [{"role": "assistant", "content": text}, {"role": "user", "content": back}]
+                    steps = max(steps, 4)  # room to do the missing step and report
+                    continue
                 sp.set("output.value", text)
                 return text
             messages.append(reply.message)
             for call in reply.tool_calls:
                 ctx.check_stop()
+                ctx.used.add(call.name)
                 key = (call.name, json.dumps(call.args, sort_keys=True, default=str))
                 seen[key] = seen.get(key, 0) + 1
                 if seen[key] > MAX_SAME_CALL:  # free models loop; a third identical call won't change anything
@@ -67,6 +80,18 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
 
 
 _CITATION = re.compile(r"\s?【[^】\n]{0,80}】")  # gpt-oss leaves "【fetch_page†0】" markers in its text
+
+
+def _check_lead(bot: Bot, ctx: TurnCtx, goal: str, text: str, history: list[dict]) -> str | None:
+    """For the lead's own reply to the person: a nudge when a requested step was skipped (only in a job it
+    handed out) or when it reports a teammate's result that teammate never produced (in this job or the chat)."""
+    if bot.id != LEAD or ctx.depth != 0:
+        return None
+    todo = coverage.missing(goal, ctx.used) if "delegate" in ctx.used else []
+    names = {b.id: b.name for b in BOTS.values() if b.id != LEAD}
+    heard = {i for i, n in names.items() if any(str(m.get("content", "")).startswith(f"[{n}]") for m in history)}
+    claimed = coverage.false_claims(text, names, ctx.spoke | heard)
+    return coverage.nudge(todo, claimed) if (todo or claimed) else None
 
 
 def clean_reply(text: str) -> str:
