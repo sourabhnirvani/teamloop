@@ -26,6 +26,7 @@ from teamloop.crew.events import Bus
 from teamloop.computer import terminal
 from teamloop.crew.store import TASK_STATES, Store
 from teamloop.crew.team import Crew
+from teamloop.keys import entries as key_rows
 from teamloop.keys import vault, wallet
 from teamloop.models import doctor
 from teamloop.models import providers as P
@@ -363,6 +364,27 @@ def create_app(crew: Crew | None = None) -> FastAPI:
             names = []
         return {"locked": len(names), "names": names,
                 "blocked": get_crew().store.get_setting(registry.BLOCKED, []) or []}
+
+    @app.get("/api/keys/entries")
+    def key_entries() -> list[dict]:
+        return key_rows.entries(get_crew().store)
+
+    @app.post("/api/keys/test")
+    async def test_keys() -> list[dict]:
+        return await key_rows.test_all(get_crew().store)
+
+    @app.post("/api/keys/cleanup")
+    def clean_up_keys() -> dict:
+        return key_rows.cleanup(get_crew().store)
+
+    @app.delete("/api/keys/{env}")
+    def remove_key(env: str) -> dict:
+        try:
+            if not key_rows.remove(get_crew().store, env):
+                raise HTTPException(404, f"No saved key is called {env}.")
+        except key_rows.FromEnv as e:
+            raise HTTPException(409, str(e))
+        return {"removed": env}
 
     @app.get("/api/keys")
     def keys() -> list[dict]:

@@ -136,7 +136,8 @@ Coming next (Phase 2, 11-12 Oct; each lands with tests, the UI follows):
 | `POST /api/routines {chat_id, text, schedule}` | add a routine (400 says why a schedule can't be read) |
 | `POST /api/settings {bot_only: {bot: bool}}` | "only this model, no fallback" per bot |
 | `GET /api/overview` · `GET /api/security` | Settings home status lines; key vault count + blocked key-leak attempts |
-| `GET /api/keys` entries · `POST /api/keys/test` · `DELETE /api/keys/{env}` | per-key status (works / rejected + why), test all, remove |
+| `GET /api/keys/entries` · `POST /api/keys/test` · `DELETE /api/keys/{env}` · `POST /api/keys/cleanup` | one row per key `{env, provider, provider_name, masked "…abcd", status: works/rejected/unchecked, reason, source: vault/env}` (`GET /api/keys` stays a list, unchanged); test all returns the rows; remove gives 409 for a key from .env, 404 for an unknown name; cleanup removes rejected vault keys and returns `{removed, kept_env}` |
+| `GET /api/security` | `{locked: vault entry count, names: [vault names only], blocked: [{ts, bot, tool, what}]}` |
 | `GET /api/hub` · `POST /api/hub/setup` | fixed phone link status / set up (laptop only) |
 
 ## 5. Talking to each other: ccbridge
