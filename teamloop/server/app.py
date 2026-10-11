@@ -19,7 +19,9 @@ from pydantic import BaseModel
 
 from teamloop import config, kits, trace
 from teamloop.crew import routines
+from teamloop.crew import bots as crew_bots
 from teamloop.crew.bots import BOTS, ROSTER
+from teamloop.tools import registry
 from teamloop.crew.events import Bus
 from teamloop.computer import terminal
 from teamloop.crew.store import TASK_STATES, Store
@@ -49,6 +51,34 @@ class Answer(BaseModel):
 
 class KeyText(BaseModel):
     text: str
+
+
+LOOK_KEYS = ("body", "accessory", "eyes", "colour")
+
+
+class NewBot(BaseModel):
+    name: str
+    role: str = ""
+    persona: str = ""
+    look: dict = {}
+
+
+class BotPatch(BaseModel):
+    name: str | None = None
+    role: str | None = None
+    persona: str | None = None  # "" puts a built-in bot's own job & rules back
+    muted: bool | None = None
+    look: dict | None = None
+
+
+class NewRoutine(BaseModel):
+    chat_id: str
+    text: str
+    schedule: str
+
+
+def _look(look: dict | None) -> dict:
+    return {k: str(v)[:24] for k, v in (look or {}).items() if k in LOOK_KEYS}
 
 
 class NewTask(BaseModel):
@@ -129,8 +159,90 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     @app.get("/api/bots")
     def bots() -> list[dict]:
         c = get_crew()
-        return [{"id": b.id, "name": b.name, "role": b.role, "emoji": b.emoji,
-                 "model": c.model_for(b.id) or "auto", "only": c.only_for(b.id)} for b in ROSTER]
+        over = c.store.get_setting(crew_bots.OVERRIDES, {}) or {}
+        custom = {b["id"]: b for b in c.store.get_setting(crew_bots.CUSTOM, []) or []}
+        builtin = {b.id: b for b in ROSTER}
+        out = []
+        for b in crew_bots.crew():
+            look = (over.get(b.id) or {}).get("look") or (custom.get(b.id) or {}).get("look") or None
+            out.append({"id": b.id, "name": b.name, "role": b.role, "emoji": b.emoji,
+                        "model": c.model_for(b.id) or "auto", "only": c.only_for(b.id),
+                        "custom": b.custom, "muted": b.muted, "persona": b.persona, "look": look,
+                        "default_persona": builtin[b.id].persona if b.id in builtin else None,
+                        "tools": [t.name for t in registry.tools_for_kits(list(b.kits))]})
+        return out
+
+    async def bots_changed() -> None:
+        crew = get_crew()
+        crew_bots.load(crew.store)
+        await crew.bus.emit("settings", chat_id=None, **settings())  # open apps reload the crew
+
+    @app.post("/api/bots")
+    async def new_bot(body: NewBot) -> dict:
+        crew = get_crew()
+        name = body.name.strip()[:24]
+        if not name:
+            raise HTTPException(400, "Give the bot a name.")
+        if crew_bots.find_bot(name):
+            raise HTTPException(409, f"There's already a bot called {name}.")
+        bot_id, n = crew_bots.slug(name), 2
+        while bot_id in BOTS or crew.store.get_chat(f"dm-{bot_id}"):
+            bot_id, n = f"{crew_bots.slug(name)}-{n}", n + 1
+        row = {"id": bot_id, "name": name, "role": body.role.strip()[:40] or "Helper",
+               "persona": body.persona.strip()[:2000] or crew_bots.DEFAULT_PERSONA, "look": _look(body.look),
+               "kits": list(crew_bots.CUSTOM_KITS)}
+        crew.store.set_setting(crew_bots.CUSTOM, [*(crew.store.get_setting(crew_bots.CUSTOM, []) or []), row])
+        crew.store.create_chat(name, [bot_id], chat_id=f"dm-{bot_id}")
+        team = crew.store.get_chat("team")
+        if team and bot_id not in team["members"]:
+            crew.store.update_members("team", [*team["members"], bot_id])
+        await bots_changed()
+        return next(b for b in bots() if b["id"] == bot_id)
+
+    @app.patch("/api/bots/{bot_id}")
+    async def edit_bot(bot_id: str, body: BotPatch) -> dict:
+        crew = get_crew()
+        if bot_id not in BOTS:
+            raise HTTPException(404, "No such bot.")
+        over = dict(crew.store.get_setting(crew_bots.OVERRIDES, {}) or {})
+        mine = dict(over.get(bot_id) or {})
+        if body.persona is not None:
+            if body.persona.strip():
+                mine["persona"] = body.persona.strip()[:2000]
+            else:
+                mine.pop("persona", None)
+        if body.muted is not None:
+            mine["muted"] = body.muted
+        if body.look is not None:
+            mine["look"] = _look(body.look)
+        over[bot_id] = mine
+        crew.store.set_setting(crew_bots.OVERRIDES, over)
+        if BOTS[bot_id].custom and (body.name or body.role):
+            rows = crew.store.get_setting(crew_bots.CUSTOM, []) or []
+            for row in rows:
+                if row["id"] == bot_id:
+                    row["name"] = (body.name or row["name"]).strip()[:24]
+                    row["role"] = (body.role or row["role"]).strip()[:40]
+            crew.store.set_setting(crew_bots.CUSTOM, rows)
+        await bots_changed()
+        return next(b for b in bots() if b["id"] == bot_id)
+
+    @app.delete("/api/bots/{bot_id}")
+    async def delete_bot(bot_id: str) -> dict:
+        crew = get_crew()
+        if bot_id not in BOTS:
+            raise HTTPException(404, "No such bot.")
+        if not BOTS[bot_id].custom:
+            raise HTTPException(400, "The built-in crew can't be removed (you can mute a bot instead).")
+        crew.store.set_setting(crew_bots.CUSTOM, [r for r in crew.store.get_setting(crew_bots.CUSTOM, []) or []
+                                                  if r["id"] != bot_id])
+        for chat in crew.store.chats():
+            if chat["members"] == [bot_id]:
+                crew.store.delete_chat(chat["id"])
+            elif bot_id in chat["members"]:
+                crew.store.update_members(chat["id"], [m for m in chat["members"] if m != bot_id])
+        await bots_changed()
+        return {"ok": True}
 
     @app.get("/api/chats")
     def chats() -> list[dict]:
@@ -269,6 +381,18 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     @app.get("/api/routines")
     def list_routines() -> list[dict]:
         return routines.listing(get_crew())
+
+    @app.post("/api/routines")
+    def add_routine(body: NewRoutine) -> dict:
+        crew = get_crew()
+        if crew.store.get_chat(body.chat_id) is None:
+            raise HTTPException(404, "No such chat.")
+        if not body.text.strip():
+            raise HTTPException(400, "Say what the routine should do.")
+        try:
+            return routines.add(crew, body.chat_id, body.text.strip(), body.schedule.strip())
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
 
     @app.delete("/api/routines/{routine_id}")
     def cancel_routine(routine_id: str) -> dict:

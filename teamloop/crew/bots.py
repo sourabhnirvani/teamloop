@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
 from datetime import datetime
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -14,6 +16,8 @@ class Bot:
     role: str
     kits: tuple[str, ...]
     persona: str
+    custom: bool = False  # made by the person with "Build a bot"
+    muted: bool = False   # stays quiet in group rounds; still works when handed a job or @named
 
 
 LEAD = "s"
@@ -41,7 +45,34 @@ ROSTER: tuple[Bot, ...] = (
         "each link once)."),
 )
 
+# The live crew: the built-ins (with the person's edits) plus bots they built. Filled by load(store); the
+# dict is updated in place so every module that imported it sees the same crew.
 BOTS: dict[str, Bot] = {b.id: b for b in ROSTER}
+
+OVERRIDES = "bot_overrides"  # setting: {bot id: {"persona": str, "muted": bool, "look": {...}}}
+CUSTOM = "custom_bots"       # setting: [{id, name, role, persona, look, kits}]
+CUSTOM_KITS = ("web", "files_read", "memory")  # a new bot starts with web search, reading files and memory
+DEFAULT_PERSONA = "You help the person with whatever your job below says. Keep it short and real."
+
+
+def load(store: Any) -> None:
+    over = store.get_setting(OVERRIDES, {}) or {}
+    BOTS.clear()
+    for b in ROSTER:
+        o = over.get(b.id, {})
+        BOTS[b.id] = replace(b, persona=o.get("persona") or b.persona, muted=bool(o.get("muted")))
+    for c in store.get_setting(CUSTOM, []) or []:
+        o = over.get(c["id"], {})
+        BOTS[c["id"]] = Bot(c["id"], c["name"], "🤖", c.get("role") or "Helper", tuple(c.get("kits") or CUSTOM_KITS),
+                            o.get("persona") or c.get("persona") or DEFAULT_PERSONA, custom=True, muted=bool(o.get("muted")))
+
+
+def crew() -> list[Bot]:
+    return list(BOTS.values())
+
+
+def slug(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:24] or "bot"
 
 RULES = """Rules:
 - Reply short and plain, like a helpful teammate. No headings, at most a few bullets.
@@ -71,7 +102,7 @@ LEAD_RULES = """How you lead:
 
 def find_bot(name: str) -> Bot | None:
     key = name.strip().lstrip("@").lower()
-    return BOTS.get(key) or next((b for b in ROSTER if b.name.lower() == key), None)
+    return BOTS.get(key) or next((b for b in BOTS.values() if b.name.lower() == key), None)
 
 
 def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | None = None,
@@ -85,9 +116,9 @@ def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | No
     if bot.id != LEAD:
         parts[-1] += "\n" + WORKER_RULES
         parts.append("The crew (name one of these when a job isn't yours):\n"
-                     + "\n".join(f"- {b.name}: {b.role}" for b in ROSTER if b.id != bot.id))
+                     + "\n".join(f"- {b.name}: {b.role}" for b in crew() if b.id != bot.id))
     else:
-        team = [BOTS[m] for m in (members or BOTS) if m in BOTS and m != LEAD] or [b for b in ROSTER if b.id != LEAD]
+        team = [BOTS[m] for m in (members or BOTS) if m in BOTS and m != LEAD] or [b for b in crew() if b.id != LEAD]
         parts.append(LEAD_RULES)
         parts.append("Your teammates (use these ids with delegate):\n"
                      + "\n".join(f"- {b.id}: {b.name}, {b.role}. {b.persona}" for b in team))

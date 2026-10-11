@@ -56,8 +56,13 @@ def tool(name: str, description: str, params: dict | None = None, kit: str = "co
     return register
 
 
+READ_ONLY_FILES = ("read_file", "list_files")
+
+
 def tools_for_kits(kits: list[str]) -> list[Tool]:
-    return [t for t in REGISTRY.values() if t.kit in kits]
+    """A kit's tools; "files_read" is the files kit without writing (what a new bot starts with)."""
+    return [t for t in REGISTRY.values()
+            if t.kit in kits or ("files_read" in kits and t.kit == "files" and t.name in READ_ONLY_FILES)]
 
 
 def schemas(tools: list[Tool]) -> list[dict]:

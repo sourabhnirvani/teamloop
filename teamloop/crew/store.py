@@ -78,6 +78,10 @@ class Store:
             chat["last"] = last.get(chat["id"])
         return out
 
+    def delete_chat(self, chat_id: str) -> None:
+        self._run("DELETE FROM messages WHERE chat_id=?", (chat_id,))
+        self._run("DELETE FROM chats WHERE id=?", (chat_id,))
+
     def update_members(self, chat_id: str, members: list[str]) -> None:
         self._run("UPDATE chats SET members=? WHERE id=?", (json.dumps(members), chat_id))
 

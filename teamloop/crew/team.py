@@ -11,6 +11,7 @@ from typing import Any
 from teamloop import trace
 from teamloop.computer.gate import Gate
 from teamloop.crew import commands, fastpath
+from teamloop.crew import bots as crew_bots
 from teamloop.crew.bots import BOTS, LEAD, ROSTER, Bot, find_bot
 from teamloop.crew.context import Stopped, TurnCtx
 from teamloop.crew.events import Bus
@@ -45,6 +46,7 @@ class Crew:
         self._tasks: dict[str, asyncio.Task] = {}
         self._stops: dict[str, asyncio.Event] = {}
         self.busy: dict[str, dict[str, int]] = {}  # chat id -> bot id -> how many turns it is running
+        crew_bots.load(store)  # built-ins with the person's edits, plus the bots they built
 
     # ---- setup ----------------------------------------------------------------------------
     def ensure_default_chats(self) -> None:
@@ -162,7 +164,7 @@ class Crew:
                 is_round = (not self.mentioned(chat, text) and len(chat["members"]) > 1
                             and _TEAM_WORDS.search(text) and not self.saving())
                 if is_round:
-                    order = [lead] + [BOTS[m] for m in chat["members"] if m in BOTS and m != lead.id]
+                    order = [lead] + [BOTS[m] for m in chat["members"] if m in BOTS and m != lead.id and not BOTS[m].muted]
                 for i, bot in enumerate(order):
                     reply = await self._turn(bot, chat, text, TurnCtx(chat["id"], bot.id, self, stop),
                                              note=ROUND_NOTE if is_round and i > 0 else None)
@@ -255,7 +257,7 @@ class Crew:
     async def delegate(self, ctx: TurnCtx, bot_name: str, instruction: str) -> ToolResult:
         bot = find_bot(bot_name)
         if bot is None or bot.id == LEAD:
-            names = ", ".join(b.id for b in ROSTER if b.id != LEAD)
+            names = ", ".join(b.id for b in crew_bots.crew() if b.id != LEAD)
             return ToolResult(False, f"There is no teammate called {bot_name!r}. Teammates: {names}.")
         if not instruction.strip():
             return ToolResult(False, "Give the teammate a clear instruction.")
