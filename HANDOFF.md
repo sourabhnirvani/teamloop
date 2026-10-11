@@ -192,3 +192,66 @@ Your list, in order:
    - min window 900x640
    - `waitForServer` shows an error page with the log path after 45 s, keeps retrying, and reloads when the server answers.
 6. Your evidence items: video, cfo.ai, posts, hackathon.md.
+
+## 7. Sun 11 Oct, evening: BUILD work for jrkrishh (Sourabh: "don't let one Claude build everything")
+
+Pull first; main is at a8c2856 or later. Every endpoint, the Board, Jobs, Always-allow, the model chip, the
+phone hub and the custom-bot backend are in. Sourabh is building the "Build a bot" and profile screens in ui/
+right now.
+
+So we don't collide: you own the new files below. Sourabh wires your page components into
+`ui/src/SettingsView.tsx` (one line each) once you push. Each piece needs:
+- pytest tests
+- a Chrome check on `scripts/rehearse.py` (port 8791, zero tokens)
+- a row in `evidence/runs/parity-yang.md`
+- small commits, with `git pull --rebase` before each push
+
+Rules that still apply:
+- No API keys in code, tests or evidence.
+- Free models only.
+- Never read or copy Agent S source. Use its running app and README as the reference for *behaviour*.
+
+### Build A. Telegram in Settings (your telegram.py)
+1. **Backend**
+   - `GET /api/integrations`: `{telegram: {on, bot_name, allowed_ids_count, error}, tracing: {on}, default_provider}`.
+   - `POST /api/integrations/telegram {token?, allowed_ids?}`: saves through the vault as TELEGRAM_TOKEN / TELEGRAM_CHAT_ID, and starts or restarts the bridge **without** a server restart.
+   - `DELETE` turns it off.
+2. **UI:** `ui/src/settings/IntegrationsPage.tsx`, exporting `IntegrationsPage({ header }: { header: React.ReactNode })`, with:
+   - status rows for Telegram and neatlogs tracing
+   - a token box, plus "allowed people" (Telegram user IDs)
+   - plain help text on how to make a bot with @BotFather
+3. **Tests:** token saved and redacted; bridge restarts; bad token gives a clear error.
+
+### Build B. Operator safety (new teamloop/computer/operator.py)
+1. **Pause while the person uses the mouse or keyboard.** Before any screen action (type_text, press_keys, ui_act, click), wait until there has been no user input for 3 s (GetLastInputInfo via ctypes). Ignore our own sends by timestamp. Carry on by itself afterwards.
+2. **Stop everything from anywhere.** Add `POST /api/stop-all`, which runs crew.stop on every chat. In desktop/main.js, register Electron `globalShortcut` Ctrl+Alt+Q to call it, and show a tray balloon "Stopped".
+3. **Recent screen tasks.** Keep a ring buffer of the last 20 computer-kit steps (time, bot, tool, ok, text). Serve it, with the pause state, at `GET /api/operator`.
+4. **UI:** `ui/src/settings/OperatorPage.tsx`, exporting `OperatorPage({ header })`. It shows:
+   - the rules: "sends only when your words say send", "pauses while you use the mouse", "Ctrl+Alt+Q stops everything", "never types passwords/keys"
+   - Paused or Ready
+   - the recent screen tasks list
+5. **Tests:** the pause waits and resumes (fake clock); stop-all stops every chat.
+
+### Build C. Key security (registry, terminal, files, plus a new endpoint)
+1. **Tool calls carrying a key are blocked.** In `tools/registry.run`, refuse any tool call whose args contain a known secret (`keys.redact` knows them). Log it as `{ts, bot, tool, what}` (no key text) to a store table or setting `security_blocked`.
+2. **Programs Desk runs get no keys.** `terminal.run` and `start_job` pass `env=` with every name matching `redact._SECRET_NAME` removed.
+3. **File tools can't read secrets.** They refuse the vault file, `.env` and `*.db`.
+4. **`GET /api/security`** returns `{locked: <number of vault entries>, names: [...names only...], blocked: [...]}`.
+5. **UI:** `ui/src/settings/SecurityPage.tsx`, exporting `SecurityPage({ header })`, with "N keys locked", the guarantees as ✅ lines, and the Blocked list.
+6. **Tests:**
+   - a web_search with a key in the query is blocked and logged
+   - `$env:GROQ_API_KEY` is empty inside run_command
+   - read_file on .env is refused
+
+### Build D. desktop/ (yours)
+- Minimum window size 900x640.
+- `waitForServer` shows an error page with the log path after 45 s, keeps retrying, and reloads when the server answers.
+- The Ctrl+Alt+Q hotkey from B.
+- Review `refreshIcon()` (it loads `/app-icon.png` after each page load).
+
+### Then, in this order
+1. Re-run the debug rows listed in §6.
+2. The live demo goal, 3 runs each on Groq / Gemini / NVIDIA.
+3. The parity analysis.
+
+Write evidence for each.
