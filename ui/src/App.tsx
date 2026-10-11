@@ -1,10 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, listen, type Bot, type Chat, type Message, type ServerEvent } from "./api";
+import { ActivityPanel, BotProfile } from "./ActivityPanel";
 import { Avatar, type Move } from "./Avatar";
 import { ChatView, type Item } from "./ChatView";
+import { CrewRoom, type Handoff } from "./CrewRoom";
 import { SettingsPanel } from "./SettingsPanel";
 
 const msgItem = (m: Message): Item => ({ kind: "msg", key: `m${m.id}`, sender: m.sender, text: m.text, mkind: m.kind, ts: m.ts });
+
+function useWide(px: number) {
+  const [wide, setWide] = useState(() => window.innerWidth >= px);
+  useEffect(() => {
+    const on = () => setWide(window.innerWidth >= px);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [px]);
+  return wide;
+}
 
 export default function App() {
   const [bots, setBots] = useState<Record<string, Bot>>({});
@@ -17,12 +29,27 @@ export default function App() {
   const [live, setLive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [profile, setProfile] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [roomOpen, setRoomOpen] = useState(() => localStorage.getItem("tl-room") !== "0");
+  const [handoff, setHandoff] = useState<Handoff | null>(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem("tl-theme") ?? "dark");
   const activeRef = useRef(active);
   const timers = useRef<Record<string, number>>({});
+  const botsRef = useRef(bots);
   activeRef.current = active;
+  botsRef.current = bots;
+  const wide = useWide(1240);
 
-  const move = useCallback((bot: string, m: Move, ms = 1400) => {
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("tl-theme", theme); } catch { /* private mode */ }
+  }, [theme]);
+  useEffect(() => {
+    try { localStorage.setItem("tl-room", roomOpen ? "1" : "0"); } catch { /* private mode */ }
+  }, [roomOpen]);
+
+  const move = useCallback((bot: string, m: Move, ms = 1500) => {
     setMoves((all) => ({ ...all, [bot]: m }));
     window.clearTimeout(timers.current[bot]);
     if (m !== "think" && m !== "ask") {
@@ -35,18 +62,13 @@ export default function App() {
     setBots(Object.fromEntries(b.map((x) => [x.id, x])));
     setChats(c);
   }, []);
+  useEffect(() => { loadChats().catch(() => setLive(false)); }, [loadChats]);
 
-  useEffect(() => {
-    loadChats().catch(() => setLive(false));
-  }, [loadChats]);
-
-  // Today's model calls: loaded once, then counted live from usage events, so free-tier use stays visible.
   const [usage, setUsage] = useState({ req: 0, tok: 0 });
-  const loadUsage = useCallback(() => {
+  useEffect(() => {
     api.usage().then((rows) => setUsage(rows.reduce(
       (a, u) => ({ req: a.req + u.requests, tok: a.tok + u.tokens_in + u.tokens_out }), { req: 0, tok: 0 }))).catch(() => {});
   }, []);
-  useEffect(loadUsage, [loadUsage]);
 
   useEffect(() => {
     api.messages(active).then((ms) =>
@@ -76,7 +98,14 @@ export default function App() {
           });
           if (e.message.sender !== "user") {
             const failed = /^(failed:|not mine:)/i.test(e.message.text);
-            move(e.message.sender, failed ? "oops" : e.message.kind === "handoff" ? "talk" : "cheer");
+            if (e.message.kind === "handoff") {
+              const name = e.message.text.match(/^@(\w+)/)?.[1]?.toLowerCase();
+              const to = Object.values(botsRef.current).find((b) => b.id === name || b.name.toLowerCase() === name);
+              if (to) setHandoff({ from: e.message.sender, to: to.id, key: Date.now() });
+              move(e.message.sender, "talk");
+            } else {
+              move(e.message.sender, failed ? "oops" : "cheer");
+            }
           }
           if (chat !== activeRef.current) setUnread((u) => ({ ...u, [chat]: (u[chat] ?? 0) + 1 }));
           break;
@@ -105,6 +134,7 @@ export default function App() {
               }
               return { ...all, [chat]: list };
             });
+            if (e.status === "fail") move(e.bot, "oops");
           }
           break;
         case "approval":
@@ -117,6 +147,7 @@ export default function App() {
             ...all,
             [chat]: (all[chat] ?? []).map((i) => (i.kind === "approval" && i.id === e.id ? { ...i, status: e.status } : i)),
           }));
+          setMoves((all) => Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v === "ask" ? "idle" : v])));
           break;
         case "screenshot":
           add(chat, { kind: "shot", key: `p${e.url}`, bot: e.bot, url: e.url });
@@ -129,20 +160,28 @@ export default function App() {
   const chat = chats.find((c) => c.id === active);
   const dms = chats.filter((c) => c.members.length === 1);
   const groups = chats.filter((c) => c.members.length > 1);
+  const crew = useMemo(() => Object.values(bots), [bots]);
+  const working = useMemo(() => [...new Set(Object.values(typing).flat())], [typing]);
+  const asking = useMemo(() => [...new Set(Object.values(items).flat()
+    .filter((i): i is Extract<Item, { kind: "approval" }> => i.kind === "approval" && !i.status).map((i) => i.bot))], [items]);
+
+  const room = (h: number | string) => (
+    <CrewRoom bots={crew} moves={moves} working={working} asking={asking} handoff={handoff} onPick={(id) => setProfile(id)} height={h} />
+  );
 
   const row = (c: Chat) => {
     const first = bots[c.members[0]];
-    const working = (typing[c.id] ?? []).length > 0;
+    const busy = (typing[c.id] ?? []).length > 0;
     return (
       <button key={c.id} className={`chat-row ${c.id === active ? "on" : ""}`} onClick={() => setActive(c.id)}>
         {c.members.length === 1 ? (
-          <Avatar bot={first} move={moves[first?.id ?? ""]} size={34} />
+          <Avatar bot={first} move={moves[first?.id ?? ""]} size={38} />
         ) : (
-          <span className="group-badge">{c.members.slice(0, 3).map((m) => <Avatar key={m} bot={bots[m]} size={20} />)}</span>
+          <span className="group-badge">{c.members.slice(0, 4).map((m) => <Avatar key={m} bot={bots[m]} size={22} />)}</span>
         )}
         <span className="row-text">
           <b>{c.title}</b>
-          <small>{working ? "working…" : c.members.length === 1 ? first?.role : `${c.members.length} bots`}</small>
+          <small className={busy ? "busy" : ""}>{busy ? `${(typing[c.id] ?? []).map((id) => bots[id]?.name).join(", ")} working…` : c.members.length === 1 ? first?.role : `${c.members.length} bots`}</small>
         </span>
         {(unread[c.id] ?? 0) > 0 && <span className="badge">{unread[c.id]}</span>}
       </button>
@@ -151,29 +190,59 @@ export default function App() {
 
   return (
     <div className={`app ${menuOpen ? "menu-open" : ""}`}>
+      <nav className="rail">
+        <div className="logo" title="TeamLoop"><span>⟳</span></div>
+        <button className="rail-btn on" title="Chats" onClick={() => setMenuOpen(!menuOpen)}>💬</button>
+        <button className={`rail-btn ${roomOpen ? "on" : ""}`} title="Crew Room" onClick={() => setRoomOpen(!roomOpen)}>🏠</button>
+        <button className="rail-btn" title="Meet the crew" onClick={() => setProfile("s")}>👥</button>
+        <div className="rail-spacer" />
+        <button className="rail-btn" title={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☀" : "☾"}</button>
+        <button className="rail-btn" title="Settings" onClick={() => setShowSettings(true)}>⚙</button>
+        <span className={`live ${live ? "on" : ""}`} title={live ? "connected" : "reconnecting"} />
+      </nav>
+
       <aside className="sidebar">
-        <div className="brand">
-          <span>🧭 TeamLoop</span>
-          <span className="usage-chip" title="Model requests and tokens used today">
-            {usage.req} calls · {usage.tok >= 1000 ? `${(usage.tok / 1000).toFixed(1)}k` : usage.tok} tok
-          </span>
-          <span className={`live ${live ? "on" : ""}`} title={live ? "connected" : "reconnecting"} />
-        </div>
-        <div className="section">Team</div>
+        <div className="brand"><b>TeamLoop</b><small>your AI crew</small></div>
+        <div className="section">Group chats</div>
         {groups.map(row)}
-        <button className="new-group" onClick={() => setShowNew(true)}>+ New group</button>
-        <div className="section">Bots</div>
+        <button className="new-group" onClick={() => setShowNew(true)}>＋ New group</button>
+        <div className="section">The crew</div>
         {dms.map(row)}
-        <button className="settings-btn" onClick={() => setShowSettings(true)}>⚙ Settings</button>
       </aside>
       <div className="scrim" onClick={() => setMenuOpen(false)} />
-      {chat ? (
-        <ChatView chat={chat} bots={bots} items={items[active] ?? []} typing={typing[active] ?? []} moves={moves}
-                  onMenu={() => setMenuOpen(true)} />
-      ) : (
-        <section className="chat loading">{live ? "Loading…" : "Waiting for the TeamLoop server on port 8790…"}</section>
+
+      <main className="main">
+        {chat ? (
+          <ChatView chat={chat} bots={bots} items={items[active] ?? []} typing={typing[active] ?? []} moves={moves}
+                    onMenu={() => setMenuOpen(true)}
+                    stage={!wide && roomOpen ? <div className="room-strip">{room(230)}</div> : null} />
+        ) : (
+          <section className="chat loading">{live ? "Loading…" : "Waiting for the TeamLoop server on port 8790…"}</section>
+        )}
+      </main>
+
+      {wide && (
+        <aside className="crewpanel">
+          {roomOpen && (
+            <div className="room-card">
+              <div className="room-head"><b>Crew Room</b><small>{working.length ? `${working.length} working` : asking.length ? "waiting for you" : "all free"}</small></div>
+              {room("100%")}
+            </div>
+          )}
+          <ActivityPanel bots={bots} chats={chats} items={items} typing={typing} moves={moves} usage={usage}
+                         onOpenChat={setActive} onOpenBot={setProfile} />
+        </aside>
       )}
+
       {showSettings && <SettingsPanel bots={bots} onClose={() => setShowSettings(false)} />}
+      {profile && bots[profile] && (
+        <BotProfile bot={bots[profile]} bots={bots} chats={chats} typing={typing} onClose={() => setProfile(null)}
+                    onChat={(id) => {
+                      if (id.startsWith("__profile:")) { setProfile(id.slice(10)); return; }
+                      setProfile(null);
+                      setActive(id);
+                    }} />
+      )}
       {showNew && (
         <NewGroup bots={bots} onClose={() => setShowNew(false)} onMade={async (c) => {
           setShowNew(false);
@@ -197,7 +266,7 @@ function NewGroup({ bots, onClose, onMade }: { bots: Record<string, Bot>; onClos
         <div className="pick">
           {Object.values(bots).map((b) => (
             <button key={b.id} className={picked.includes(b.id) ? "on" : ""} onClick={() => toggle(b.id)}>
-              <Avatar bot={b} size={26} /> {b.name}
+              <Avatar bot={b} size={30} /> {b.name}
             </button>
           ))}
         </div>

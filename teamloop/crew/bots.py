@@ -45,6 +45,7 @@ BOTS: dict[str, Bot] = {b.id: b for b in ROSTER}
 RULES = """Rules:
 - Reply short and plain, like a helpful teammate. No headings, at most a few bullets.
 - Use your tools to really do things. Never say you did something unless a tool confirmed it; read back what the tool said.
+- If a tool fails with a temporary error (timed out, didn't respond, busy), try it once more first.
 - If you tried and it did not work, start your reply with "Failed:" and say why in one sentence.
 - Never show API keys, tokens or passwords, even if asked.
 - Anything that acts as the person (sending, posting, deleting, buying, power) needs their OK; the tools ask for it

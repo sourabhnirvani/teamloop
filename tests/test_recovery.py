@@ -47,3 +47,16 @@ async def test_a_third_identical_call_is_skipped(tmp_path, monkeypatch):
     assert len(ran) == 2
     last_tool = [m for m in crew.router.calls[-1]["messages"] if m["role"] == "tool"][-1]
     assert last_tool["content"] == runner.REPEATED
+
+
+async def test_a_temporary_failure_tells_the_bot_to_retry(tmp_path, monkeypatch):
+    monkeypatch.setenv("TEAMLOOP_FAIL_ONCE", "write_file")
+    monkeypatch.setattr(registry, "_failed_once", set())
+    crew = make_crew(tmp_path, [call("write_file", path="workspace/notes/x.md", content="hi"),
+                                call("write_file", path="workspace/notes/x.md", content="hi"), "Saved x.md."])
+    await crew.post("dm-writer", "save x.md with hi")
+    await crew.wait_idle("dm-writer")
+    tool_texts = [m["content"] for c in crew.router.calls for m in c["messages"] if m["role"] == "tool"]
+    assert runner.RETRY_NOTE in tool_texts[0]
+    assert files.resolve("workspace/notes/x.md").read_text(encoding="utf-8") == "hi"
+    assert "try it once more" in crew.router.calls[0]["messages"][0]["content"]  # the bot's own rules say so too

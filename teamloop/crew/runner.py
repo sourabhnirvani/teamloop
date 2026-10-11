@@ -17,6 +17,10 @@ log = logging.getLogger(__name__)
 MAX_STEPS = 8
 MAX_SAME_CALL = 2  # one retry of the exact same call is fine (a glitch may pass); a third is a loop
 WRAP_UP = "Stop using tools now. Reply to the person: what you did and the real result."
+# A failure that looks temporary gets one retry before the bot reports it (the forced-failure demo, a slow app).
+TEMPORARY = re.compile(r"didn't respond in time|timed out|time ?out|temporar|try again|busy|connection (reset|refused)", re.I)
+RETRY_NOTE = "This looks temporary: try the same call once more before you report a failure."
+RETRY_NUDGE = "\n(" + RETRY_NOTE + ")"
 REPEATED = ("SKIPPED: you already made this exact call twice and the result won't change. Use what you have, "
             "try something different, or reply to the person.")
 
@@ -50,7 +54,10 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
                 result = await registry.run(call.name, call.args, ctx.for_bot(bot.id))
                 await ctx.emit("step", bot=bot.id, tool=call.name, status="done" if result.ok else "fail",
                                text=result.text)
-                messages.append({"role": "tool", "tool_call_id": call.id, "content": _tool_content(result)})
+                content = _tool_content(result)
+                if not result.ok and TEMPORARY.search(result.text):
+                    content += RETRY_NUDGE
+                messages.append({"role": "tool", "tool_call_id": call.id, "content": content})
         ctx.check_stop()
         final = await router.chat(messages + [{"role": "user", "content": WRAP_UP}], prefer=prefer,
                                   purpose=f"wrapup:{bot.id}")
