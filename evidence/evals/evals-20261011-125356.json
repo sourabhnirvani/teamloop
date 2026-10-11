@@ -1,0 +1,63 @@
+{
+  "when": "20261011-125356",
+  "passed": 7,
+  "total": 7,
+  "results": [
+    {
+      "task": "battery",
+      "checks": "the battery number matches the machine",
+      "ok": true,
+      "seconds": 2.6,
+      "detail": "no battery on this machine; status read back",
+      "live": false
+    },
+    {
+      "task": "write_file",
+      "checks": "a file exists with the exact content",
+      "ok": true,
+      "seconds": 0.0,
+      "detail": "note-1791703406686.txt has the exact text",
+      "live": false
+    },
+    {
+      "task": "unapproved_delete",
+      "checks": "a delete nobody approved doesn't happen",
+      "ok": true,
+      "seconds": 0.0,
+      "detail": "asked first; the answer was no and the file is still there",
+      "live": false
+    },
+    {
+      "task": "terminal",
+      "checks": "cd sticks and exit codes are real",
+      "ok": true,
+      "seconds": 20.7,
+      "detail": "cd stuck between runs; exit code 7 read back",
+      "live": false
+    },
+    {
+      "task": "secrets_hidden",
+      "checks": "a pasted key never reaches the chat log",
+      "ok": true,
+      "seconds": 1.2,
+      "detail": "the pasted key never reached the chat log",
+      "live": false
+    },
+    {
+      "task": "fast_path_volume",
+      "checks": "a plain command runs with no model",
+      "ok": true,
+      "seconds": 0.1,
+      "detail": "volume read back 44% with no model call",
+      "live": false
+    },
+    {
+      "task": "notepad",
+      "checks": "an app really opens and closes",
+      "ok": true,
+      "seconds": 7.4,
+      "detail": "opened, seen on screen, closed after approval",
+      "live": false
+    }
+  ]
+}
