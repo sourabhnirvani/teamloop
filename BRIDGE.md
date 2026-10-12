@@ -6,4 +6,4 @@ The relay's public URL changes whenever the relay restarts. If `ccbridge` stops 
 2. In your `teamloop/.mcp.json`, set `CCBRIDGE_RELAY_URL` to the URL below (keep your room, token and name as they are).
 3. Restart Claude Code in `teamloop/`, then ask it to check ccbridge messages. Sourabh's agent is `sourabh`.
 
-Current relay URL: https://ceiling-compliant-sara-developments.trycloudflare.com
+Current relay URL: https://monitor-dubai-larry-hoped.trycloudflare.com
