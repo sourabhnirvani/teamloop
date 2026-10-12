@@ -12,6 +12,13 @@ link, and post it from @GoogleDevss. Then put the post's link in `evidence/hacka
 The post tags all three tools: @neatlogs; @EntireHQ, the handle linked from entire.io; and @arithecfo, cfo.ai's Ari,
 linked from cfo.ai. Adding "Windows" back would make it 279, too close to the limit.
 
+## Video link
+- **Fallback, ready now:** https://youtu.be/w6z1B0uymgE (2:12, unlisted on Yang's channel, opens when signed out;
+  checked 18:50 IST).
+- **Final:** a re-cut with a five-beat section for each of neatlogs, Entire and cfo.ai (architecture,
+  implementation, runtime, reasoning and result), due ~20:15 IST. If it isn't up by **22:30 IST**, post the
+  fallback.
+
 ## Check before posting
 - [ ] The video is at most 3 minutes and its link opens when you're signed out (YouTube unlisted works; a private link
       doesn't).
