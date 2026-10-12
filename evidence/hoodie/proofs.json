@@ -1,0 +1,17 @@
+{
+  "calls": [
+    {
+      "url": "/api/approvals/proof1",
+      "body": "{\"ok\":true,\"always\":false}"
+    },
+    {
+      "url": "/api/chats/team/stop",
+      "body": "{}"
+    },
+    {
+      "url": "/api/phones/pair",
+      "body": "{}"
+    }
+  ],
+  "console_errors": []
+}

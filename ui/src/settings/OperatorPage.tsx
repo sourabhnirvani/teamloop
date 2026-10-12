@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Bot } from "../api";
 import { toolName } from "../Avatar";
+import { Icon } from "../Icon";
 import { req } from "./http";
 
 type Step = { ts: number; bot: string; tool: string; ok: boolean; text: string };
@@ -44,11 +45,11 @@ export function OperatorPage({ header, bots }: { header: React.ReactNode; bots?:
       {header}
       <p className="lead">
         {state === null ? "Checking…" : state.paused
-          ? `⏸️ Paused: you're using the computer. The crew waits for ${state.quiet_seconds} quiet seconds, then carries on.`
-          : "✅ Ready: the crew may use the mouse and keyboard when a job needs it."}
+          ? <span className="mark-line"><Icon name="pause" size={16} /> {`Paused: you're using the computer. The crew waits for ${state.quiet_seconds} quiet seconds, then carries on.`}</span>
+          : <span className="mark-line"><Icon name="ok" size={16} className="ok-mark" /> Ready: the crew may use the mouse and keyboard when a job needs it.</span>}
       </p>
       <ul className="list">
-        {RULES.map((r) => <li key={r}><span>✅ {r}</span></li>)}
+        {RULES.map((r) => <li key={r}><Icon name="ok" size={16} className="ok-mark" /><span>{r}</span></li>)}
       </ul>
       <button className="deny" onClick={stopAll}>Stop everything now</button>
       <h3>Recent screen tasks</h3>
@@ -57,7 +58,7 @@ export function OperatorPage({ header, bots }: { header: React.ReactNode; bots?:
         {state?.recent.map((s, i) => (
           <li key={`${s.ts}-${i}`}>
             <span>
-              {s.ok ? "✅" : "❌"} <b>{bots?.[s.bot]?.name ?? (s.bot || "a bot")}</b> · {toolName(s.tool)}
+              <Icon name={s.ok ? "ok" : "no"} size={14} className={s.ok ? "ok-mark" : "bad-mark"} /> <b>{bots?.[s.bot]?.name ?? (s.bot || "a bot")}</b> · {toolName(s.tool)}
               <br /><small>{time(s.ts)} · {s.text}</small>
             </span>
           </li>
