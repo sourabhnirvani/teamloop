@@ -1,0 +1,23 @@
+{
+  "when": "20261012-083707",
+  "passed": 1,
+  "total": 2,
+  "results": [
+    {
+      "task": "live_writer",
+      "checks": "S hands a file job to Writer",
+      "ok": true,
+      "seconds": 5.1,
+      "detail": "live-1791774412.txt written through S -> Writer",
+      "live": true
+    },
+    {
+      "task": "live_recovery",
+      "checks": "a failed step is retried until the outcome is real",
+      "ok": false,
+      "seconds": 9.4,
+      "detail": "didn't recover; reply: Failed: The write_file attempt timed out. Let's try again.",
+      "live": true
+    }
+  ]
+}

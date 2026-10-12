@@ -1,0 +1,23 @@
+{
+  "when": "20261012-083623",
+  "passed": 1,
+  "total": 2,
+  "results": [
+    {
+      "task": "live_writer",
+      "checks": "S hands a file job to Writer",
+      "ok": true,
+      "seconds": 12.0,
+      "detail": "live-1791774355.txt written through S -> Writer",
+      "live": true
+    },
+    {
+      "task": "live_recovery",
+      "checks": "a failed step is retried until the outcome is real",
+      "ok": false,
+      "seconds": 17.0,
+      "detail": "didn't recover; reply: Failed: The file path is outside the allowed locations. You can save it to Desktop, Documents, Downloads, or the workspace folder. Let me know where you'd like to save it.",
+      "live": true
+    }
+  ]
+}
