@@ -38,3 +38,11 @@ neatlogs sessions `eval-live_recovery-1791772849` and `eval-live_recovery-179177
 2. **The request was stored as a memory:** in the "before" run S called `remember` with the request itself ("Save a file
    at …recover-1791771666.txt …"). Every later prompt carried it as something "the person asked the crew to remember",
    so run 2's S offered to save that old file again. Memory must hold facts the person asked to keep, not to-dos.
+
+## After 77de6fc (dotted calls read; requests not stored as memories), 08:28 IST
+The eval database still held 3 "memories" the 7B model had stored from requests before the fix; they were removed first.
+
+| Run | Result | What happened |
+|---|---|---|
+| 1 | FAIL, honest | "Failed: No model answered: Local (Ollama) qwen2.5:7b: empty reply". The local model returned an empty message, and with one local model installed there was nothing to fall back to. Assigned: retry an empty local reply once before giving up |
+| 2 | **PASS** | write_file failed (simulated), the crew retried, and the file exists |

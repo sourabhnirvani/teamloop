@@ -1,0 +1,15 @@
+{
+  "when": "20261012-082847",
+  "passed": 1,
+  "total": 1,
+  "results": [
+    {
+      "task": "live_recovery",
+      "checks": "a failed step is retried until the outcome is real",
+      "ok": true,
+      "seconds": 16.7,
+      "detail": "write_file failed once (simulated) and the crew retried until the file existed",
+      "live": true
+    }
+  ]
+}
