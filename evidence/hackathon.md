@@ -66,4 +66,4 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 ## Demo video (20%)
 | Claim | Evidence |
 |---|---|
-| ⚠ ≤ 3 min, covering architecture, implementation, runtime, reasoning and result for each tool (recorded 17:23 IST from the `video` tag; final cut 2:11.6. Main has since added two small UI fixes with no backend change: the phone's status bar and logo refresh, and a centred chat column on wide screens) | script: `evidence/video-script.md`; exact voice-over: `evidence/video-voiceover.md` |
+| **The video: https://youtu.be/fITjBg4-sdo** (2:33, 1080p, captions). In the organisers' order: (1) the problem; (2) the live laptop and phone runs; (3) neatlogs used to find and fix three incidents (the search spree, the fake "saved", the invented tool); (4) Entire and cfo.ai, each with architecture, implementation, runtime, reasoning and result. The takes were recorded 17:23 IST from the `video` tag; main has since added two small UI fixes with no backend change (the phone's status bar and logo refresh, a centred chat column on wide screens) | script: `evidence/video-script.md`; exact voice-over: `evidence/video-voiceover.md` |
