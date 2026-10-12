@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Bot, type BotLook, type Chat, type Routine } from "./api";
 import { Avatar, colorOf, type Move } from "./Avatar";
 import { LookPicker, PersonalityPicker } from "./BotBuilder";
+import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
 
 export const RULES: Record<string, { alone: string[]; asks: string[]; never: string[] }> = {
@@ -60,17 +61,17 @@ export function BotProfile({ bot, bots, chats, typing, look, onChat, onBot, onCl
             <div className="model">model: {bot.model === "auto" ? "best free model available" : bot.model}{bot.only ? " (only)" : ""}</div>
             <div className="hero-tags">
               <span className={`state ${busyIn.length ? "busy" : ""}`}>{busyIn.length ? `working in ${busyIn.length} chat${busyIn.length > 1 ? "s" : ""}` : "free"}</span>
-              {bot.muted && <span className="state muted">🔕 muted</span>}
+              {bot.muted && <span className="state muted"><Icon name="mute" size={13} /> muted</span>}
             </div>
           </div>
         </div>
 
         <div className="profile-actions">
           <button onClick={() => setEditLook(editLook ? null : { body: "blob", accessory: "none", eyes: "shiny", colour: colorOf(bot), ...(bot.look ?? {}) })}>
-            {editLook ? "Close look" : "🎨 Change look"}
+            {editLook ? "Close look" : <><Icon name="look" /> Change look</>}
           </button>
           <button disabled={busy} onClick={() => act(() => api.patchBot(bot.id, { muted: !bot.muted }), bot.muted ? "Unmuted." : "Muted: it stays quiet in group rounds, and still works when S hands it a job or you @name it.")}>
-            {bot.muted ? "🔔 Unmute" : "🔕 Mute"}
+            {bot.muted ? <><Icon name="bell" /> Unmute</> : <><Icon name="mute" /> Mute</>}
           </button>
           {dm && <button className="primary" onClick={() => onChat(dm.id)}>Chat with {bot.name}</button>}
         </div>
@@ -125,7 +126,7 @@ export function BotProfile({ bot, bots, chats, typing, look, onChat, onBot, onCl
           {mine.length === 0 && <p className="quiet">None yet.</p>}
           {mine.map((r) => (
             <div key={r.id} className="routine-row">
-              <span>⏰ {r.text} <small>({r.schedule})</small></span>
+              <span><Icon name="routine" size={14} /> {r.text} <small>({r.schedule})</small></span>
               <button onClick={() => api.cancelRoutine(r.id).then(loadRoutines)}>Cancel</button>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Task, type TaskStatus } from "./api";
 import { Avatar, type Move } from "./Avatar";
+import { Icon } from "./Icon";
 
 // The Board: every step S hands to a teammate shows up here by itself (Doing -> Done, or Blocked with the
 // reason), next to your own to-dos. Cards move with the status menu; a to-do can be handed to the crew.
@@ -80,11 +81,11 @@ export function BoardView({ tasks, bots, look, onChat }: {
           <span className="task-id">#{t.id}</span>
           <b>{t.title}</b>
           <button className="icon task-remove" aria-label={`Remove task ${t.id}`} title="Remove"
-                  onClick={() => window.confirm(`Remove “${t.title}” from the Board?`) && act(api.deleteTask(t.id))}>✕</button>
+                  onClick={() => window.confirm(`Remove “${t.title}” from the Board?`) && act(api.deleteTask(t.id))}><Icon name="no" size={16} /></button>
         </header>
         {(bot || by) && (
           <div className="task-who">
-            {by && <><Avatar bot={by} size={20} /><span>{by.name}</span><span className="arrow">→</span></>}
+            {by && <><Avatar bot={by} size={20} /><span>{by.name}</span><span className="arrow"><Icon name="arrow" size={14} /></span></>}
             {bot && <><Avatar bot={bot} {...(t.status === "doing" ? look(bot.id) : { move: "idle" as Move, sign: null })} size={20} /><span>{bot.name}</span></>}
           </div>
         )}

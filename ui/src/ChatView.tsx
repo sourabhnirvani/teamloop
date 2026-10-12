@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
 import { Avatar, botColor, colorOf, type Move, toolName, toolSign } from "./Avatar";
+import { Icon } from "./Icon";
 import { ModelChip } from "./ModelChip";
 import { RichText } from "./RichText";
 import type { Item } from "./store";
@@ -59,11 +60,11 @@ function Handoff({ from, text, bots, ts }: { from?: Bot; text: string; bots: Rec
     <button className="activity handoff" onClick={() => setOpen(!open)} aria-expanded={open} title="A job one bot handed to another">
       <span className="flow">
         <Avatar bot={from} size={20} /> <b>{from?.name ?? "?"}</b>
-        <span className="arrow" style={{ color: botColor(to?.id ?? "") }}>→</span>
+        <span className="arrow" style={{ color: botColor(to?.id ?? "") }}><Icon name="arrow" size={16} /></span>
         <Avatar bot={to} size={20} /> <b>{to?.name ?? "teammate"}</b>
       </span>
       <span className={`handoff-text ${open ? "open" : ""}`}>{rest}</span>
-      <span className="more" aria-hidden="true">{open ? "▾" : "▸"}</span>
+      <span className="more" aria-hidden="true"><Icon name={open ? "down" : "next"} size={14} /></span>
       <span className="ts">{time(ts)}</span>
     </button>
   );
@@ -73,11 +74,11 @@ function Step({ item, bots }: { item: Extract<Item, { kind: "step" }>; bots: Rec
   const [open, setOpen] = useState(false); // a long result reads in full with a tap (row 12 of the UI audit)
   const parts = (
     <>
-      <span className="mark">{item.status === "start" ? <i className="spin" /> : item.status === "done" ? "✓" : "✗"}</span>
+      <span className="mark">{item.status === "start" ? <i className="spin" /> : <Icon name={item.status === "done" ? "ok" : "no"} size={14} />}</span>
       <span className="step-who" style={{ color: botColor(item.bot) }}>{bots[item.bot]?.name ?? item.bot}</span>
-      <span className="step-tool" title={item.tool}>{toolSign(item.tool)} {toolName(item.tool)}</span>
+      <span className="step-tool" title={item.tool}><Icon name={toolSign(item.tool)} size={13} /> {toolName(item.tool)}</span>
       {item.text && <span className={`step-text ${open ? "open" : ""}`}>{item.text}</span>}
-      {item.text && <span className="more" aria-hidden="true">{open ? "▾" : "▸"}</span>}
+      {item.text && <span className="more" aria-hidden="true"><Icon name={open ? "down" : "next"} size={14} /></span>}
     </>
   );
   return item.text
@@ -86,7 +87,7 @@ function Step({ item, bots }: { item: Extract<Item, { kind: "step" }>; bots: Rec
 }
 
 const DONE_LABEL: Record<string, string> = {
-  approved: "✓ Approved", denied: "✗ Denied", expired: "No answer: not done", stopped: "Stopped", answered: "Answered",
+  approved: "Approved", denied: "Denied", expired: "No answer: not done", stopped: "Stopped", answered: "Answered",
 };
 
 function Approval({ item, bots, onAnswered }: { item: Extract<Item, { kind: "approval" }>; bots: Record<string, Bot>; onAnswered: (id: string, status: string) => void }) {
@@ -101,27 +102,33 @@ function Approval({ item, bots, onAnswered }: { item: Extract<Item, { kind: "app
   };
   return (
     <div className={`approval ${item.status ?? "waiting"}`} style={{ "--bot": botColor(item.bot) } as React.CSSProperties}>
+      <div className="approval-main">
       <div className="approval-head">
         <Avatar bot={bots[item.bot]} move={item.status ? "idle" : "ask"} size={30} />
         <div>
-          <b>{bots[item.bot]?.name ?? item.bot} needs your OK</b>
+          <b>{bots[item.bot]?.name ?? item.bot} <span className="ok-pill">needs your OK</span></b>
           <div className="approval-title">{item.title}</div>
         </div>
       </div>
       <p>{item.details}</p>
-      {item.screenshot && <img src={item.screenshot} alt="what will be affected" />}
+      {item.screenshot && <img className="approval-shot" src={item.screenshot} alt="what will be affected" />}
       {item.status ? (
-        <div className={`approval-done ${item.status}`}>{DONE_LABEL[item.status] ?? item.status}</div>
+        <div className={`approval-done ${item.status}`}>
+          {item.status === "approved" && <Icon name="ok" size={15} />}{item.status === "denied" && <Icon name="no" size={15} />}
+          {DONE_LABEL[item.status] ?? item.status}
+        </div>
       ) : (
         <div className="approval-btns">
           <button className="primary" disabled={sending} onClick={() => answer(true)}>Approve</button>
           {item.canAlways && (
-            <button disabled={sending} title="Do this again without asking. You can undo it in Settings → Always-allowed actions."
+            <button disabled={sending} title="Do this again without asking. You can undo it in Settings, under Always-allowed actions."
                     onClick={() => answer(true, true)}>Always allow</button>
           )}
           <button className="deny" disabled={sending} onClick={() => answer(false)}>Deny</button>
         </div>
       )}
+      </div>
+      <img className="approval-pose" src="/mascot/click.webp" alt="" width={110} />
     </div>
   );
 }
@@ -178,7 +185,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
   return (
     <section className="chat">
       <header className="chat-head">
-        <button className="icon back" onClick={onBack} aria-label="Back to chats">‹</button>
+        <button className="icon back" onClick={onBack} aria-label="Back to chats"><Icon name="back" size={24} /></button>
         <div className="crew">
           {members.map((b) => (
             <button key={b.id} className="crew-btn" title={`${b.name}: profile`} aria-label={`${b.name} profile`} onClick={() => onBot(b.id)}>
@@ -191,7 +198,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
           <small>{typing.length ? `${typing.map((id) => bots[id]?.name ?? id).join(", ")} working…` : members.map((b) => b.name).join(" · ")}</small>
         </div>
         <ModelChip bot={members.length === 1 ? members[0] : undefined} />
-        {busy && <button className="stop" onClick={() => api.stop(chat.id)}>■ Stop</button>}
+        {busy && <button className="stop" onClick={() => api.stop(chat.id)}><Icon name="stop" size={15} /> Stop</button>}
       </header>
 
       <div className="log" ref={log} aria-live="polite"
@@ -248,7 +255,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
                     </div>
                   )}
                   <div className="bubble">
-                    {item.mkind === "fast" && <span className="tag" title="Done directly, without calling an AI model">⚡ instant · no model</span>}
+                    {item.mkind === "fast" && <span className="tag" title="Done directly, without calling an AI model"><Icon name="bolt" size={12} /> instant · no model</span>}
                     {failed ? <Failure text={item.text} /> : <RichText text={item.text} />}
                   </div>
                 </div>
@@ -261,7 +268,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
           if (item.kind === "allowed") {
             return (
               <div key={item.key} className="activity allowed">
-                <span className="mark">✓</span>
+                <span className="mark"><Icon name="ok" size={14} /></span>
                 <span><b style={{ color: botColor(item.bot) }}>{bots[item.bot]?.name ?? item.bot}</b> went ahead: {item.title} (you always allow this)</span>
                 <a href="#/settings/allowed">change</a>
               </div>
@@ -277,7 +284,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
           </div>
         )}
       </div>
-      {behind && <button className="new-pill" onClick={() => toEnd(true)}>New messages ↓</button>}
+      {behind && <button className="new-pill" onClick={() => toEnd(true)}>New messages <Icon name="down" size={14} /></button>}
 
       {error && <div className="error">{error}</div>}
       <form className="composer" onSubmit={send}>
@@ -295,7 +302,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
             }
           }}
         />
-        <button className="primary send" disabled={!draft.trim()} aria-label="Send">Send ➤</button>
+        <button className="primary send" disabled={!draft.trim()} aria-label="Send">Send <Icon name="send" size={16} /></button>
       </form>
       <div className="composer-hint">@name asks one bot · paste a key to save it · “stop” stops everything</div>
     </section>

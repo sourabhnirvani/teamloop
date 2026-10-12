@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Bot, type BotLook, type Personality } from "./api";
 import { Mascot } from "./Avatar";
+import { Icon } from "./Icon";
 import { ACCESSORIES, BODIES, EYES, PALETTE, randomLook } from "./Look";
 import { Sheet } from "./Sheet";
 
@@ -29,9 +30,15 @@ export function LookPicker({ look, onChange }: { look: BotLook; onChange: (l: Bo
         <div className="swatches" role="radiogroup" aria-label="Colour">
           {PALETTE.map((c) => (
             <button key={c} role="radio" aria-checked={look.colour === c} aria-label={c === "rainbow" ? "Rainbow" : c}
-                    className={`swatch ${look.colour === c ? "on" : ""}`}
-                    style={{ background: c === "rainbow" ? "linear-gradient(135deg,#ff8fb3,#ffd45c,#8af5d6,#7bb8ff,#c9a8ff)" : c }}
-                    onClick={() => onChange({ ...look, colour: c })} />
+                    className={`swatch ${c === "rainbow" ? "hd-rainbow " : ""}${look.colour === c ? "on" : ""}`}
+                    style={c === "rainbow" ? undefined : { background: c }}
+                    onClick={() => onChange({ ...look, colour: c })}>
+              {c === "rainbow" && (
+                <svg viewBox="0 0 10 10" aria-hidden="true">
+                  {["#D9557A", "#E07B34", "#F2B32B", "#1E9E7E", "#7E5FD6"].map((k, i) => <rect key={k} x={i * 2} width="2" height="10" fill={k} />)}
+                </svg>
+              )}
+            </button>
           ))}
         </div>
       </div>
@@ -61,11 +68,11 @@ export function PersonalityPicker({ value, onChange, busy }: { value: string; on
         {list.map((p) => (
           <button key={p.id} role="radio" aria-checked={p.id === value} className={p.id === value ? "on" : ""} disabled={busy}
                   title={p.blurb} onClick={() => onChange(p.id)}>
-            <span aria-hidden="true">{p.emoji}</span> {p.label}
+            {p.label}
           </button>
         ))}
       </div>
-      {now && <small className="pers-blurb">{now.emoji} {now.label}: {now.blurb.toLowerCase()}. It talks this way, and moves this way here.</small>}
+      {now && <small className="pers-blurb">{now.label}: {now.blurb.toLowerCase()}. It talks this way, and moves this way here.</small>}
     </div>
   );
 }
@@ -93,7 +100,7 @@ export function NewBotSheet({ onClose, onMade }: { onClose: () => void; onMade: 
           <button onClick={() => {
             change(randomLook());
             if (kinds.length) setPersonality(kinds[Math.floor(Math.random() * kinds.length)].id);
-          }}>🎲 Surprise me</button>
+          }}><Icon name="dice" /> Surprise me</button>
         </div>
         <div className="builder-form">
           <LookPicker look={look} onChange={change} />

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Bot, type ModelInfo, type Settings } from "./api";
+import { Icon } from "./Icon";
 import { choices, labelOf } from "./models";
 
-// ⚡ in a chat's header: which free model answers there. In a 1:1 chat it's that bot's model; in a group,
+// The model chip in a chat's header: which free model answers there. In a 1:1 chat it's that bot's model; in a group,
 // the crew's. "Only this model" turns off falling back to the next free model when it's busy.
 export function ModelChip({ bot }: { bot?: Bot }) {
   const [open, setOpen] = useState(false);
@@ -63,7 +64,7 @@ export function ModelChip({ bot }: { bot?: Bot }) {
     <div className="chip-wrap" ref={box}>
       <button className="model-chip" aria-haspopup="menu" aria-expanded={open} title="Which free model answers here"
               onClick={() => setOpen(!open)}>
-        ⚡ {open && settings ? nameOf(current) : shown}{bot?.only ? " · only" : ""}
+        <Icon name="model" size={15} /> {open && settings ? nameOf(current) : shown}{bot?.only ? " · only" : ""}
       </button>
       {open && (
         <div className="menu" role="menu" aria-label={bot ? `Model for ${bot.name}` : "Model for the crew"}>

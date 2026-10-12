@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type SecurityInfo } from "../api";
+import { Icon } from "../Icon";
 
 const PROMISES = [
   "Keys are locked in an encrypted vault on this PC and never shown in full",
@@ -28,7 +29,7 @@ export function SecurityPage({ header }: { header: React.ReactNode }) {
         {info && info.names.length > 0 && <><br /><small>{info.names.join(" · ")}</small></>}
       </p>
       <ul className="list">
-        {PROMISES.map((p) => <li key={p}><span>✅ {p}</span></li>)}
+        {PROMISES.map((p) => <li key={p}><Icon name="ok" size={16} className="ok-mark" /><span>{p}</span></li>)}
       </ul>
       <h3>Blocked</h3>
       <ul className="list">

@@ -4,6 +4,7 @@ import { Avatar, botColor, SIGNS, toolSign, type Move } from "./Avatar";
 import { BoardView } from "./BoardView";
 import { NewBotSheet } from "./BotBuilder";
 import { BotProfile } from "./BotProfile";
+import { Icon, type IconName } from "./Icon";
 import { ChatView } from "./ChatView";
 import { CrewView } from "./CrewView";
 import { JobsView } from "./JobsView";
@@ -39,12 +40,12 @@ function ago(ts?: number) {
   return `${Math.floor(s / 86400)}d`;
 }
 
-const TABS: { tab: Tab; icon: string; label: string }[] = [
-  { tab: "chats", icon: "💬", label: "Chats" },
-  { tab: "crew", icon: "🤖", label: "Crew" },
-  { tab: "board", icon: "📋", label: "Board" },
-  { tab: "jobs", icon: "⌨️", label: "Jobs" },
-  { tab: "settings", icon: "⚙", label: "Settings" },
+const TABS: { tab: Tab; icon: IconName; label: string }[] = [
+  { tab: "chats", icon: "chat", label: "Chats" },
+  { tab: "crew", icon: "crew", label: "Crew" },
+  { tab: "board", icon: "board", label: "Board" },
+  { tab: "jobs", icon: "jobs", label: "Jobs" },
+  { tab: "settings", icon: "settings", label: "Settings" },
 ];
 
 export default function App() {
@@ -57,7 +58,7 @@ export default function App() {
   const [listening, setListening] = useState<string[]>([]);
   const quiet = useRef<number | undefined>(undefined);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [theme, setTheme] = useState(() => stored("tl-theme", "dark"));
+  const [theme, setTheme] = useState(() => stored("tl-theme", "light"));
   const [updateReady, setUpdateReady] = useState(false);
   const pushed = useRef(false); // an overlay we opened ourselves: closing it goes Back
 
@@ -167,7 +168,7 @@ export default function App() {
       {lead && leadChat && (
         <button className={`hero ${leadChat.id === chatId ? "on" : ""}`} style={{ "--bot": botColor("s") } as React.CSSProperties}
                 onClick={() => openChat(leadChat.id)}>
-          <Avatar bot={lead} {...look("s")} size={56} />
+          <img className="hero-pose" src="/mascot/think.webp" alt="" width={110} height={110} />
           <span className="row-text">
             <span className="row-top"><b>{lead.name} <em>LEAD</em></b><time>{ago(leadChat.last?.ts)}</time></span>
             <small className={preview(leadChat).busy ? "busy" : ""}>{preview(leadChat).text || "Plans jobs and hands steps to the crew"}</small>
@@ -177,10 +178,10 @@ export default function App() {
       )}
       <div className="section">Group chats</div>
       {groups.map(row)}
-      <button className="new-group" onClick={() => openOverlay("new", "group")}>＋ New group</button>
+      <button className="new-group" onClick={() => openOverlay("new", "group")}><Icon name="add" /> New group</button>
       <div className="section">Your crew</div>
       {dms.map(row)}
-      <button className="new-group" onClick={() => openOverlay("new", "bot")}>＋ Build a bot</button>
+      <button className="new-group" onClick={() => openOverlay("new", "bot")}><Icon name="add" /> Build a bot</button>
     </aside>
   );
 
@@ -215,7 +216,7 @@ export default function App() {
         {TABS.map((t) => (
           <button key={t.tab} className={`rail-btn ${route.tab === t.tab ? "on" : ""}`} aria-current={route.tab === t.tab ? "page" : undefined}
                   onClick={() => go(href(t.tab, t.tab === "chats" ? chatId : null))}>
-            <span aria-hidden="true">{t.icon}</span><small>{t.label}</small>
+            <span aria-hidden="true"><Icon name={t.icon} size={22} /></span><small>{t.label}</small>
             {t.tab === "chats" && totalUnread > 0 && <i className="dot-badge">{totalUnread}</i>}
           </button>
         ))}
@@ -242,7 +243,7 @@ export default function App() {
           {TABS.map((t) => (
             <button key={t.tab} className={route.tab === t.tab ? "on" : ""} aria-current={route.tab === t.tab ? "page" : undefined}
                     onClick={() => go(href(t.tab))}>
-              <span aria-hidden="true">{t.icon}</span><small>{t.label}</small>
+              <span aria-hidden="true"><Icon name={t.icon} size={22} /></span><small>{t.label}</small>
               {t.tab === "chats" && totalUnread > 0 && <i className="dot-badge">{totalUnread}</i>}
             </button>
           ))}

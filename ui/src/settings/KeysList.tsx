@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Icon, type IconName } from "../Icon";
 import { req } from "./http";
 
 export type KeyEntry = {
@@ -11,7 +12,8 @@ export type KeyEntry = {
   source: "vault" | "env";
 };
 
-const LABEL = { works: "✅ Works", rejected: "❌ Rejected", unchecked: "⏳ Not tested yet" } as const;
+const LABEL = { works: "Works", rejected: "Rejected", unchecked: "Not tested yet" } as const;
+const MARK: Record<keyof typeof LABEL, IconName> = { works: "ok", rejected: "no", unchecked: "routine" };
 
 // One row per saved key: works or rejected (and why), remove, test all again, clean up rejected ones.
 // `onChanged` lets the page around it refresh its own key list after a remove or clean-up; a new `version`
@@ -67,7 +69,9 @@ export function KeysList({ header, onChanged, version }: { header?: React.ReactN
               <b>{r.provider_name}</b> {r.masked}
               <br />
               <small>
-                {r.status === "unchecked" && r.reason !== "not tested yet" ? "⚠️ No clear answer" : LABEL[r.status]}
+                {r.status === "unchecked" && r.reason !== "not tested yet"
+                  ? <span className="mark-line warn-text"><Icon name="warn" size={14} /> No clear answer</span>
+                  : <span className={`mark-line key-${r.status}`}><Icon name={MARK[r.status]} size={14} /> {LABEL[r.status]}</span>}
                 {r.status !== "works" && r.reason && r.reason !== "not tested yet" ? `: ${r.reason}` : ""}
                 {r.source === "env" ? " · from .env" : ""}
               </small>
