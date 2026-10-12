@@ -65,6 +65,9 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem("tl-theme", theme); } catch { /* private mode */ }
+    // the phone paints its status bar in this colour: the app's own background, so no bright strip sits on top
+    const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg || "#F6F1E8");
   }, [theme]);
 
   useEffect(() => {
