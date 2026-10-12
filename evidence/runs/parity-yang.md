@@ -24,3 +24,12 @@ Notes:
   against scrollHeight 292/188/125). Fix that worked in the browser: `.page > * { flex-shrink: 0 }`. The screenshots
   above were taken with that one rule injected in the browser only, not committed.
 
+
+## B. Operator safety (Mon 12 Oct, ~07:00 IST)
+| Piece | Check | Result | Evidence |
+|---|---|---|---|
+| Pause while the person uses the PC (fake clock) | `tests/test_operator.py`: waits while input is fresh, goes ahead 3 s after it stops, ignores input the crew sent itself, gives up after 2 min, a stop mid-wait cancels it and clears "Paused" | PASS | pytest, 280 passed / 1 skipped |
+| Pause, live | `evidence/runs/operator-live-yang.py`: a separate process moved the real mouse for 4 s; a screen action asked for the desktop lease at 0.5 s, was paused (real GetLastInputInfo), and went ahead at 7.0 s (3 s after the mouse stopped) | PASS | `evidence/runs/operator-live-yang.out.txt` |
+| Ctrl+Alt+Q, live in the desktop app | Electron (desktop/, `electron .`) on the rehearsal server, with a Team job waiting on Desk's approval card. Ctrl+Alt+Q was sent from outside the app: `stop-all answered {"stopped":["team"],"chats":7}`, the card list went from 1 to 0, and the tray balloon said "Stopped: Stopped 1 chat. Nothing else will move." | PASS | `evidence/ui/operator-ctrl-alt-q-balloon-crop-yang.png` (the dev run shows "Electron" as the app name; the packaged app shows TeamLoop) |
+| Recent screen tasks, live | after approving the card: `GET /api/operator` recent = `desk · open_file · ok · Opened llm-report-2.md; its window "llm-report-2.md - Notepad" is in front.` | PASS | API answer, above |
+| OperatorPage UI | mounted in a local, uncommitted build: Ready line, the 4 rules, "Stop everything now", Recent screen tasks | PASS (wiring is Sourabh's) | `evidence/ui/operator-page-yang.jpg` |

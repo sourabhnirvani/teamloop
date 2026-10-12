@@ -1,7 +1,7 @@
 // TeamLoop desktop app: runs the crew's server in the background and shows the UI in its own window.
 // Closing the window keeps the crew working from the tray; Quit stops the server.
 
-const { app, BrowserWindow, Menu, Tray, nativeImage, shell } = require("electron");
+const { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell } = require("electron");
 const { spawn, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -68,6 +68,23 @@ function call(method, url) {
     req.on("error", () => resolve(""));
     req.end("{}");
   });
+}
+
+// Ctrl+Alt+Q from any app: stop every chat, so no bot keeps the mouse, the keyboard or a card going.
+function registerStopAll() {
+  const ok = globalShortcut.register("Control+Alt+Q", async () => {
+    const body = await call("POST", `${BASE}/api/stop-all`);
+    let stopped = 0;
+    try { stopped = JSON.parse(body).stopped.length; } catch { /* server not answering */ }
+    console.log(`Ctrl+Alt+Q: stop-all answered ${body || "nothing"}`);
+    tray?.displayBalloon({
+      title: "Stopped",
+      content: body ? (stopped ? `Stopped ${stopped} chat${stopped === 1 ? "" : "s"}. Nothing else will move.` : "Nothing was running.")
+                    : "TeamLoop isn't answering; close it from the tray to be sure.",
+      iconType: body ? "info" : "warning",
+    });
+  });
+  if (!ok) console.log("Ctrl+Alt+Q is taken by another app; Stop in each chat still works");
 }
 
 function startServer() {
@@ -248,6 +265,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on("window-all-closed", (e) => e.preventDefault());
   app.on("before-quit", () => {
     quitting = true;
+    globalShortcut.unregisterAll();
     // the venv's pythonw is a launcher with the real server as its child: end the whole tree
     if (server) spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"], { windowsHide: true });
   });
@@ -256,6 +274,7 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId("TeamLoop");
     createWindow();
     createTray();
+    registerStopAll();
     if (!ROOT) {
       win.loadURL(`data:text/html,<title>${TITLE}</title><p style="font:16px system-ui;padding:2em">Can't find the TeamLoop folder. Put the app inside the cloned repo, or set TEAMLOOP_HOME.</p>`);
       return;

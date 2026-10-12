@@ -13,6 +13,7 @@ import time
 from typing import AsyncIterator
 
 from teamloop.computer import apps, com, risk, system, uia, winapi
+from teamloop.computer.operator import OPERATOR
 from teamloop.tools.registry import ToolResult, tool
 
 WINDOW_WAIT = 12.0
@@ -31,8 +32,10 @@ async def lease(timeout: float = 60) -> AsyncIterator[None]:
     except asyncio.TimeoutError:
         raise LeaseBusy() from None
     try:
+        await OPERATOR.wait_until_quiet()  # never fight the person for the mouse and keyboard
         yield
     finally:
+        OPERATOR.mark_ours()
         lock.release()
 
 

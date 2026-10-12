@@ -1,0 +1,6 @@
+  0.0s  person starts moving the mouse (for 4 s)
+  0.5s  a screen action asks for the desktop lease
+  0.5s  GET /api/operator would say paused=True
+  7.0s  lease granted: the screen action runs now
+
+PASS: the action waited for the person and went ahead 3 s after the mouse stopped (total 7.0 s)

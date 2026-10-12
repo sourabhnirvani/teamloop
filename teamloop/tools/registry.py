@@ -141,6 +141,9 @@ async def run(name: str, args: dict, ctx: Any) -> ToolResult:
         if not isinstance(result, ToolResult):
             result = ToolResult(False, f"{name} returned nothing usable.")
         result = _say_how_the_card_ended(result, getattr(ctx, "last_answer", ""))
+        if found.kit == "computer":  # Settings > Operator safety lists the recent screen steps
+            from teamloop.computer.operator import OPERATOR
+            OPERATOR.record(getattr(ctx, "bot_id", ""), name, result.ok, result.text)
         sp.set("output.value", ("OK: " if result.ok else "FAILED: ") + result.text)
         sp.set("tool.ok", result.ok)
     return result

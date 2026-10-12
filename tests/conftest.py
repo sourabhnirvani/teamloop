@@ -20,6 +20,13 @@ def workspace(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def person_away(monkeypatch):
+    """Tests never wait for whoever is typing on this PC (operator safety reads the real idle time)."""
+    from teamloop.computer import operator
+    monkeypatch.setattr(operator.OPERATOR, "idle", lambda: 1e9)
+
+
+@pytest.fixture(autouse=True)
 def restore_environ():
     saved = dict(os.environ)
     yield

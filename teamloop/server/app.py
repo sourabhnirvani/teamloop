@@ -24,6 +24,7 @@ from teamloop.crew.bots import BOTS, ROSTER
 from teamloop.tools import registry
 from teamloop.crew.events import Bus
 from teamloop.computer import terminal
+from teamloop.computer.operator import OPERATOR
 from teamloop.crew.store import TASK_STATES, Store
 from teamloop.crew.team import Crew
 from teamloop.keys import entries as key_rows
@@ -354,6 +355,17 @@ def create_app(crew: Crew | None = None) -> FastAPI:
 
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.post("/api/stop-all")
+    async def stop_all() -> dict:
+        """Ctrl+Alt+Q from anywhere: stop every chat (and so every screen action and approval card)."""
+        crew = get_crew()
+        stopped = [chat["id"] for chat in crew.store.chats() if await crew.stop(chat["id"])]
+        return {"stopped": stopped, "chats": len(crew.store.chats())}
+
+    @app.get("/api/operator")
+    def operator_state() -> dict:
+        return OPERATOR.state()
 
     @app.get("/api/security")
     def security() -> dict:
