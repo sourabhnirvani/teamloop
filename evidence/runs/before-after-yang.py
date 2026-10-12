@@ -26,7 +26,16 @@ from teamloop.tools import registry  # noqa: E402
 GOAL = ("Research the top 3 free LLM APIs for students, write a short report on the Desktop, open it, and remind "
         "me about it every Monday.")
 CALLS: list[dict] = []
+TOKENS_BY: dict[str, int] = {}   # tokens per purpose ("turn:scout", "wrapup:s", ...) for the run in progress
 _real_run = registry.run
+_real_usage = compare.Store.add_usage
+
+
+def _usage(self, provider, model, tokens_in, tokens_out, purpose=""):
+    who = (purpose or "other").split(":")[-1]
+    TOKENS_BY[who] = TOKENS_BY.get(who, 0) + tokens_in + tokens_out
+    return _real_usage(self, provider, model, tokens_in, tokens_out, purpose)
+compare.Store.add_usage = _usage
 
 
 async def _recorded(name, args, ctx):
@@ -65,16 +74,17 @@ async def main(runs: int):
     for i in range(1, runs + 1):
         for solo in (True, False):
             CALLS.clear()
+            TOKENS_BY.clear()
             with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
                 r = await compare.run_once(GOAL, solo, Path(tmp))
-            r.update(run=i, steps=len(CALLS), outcome=judge(CALLS),
+            r.update(run=i, steps=len(CALLS), outcome=judge(CALLS), tokens_by_bot=dict(TOKENS_BY),
                      tools=[f"{c['bot']}:{c['tool']}{'' if c['ok'] else ' FAILED'}" for c in CALLS])
             rows.append(r)
             o = r["outcome"]
             print(f"run {i} {r['mode']:>7}: {'SUCCESS' if o['success'] else 'INCOMPLETE'} "
                   f"({', '.join(k for k, v in o.items() if k != 'success' and not v) or 'all parts done'}) "
                   f"{r['seconds']}s, {r['model_requests']} requests, {r['tokens']} tokens, {r['steps']} steps, "
-                  f"{r['tool_failures']} failed, bots {','.join(r['bots_involved'])}")
+                  f"{r['tool_failures']} failed, bots {','.join(r['bots_involved'])}; tokens by bot {r['tokens_by_bot']}")
             await asyncio.sleep(1)
             close_reports()
     trace.flush()

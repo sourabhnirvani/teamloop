@@ -1,0 +1,24 @@
+Top 3 Free LLM APIs for Students (Oct 2026)
+
+1. OpenRouter Free Tier
+- Overview: Aggregates multiple LLM providers (OpenAI, Anthropic, Mistral, etc.) under a single API.
+- Key Features: Easy model switching, unified endpoint, supports chat and completion.
+- Free Limits: 20 requests per minute, 50 requests per day for new accounts.
+- Student Programs: No specific program, but free tier is sufficient for low‑volume student projects.
+- Sources: https://openrouter.zendesk.com/hc/en-us/articles/39501163636379-OpenRouter-Rate-Limits-What-You-Need-to-Know
+
+2. Cohere Free‑Developer Tier
+- Overview: Cohere provides powerful language models for text generation and classification.
+- Key Features: Large context window, embeddings, chat/completion endpoints.
+- Free Limits: Up to 1,000 API calls per month across all models.
+- Student Programs: Available to any developer; ideal for student coursework and prototypes.
+- Sources: https://cohere.com/blog/free-developer-tier-announcement
+
+3. OpenAI Student Credits
+- Overview: OpenAI offers $100 in free credits for verified university students in the US/Canada.
+- Key Features: Access to GPT‑4o, GPT‑4 Turbo, and other models via the OpenAI API.
+- Free Limits: $100 credit (~2,500 ChatGPT‑style tokens) usable over the first year.
+- Student Programs: Requires student email verification.
+- Sources: https://developers.openai.com/community/students
+
+These three options provide generous free usage for typical class projects, hackathons, or personal learning.

@@ -1,0 +1,4 @@
+run 1 one bot: INCOMPLETE (saved_with_links, routine) 32.5s, 9 requests, 59883 tokens, 10 steps, 0 failed, bots s
+run 1    crew: SUCCESS (all parts done) 40.8s, 25 requests, 64369 tokens, 19 steps, 0 failed, bots desk,s,scout,writer
+run 2 one bot: INCOMPLETE (opened, routine) 40.8s, 9 requests, 74079 tokens, 10 steps, 1 failed, bots s
+run 2    crew: SUCCESS (all parts done) 14.4s, 14 requests, 29259 tokens, 10 steps, 0 failed, bots desk,s,scout,writer

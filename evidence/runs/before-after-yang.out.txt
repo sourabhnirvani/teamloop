@@ -1,4 +1,4 @@
-run 1 one bot: INCOMPLETE (saved_with_links, routine) 32.5s, 9 requests, 59883 tokens, 10 steps, 0 failed, bots s
-run 1    crew: SUCCESS (all parts done) 40.8s, 25 requests, 64369 tokens, 19 steps, 0 failed, bots desk,s,scout,writer
-run 2 one bot: INCOMPLETE (opened, routine) 40.8s, 9 requests, 74079 tokens, 10 steps, 1 failed, bots s
-run 2    crew: SUCCESS (all parts done) 14.4s, 14 requests, 29259 tokens, 10 steps, 0 failed, bots desk,s,scout,writer
+run 1 one bot: INCOMPLETE (researched, routine) 33.1s, 8 requests, 32432 tokens, 6 steps, 1 failed, bots s; tokens by bot {'s': 32432}
+run 1    crew: SUCCESS (all parts done) 81.5s, 39 requests, 135254 tokens, 32 steps, 0 failed, bots desk,s,scout,writer; tokens by bot {'s': 18702, 'scout': 109123, 'writer': 3133, 'desk': 4296}
+run 2 one bot: INCOMPLETE (saved_with_links, routine) 36.3s, 10 requests, 99004 tokens, 15 steps, 7 failed, bots s; tokens by bot {'s': 99004}
+run 2    crew: SUCCESS (all parts done) 18.2s, 13 requests, 26387 tokens, 10 steps, 0 failed, bots desk,s,scout,writer; tokens by bot {'s': 9963, 'scout': 7381, 'writer': 2572, 'desk': 6471}

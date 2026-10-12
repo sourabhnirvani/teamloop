@@ -11,7 +11,7 @@
 "Research the top 3 free LLM APIs for students, write a short report on the Desktop, open it, and remind me about it
 every Monday."
 
-### Fair run: Groq's models as Groq serves them today (`GROQ_MODELS=openai/gpt-oss-120b,qwen/qwen3.8-27b,openai/gpt-oss-20b`)
+### Fair run A: Groq's real models through an override (`GROQ_MODELS=openai/gpt-oss-120b,qwen/qwen3.8-27b,openai/gpt-oss-20b`; data in `before-after-override-yang.*`)
 | Run | Mode | Result | Seconds | Model requests | Tokens | Tool steps (failed) | What was missing |
 |---|---|---|---|---|---|---|---|
 | 1 | one bot | **INCOMPLETE** | 32.5 | 9 | 59,883 | 10 (0) | the report had **no source links**; **no routine** |
@@ -19,7 +19,7 @@ every Monday."
 | 2 | one bot | **INCOMPLETE** | 40.8 | 9 | 74,079 | 10 (1) | **never opened** the report ("I have not opened it"); **no routine** |
 | 2 | crew | **SUCCESS** | 14.4 | 14 | 29,259 | 10 (0) | none |
 
-**Straight reading:** on the multi-skill goal the crew finished **2/2**, and one bot finished **0/2**.
+**Straight reading (run A):** on the multi-skill goal the crew finished **2/2**, and one bot finished **0/2**.
 - **Missed by one bot:** both times, the reminder; once, opening the report; once, the links.
 - **Cost:** the crew was the same or cheaper in tokens (64k vs 60k, then 29k vs 74k) and in time (41 s vs 33 s, then 14 s vs 41 s).
 - **Why:** S alone with every tool loses track of a 4-part request. The crew's lead hands one clear step to each
@@ -31,7 +31,23 @@ Tool steps, as recorded:
 - **One bot run 2:** `s:web_search → s:fetch_page → s:browser_open → s:browser_read → s:web_search ×4 →
   s:write_file (FAILED) → s:write_file`, then it stopped.
 
-Reports the runs produced: `evidence/runs/demo-reports-yang/fair-rerun/` (moved off the Desktop).
+Reports the runs produced: `evidence/runs/demo-reports-yang/fair-rerun/` and `.../fixed-defaults/` (moved off the Desktop).
+
+### Fair run B: the same models as the built-in default (after a5f28f1), with tokens per bot (`before-after-yang.json`)
+| Run | Mode | Result | Seconds | Requests | Tokens | Tool steps (failed) | Tokens by bot | What was missing |
+|---|---|---|---|---|---|---|---|---|
+| 1 | one bot | **INCOMPLETE** | 33.1 | 8 | 32,432 | 6 (1) | S 32,432 | **no research**, **no routine** |
+| 1 | crew | **SUCCESS** | 81.5 | 39 | 135,254 | 32 (0) | **Scout 109,123** · S 18,702 · Desk 4,296 · Writer 3,133 | none |
+| 2 | one bot | **INCOMPLETE** | 36.3 | 10 | 99,004 | 15 (7) | S 99,004 | the report had **no links**; **no routine** |
+| 2 | crew | **SUCCESS** | 18.2 | 13 | 26,387 | 10 (0) | S 9,963 · Scout 7,381 · Desk 6,471 · Writer 2,572 | none |
+
+**Across both fair runs: the crew finished 4/4, one bot 0/4.** One bot never set the Monday reminder in any of the 4 runs.
+
+**Where the tokens go:** crew run 1's 135k tokens were **81% Scout's research**: 20 `web_search` calls and 4
+`fetch_page` calls in one turn, with every result and page fed back to the model. Crew run 2 did the same job with
+3 Scout calls and 7k Scout tokens. The heavy crew runs (the 209k in the stale-model attempt, 135k here) are Scout
+over-searching. That's fixable with a cap on searches per turn: the repeat guard only stops *identical* calls.
+For free tiers that cap is the biggest single saving.
 
 ### First attempt, with the stale Groq model list (kept for honesty: `before-after-stale-groq-models-yang.*`)
 Our config lists `llama-3.3-70b-versatile` and `llama-3.1-8b-instant`. **Groq has retired both** (404; its

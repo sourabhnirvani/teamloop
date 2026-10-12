@@ -1,0 +1,6 @@
+Top 3 Free LLM APIs for Students
+
+1. Google Gemini API – Permanent free tier with monthly token allowance, no credit card required. Good for student projects. Source: TokenMix "15 Best Free LLM APIs 2026" https://tokenmix.ai/blog/free-llm-api
+
+
+3. OpenRouter :free models – Various free variants like Ling 3.1 Flash, Inkling Small, free per token with modest rate limits. Access via OpenAI‑compatible endpoint. Source: modelgrep "Free LLM APIs (October 2026)" https://modelgrep.com/free-llm-api
