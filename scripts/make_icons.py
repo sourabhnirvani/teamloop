@@ -29,16 +29,13 @@ async def render(svg: str, size: int, out: Path, maskable: bool = False) -> None
     from playwright.async_api import async_playwright
 
     if maskable:
-        # full-bleed square, the logo shrunk into the safe circle, so launchers can crop it into any shape
-        bg = re.search(r'<rect width="512" height="512" rx="118" fill="url\(#tl-bg\)"/>', svg)
-        assert bg, "logo.svg changed: update make_icons.py's maskable step"
-        inner = svg.replace(bg.group(0), "").replace(
-            '<rect width="512" height="512" rx="118" fill="url(#tl-shine)"/>', "")
-        body = inner[inner.index(">", inner.index("<svg")) + 1: inner.rindex("</svg>")]
-        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">'
-               + body[: body.index("</defs>") + 7]
-               + '<rect width="512" height="512" fill="url(#tl-bg)"/><rect width="512" height="512" fill="url(#tl-shine)"/>'
-               + '<g transform="translate(51.2 51.2) scale(.8)">' + body[body.index("</defs>") + 7:] + "</g></svg>")
+        # full-bleed square in the logo's own background colour (data-bg on its <svg>), the whole logo shrunk into
+        # the safe circle, so launchers can crop it into any shape
+        found = re.search(r'data-bg="(#[0-9a-fA-F]{3,8})"', svg)
+        assert found, "logo.svg needs a data-bg colour on its <svg> for the maskable icon"
+        body = svg[svg.index(">", svg.index("<svg")) + 1: svg.rindex("</svg>")]
+        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" '
+               f'fill="{found.group(1)}"/><g transform="translate(51.2 51.2) scale(.8)">{body}</g></svg>')
     async with async_playwright() as p:
         browser = await p.chromium.launch(channel="chrome", headless=True)
         page = await browser.new_page(viewport={"width": size, "height": size}, device_scale_factor=1)
