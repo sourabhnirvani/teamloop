@@ -292,6 +292,7 @@ export const SIGNS: Partial<Record<Move, string>> = {
   listen: "👂", think: "💭", talk: "💬", ask: "🙋", cheer: "✨", oops: "💦", sleep: "💤",
 };
 const TOOL_SIGNS: [RegExp, string][] = [
+  [/^click_on$/, "👆"], [/^mouse$/, "🖱️"],
   [/search|fetch_page|research/, "🔎"], [/^browser|web/, "🌐"], [/write_file|note|draft/, "✍️"],
   [/read_file|list_files|open_file/, "📄"], [/run_command|job/, "⌨️"], [/open_app|close_app|window|focus|ui_/, "🖥️"],
   [/type_text|press_keys/, "⌨️"], [/screenshot|screen/, "📸"], [/volume/, "🔊"], [/brightness/, "☀️"], [/wifi/, "📶"],
@@ -307,6 +308,7 @@ const TOOL_NAMES: Record<string, string> = {
   set_volume: "Volume", set_brightness: "Brightness", screenshot: "Look at the screen", read_screen: "Read the screen",
   type_text: "Type", press_keys: "Press keys", browser_open: "Open a site", browser_snapshot: "Read the site",
   browser_act: "Use the site", focus_window: "Switch window", lock_screen: "Lock the screen",
+  click_on: "Click", mouse: "Use the mouse", find_on_screen: "Look on screen",
 };
 
 // "Set a routine" for schedule_routine; any other tool's name, made readable
