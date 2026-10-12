@@ -33,3 +33,14 @@ Notes:
 | Ctrl+Alt+Q, live in the desktop app | Electron (desktop/, `electron .`) on the rehearsal server, with a Team job waiting on Desk's approval card. Ctrl+Alt+Q was sent from outside the app: `stop-all answered {"stopped":["team"],"chats":7}`, the card list went from 1 to 0, and the tray balloon said "Stopped: Stopped 1 chat. Nothing else will move." | PASS | `evidence/ui/operator-ctrl-alt-q-balloon-crop-yang.png` (the dev run shows "Electron" as the app name; the packaged app shows TeamLoop) |
 | Recent screen tasks, live | after approving the card: `GET /api/operator` recent = `desk · open_file · ok · Opened llm-report-2.md; its window "llm-report-2.md - Notepad" is in front.` | PASS | API answer, above |
 | OperatorPage UI | mounted in a local, uncommitted build: Ready line, the 4 rules, "Stop everything now", Recent screen tasks | PASS (wiring is Sourabh's) | `evidence/ui/operator-page-yang.jpg` |
+
+## A/H. Telegram from Settings, plus Telegram commands (Mon 12 Oct, ~08:30 IST)
+| Piece | Check | Result | Evidence |
+|---|---|---|---|
+| `GET /api/integrations` | `{telegram: {on, bot_name, allowed_ids_count, error}, tracing: {on}, default_provider}` | PASS | `tests/test_integrations.py` |
+| `POST /api/integrations/telegram {token?, allowed_ids?}` | token checked first (shape, then Telegram `getMe`), saved through the vault as TELEGRAM_TOKEN / TELEGRAM_CHAT_ID, redacted everywhere, bridge (re)started **without a server restart** (new task, old one cancelled) | PASS | tests with a fake Telegram API (MockTransport), no network |
+| Clear errors | bad token → "Telegram says that token isn't valid…"; malformed → "That doesn't look like a bot token…@BotFather"; bad id → names it | PASS | tests + live page (malformed value; nothing sent to Telegram) |
+| `DELETE /api/integrations/telegram` | turns it off, removes the vault token; a token from .env → 409 | PASS | tests |
+| H: `/sleep`, `/wake`, `/crew` | go through the crew's own sleep/wake words; `/crew` lists each bot with its personality; Approve/Deny buttons, `/stop`, `/chat <bot>` already existed | PASS | tests |
+| IntegrationsPage UI | status rows (Telegram, tracing, models), token + allowed people boxes, @BotFather help, the Telegram command list | PASS (mounted in a local, uncommitted build; wiring is Sourabh's) | `evidence/ui/integrations-page-yang.jpg` |
+| **Live check with a real bot** | needs Yang's own bot token from @BotFather | **NOT DONE** (no token on this machine) | - |

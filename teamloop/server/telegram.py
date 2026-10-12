@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
 
 import httpx
@@ -21,7 +22,9 @@ POLL_SECONDS = 30
 MAX_AGE = 120  # messages sent while the server was off are dropped, not run late
 LIMIT = 4000   # Telegram allows 4096 characters per message
 HELP = ("Talk to the crew here. /chat to see chats, /chat scout to talk to one bot, "
-        "/chat team to go back, /stop to stop the work.")
+        "/chat team to go back, /stop to stop the work, /crew to see who's who, /sleep and /wake.")
+TOKEN_SHAPE = re.compile(r"^\d{6,12}:[A-Za-z0-9_\-]{30,}$")
+CHAT_ID = re.compile(r"^-?\d{1,20}$")  # a user id, or a group id like -100...
 
 
 class Bridge:
@@ -82,6 +85,15 @@ class Bridge:
         name, arg = name.split("@")[0].lower(), arg.strip().lower()
         if name == "stop":
             await self.crew.post(self.chat, "stop")
+        elif name in ("sleep", "wake"):  # the crew's own words for it, so the reply comes back like any other
+            await self.crew.post(self.chat, "go to sleep" if name == "sleep" else "wake up")
+        elif name == "crew":
+            from teamloop.crew.bots import PERSONALITIES, crew as roster
+            lines = []
+            for b in roster():
+                manner = PERSONALITIES.get(b.personality or "")
+                lines.append(f"{b.emoji} {b.name}: {b.role}" + (f" ({manner.label.lower()})" if manner else ""))
+            await self.send(to, "The crew:\n" + "\n".join(lines))
         elif name == "chat" and arg:
             chat = next((c for c in self.crew.store.chats()
                          if arg in (c["id"], c["title"].lower(), f"dm-{arg}")), None)
@@ -158,13 +170,67 @@ def _name(bot_id: str) -> str:
     return f"{bot.emoji} {bot.name}" if bot else bot_id
 
 
+# ---- on/off without restarting the server (Settings > Telegram) ------------------------------------------
+STATE: dict = {"task": None, "bot_name": "", "error": ""}
+
+
+def client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=POLL_SECONDS + 10)
+
+
+def owners_from_env() -> list[str]:
+    return [c.strip() for c in os.environ.get("TELEGRAM_CHAT_ID", "").split(",") if c.strip()]
+
+
+async def bot_name(token: str) -> str:
+    """The bot's @name from Telegram (getMe). ValueError with a plain reason when the token is wrong."""
+    if not TOKEN_SHAPE.match(token or ""):
+        raise ValueError("That doesn't look like a bot token. It looks like 123456789:AA... and comes from @BotFather.")
+    async with client() as c:
+        try:
+            res = await c.post(API.format(token=token, method="getMe"))
+            body = res.json()
+        except (httpx.HTTPError, ValueError) as e:
+            raise ValueError(f"Couldn't reach Telegram to check the token ({type(e).__name__}).") from None
+    if not body.get("ok"):
+        raise ValueError("Telegram says that token isn't valid. Copy it again from @BotFather.")
+    return "@" + str(body["result"].get("username") or body["result"].get("first_name") or "bot")
+
+
+def status() -> dict:
+    task = STATE["task"]
+    on = bool(task and not task.done() and os.environ.get("TELEGRAM_TOKEN"))
+    return {"on": on, "bot_name": STATE["bot_name"] if on else "", "allowed_ids_count": len(owners_from_env()),
+            "error": STATE["error"]}
+
+
+def stop() -> None:
+    task, STATE["task"] = STATE["task"], None
+    if task and not task.done():
+        task.cancel()
+
+
+def start(crew) -> asyncio.Task:
+    """(Re)start the bridge with what the environment holds now; Settings calls this after saving."""
+    stop()
+    STATE["task"] = asyncio.create_task(run(crew))
+    return STATE["task"]
+
+
 async def run(crew) -> None:
     """Start the bridge when TELEGRAM_TOKEN is set; TELEGRAM_CHAT_ID (comma-separated) locks it to those people."""
+    STATE.update(bot_name="", error="")
     token = os.environ.get("TELEGRAM_TOKEN", "").strip()
     if not token:
         return
-    owners = [c.strip() for c in os.environ.get("TELEGRAM_CHAT_ID", "").split(",") if c.strip()]
+    try:
+        STATE["bot_name"] = await bot_name(token)
+    except ValueError as e:
+        STATE["error"] = str(e)
+        log.warning("telegram not started: %s", e)
+        return
+    owners = owners_from_env()
     if not owners:
         log.warning("TELEGRAM_CHAT_ID is not set: the bot only replies with your chat id until it is")
-    async with httpx.AsyncClient(timeout=POLL_SECONDS + 10) as client:
-        await Bridge(crew, token, owners, client).run()
+    async with client() as c:
+        await Bridge(crew, token, owners, c).run()

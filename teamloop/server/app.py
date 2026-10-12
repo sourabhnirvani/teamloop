@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -29,6 +30,7 @@ from teamloop.crew.store import TASK_STATES, Store
 from teamloop.crew.team import Crew
 from teamloop.keys import entries as key_rows
 from teamloop.keys import vault, wallet
+from teamloop.keys.redact import add_secret
 from teamloop.models import doctor
 from teamloop.models import providers as P
 from teamloop.models.router import Router
@@ -161,7 +163,7 @@ def create_app(crew: Crew | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         trace.init()
         ticker = asyncio.create_task(routines.scheduler(app.state.crew))
-        phone = asyncio.create_task(telegram.run(app.state.crew))
+        telegram.start(app.state.crew)  # Settings can restart it after saving a token, no server restart
         checker = asyncio.create_task(doctor.keep_checking(app.state.crew.router))
         link = asyncio.create_task(hub.run(app))  # the phone hub, once it's set up
         versions = asyncio.create_task(watch_version(app.state.crew.bus))
@@ -169,7 +171,7 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         link.cancel()
         versions.cancel()
         ticker.cancel()
-        phone.cancel()
+        telegram.stop()
         app.state.phones.stop()
         checker.cancel()
         trace.flush()
@@ -362,6 +364,50 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         crew = get_crew()
         stopped = [chat["id"] for chat in crew.store.chats() if await crew.stop(chat["id"])]
         return {"stopped": stopped, "chats": len(crew.store.chats())}
+
+    @app.get("/api/integrations")
+    def integrations() -> dict:
+        chain = [p for p in P.chain() if any(P.keys_for(p))]
+        return {"telegram": telegram.status(), "tracing": {"on": trace.enabled()},
+                "default_provider": chain[0].name if chain else None}
+
+    @app.post("/api/integrations/telegram")
+    async def telegram_setup(body: dict) -> dict:
+        """Save a bot token and/or the allowed Telegram user ids (vault), then restart the bridge in place."""
+        token = str(body.get("token") or "").strip()
+        raw_ids = body.get("allowed_ids")
+        ids = None
+        if raw_ids is not None:
+            items = raw_ids if isinstance(raw_ids, list) else str(raw_ids).replace(";", ",").split(",")
+            ids = [str(i).strip() for i in items if str(i).strip()]
+            bad = [i for i in ids if not telegram.CHAT_ID.match(i)]
+            if bad:
+                raise HTTPException(400, f"Telegram user ids are numbers, like 123456789; this isn't one: {bad[0]}")
+        if not token and ids is None:
+            raise HTTPException(400, "Paste the bot token from @BotFather, or the allowed user ids, or both.")
+        if token:
+            try:
+                name = await telegram.bot_name(token)
+            except ValueError as e:
+                raise HTTPException(400, str(e))
+            add_secret(token)
+            vault.put("TELEGRAM_TOKEN", token)
+            telegram.STATE["bot_name"] = name
+        if ids is not None:
+            vault.put("TELEGRAM_CHAT_ID", ",".join(ids))
+        telegram.start(get_crew())
+        await asyncio.sleep(0)
+        return telegram.status()
+
+    @app.delete("/api/integrations/telegram")
+    def telegram_off() -> dict:
+        saved = vault.load()
+        if os.environ.get("TELEGRAM_TOKEN") and "TELEGRAM_TOKEN" not in saved:
+            raise HTTPException(409, "The Telegram token comes from .env, not the vault. Remove it there and restart.")
+        telegram.stop()
+        vault.remove("TELEGRAM_TOKEN")
+        telegram.STATE.update(bot_name="", error="")
+        return telegram.status()
 
     @app.get("/api/operator")
     def operator_state() -> dict:
