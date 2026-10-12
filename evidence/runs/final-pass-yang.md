@@ -81,3 +81,13 @@ Test side effects removed again: routine `9ca2f5bc` deleted (list empty), report
 - The demo goal passed 3 of the last 4 UI runs. The one miss was my unanswered card, and it then got the
   independent-steps fix.
 - Computer use passes 10/10.
+
+## D. Desktop window (09:35 IST)
+| Check | Result | How |
+|---|---|---|
+| Minimum window size 900x640 | **PASS** | asked Windows for 500x400 (`MoveWindow`) and got 1110x792 physical at 120 dpi = 888x634 visible. Electron's minimum counts the outer frame, which includes Windows' invisible resize borders |
+| Error page when the server doesn't answer within 45 s | **PASS** | launched with `TEAMLOOP_PORT=8787` (taken by the bridge relay, so the server can't start). Through Chromium's debug port, the window shows the normal start page at ~12 s, and at ~50 s "TeamLoop's server hasn't started yet" with the log path `C:\Users\BCE\AppData\Roaming\TeamLoop\logs\server.log` |
+| Keeps retrying, then opens the app when the server answers | **not forced live** | the loop keeps polling `/api/bots` every 0.5 s after showing the page, then returns, and the caller loads the app (the same return path as before). Forcing it live would have meant stopping the bridge relay |
+
+A first screenshot attempt grabbed the screen area, which showed other windows on top. It was deleted unseen by anyone
+else and never committed. A Chromium window-capture came back blank, so the proof above comes from the page itself.

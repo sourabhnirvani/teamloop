@@ -119,11 +119,30 @@ function watchHealth() {
   }, 5000);
 }
 
+// Wait for the server; after 45 s show what's wrong and where the log is, keep trying, and go on as soon as it answers.
+const SLOW_START_MS = 45_000;
+
 async function waitForServer() {
+  const started = Date.now();
+  let shown = false;
   for (;;) {
     if (await get(`${BASE}/api/bots`)) return;
+    if (!shown && Date.now() - started > SLOW_START_MS && win && !win.isDestroyed()) {
+      shown = true;
+      win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(slowStartPage())}`);
+    }
     await new Promise((r) => setTimeout(r, 500));
   }
+}
+
+function slowStartPage() {
+  const log = path.join(app.getPath("logs"), "server.log").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  return `<!doctype html><title>${TITLE}</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;
+background:#090c18;color:#eceffa;font:16px system-ui;text-align:center;padding:24px"><div style="max-width:560px">
+<div style="font-size:44px">🛠️</div><h2>TeamLoop's server hasn't started yet</h2>
+<p style="color:#8e97bb">It's been more than 45 seconds. TeamLoop keeps trying and opens here by itself as soon as it
+answers.</p><p style="color:#8e97bb">If it doesn't, the reason is in the server log:<br>
+<code style="color:#eceffa;user-select:all">${log}</code></p></div>`;
 }
 
 // ---- approval cards -> desktop notifications ------------------------------------------------------
@@ -195,6 +214,8 @@ function createWindow() {
     title: TITLE,
     width: 1100,
     height: 760,
+    minWidth: 900,  // below this the chat list and the chat stop fitting side by side
+    minHeight: 640,
     icon: icon(),
     autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
