@@ -1,5 +1,14 @@
 # Submission post (Sourabh posts it, Mon 12 Oct, 19:00–23:55 IST)
 
+## ✅ SUBMITTED (Mon 12 Oct 2026, ~20:40 IST)
+- **Quote post** (Yang, @Boopathiraja, 8:08 PM): https://x.com/Boopathiraja/status/2109654881942569421. It quotes the
+  official launch post https://x.com/bettersayAJ/status/2109639214723932495, has the 2:33 demo attached, and tags
+  @arithecfo @EntireHQ @neatlogs, plus @GoogleDevss and #neatHack.
+- **Form** (https://neatlogs.com/submission), submitted by Sourabh as team leader: "Submission received. Agent S's
+  project is submitted for every teammate." Submission id `544fce52-05d9-4e8e-83bf-bf8a560ad52e`.
+- The final rules came from the neatlogs Discord: quote the launch post, attach the demo, tag all three, then fill in
+  the form with the quote link. The text below was the earlier draft. The posted quote uses Yang's own wording.
+
 **How:** open the official @neatlogs submission post on X, press **Quote**, paste the text below, fill in the video
 link, and post it from @GoogleDevss. Then put the post's link in `evidence/hackathon.md`.
 
@@ -21,8 +30,8 @@ linked from cfo.ai. Adding "Windows" back would make it 279, too close to the li
 - [x] The video is at most 3 minutes and its link opens when you're signed out (YouTube unlisted works; a private link
       doesn't).
 - [x] The repo is public and opens when you're signed out.
-- [ ] Both team members registered on Luma under the same team name: **Agent S**.
-- [ ] Posted between 19:00 and 23:55 IST, as a **quote** of the official neatlogs submission post (not a new post).
-- [ ] The post tags @neatlogs, @EntireHQ and @arithecfo (check that each tag turns blue before posting).
-- [ ] Fill in the official submission form. The organisers share its link later, and the post alone doesn't count.
+- [x] Both team members registered on Luma under the same team name: **Agent S**.
+- [x] Posted between 19:00 and 23:55 IST, as a **quote** of the official neatlogs submission post (not a new post).
+- [x] The post tags @neatlogs, @EntireHQ and @arithecfo (check that each tag turns blue before posting).
+- [x] Fill in the official submission form. The organisers share its link later, and the post alone doesn't count.
       Sourabh fills in his details. Yang adds his own (Luma, contact) himself.

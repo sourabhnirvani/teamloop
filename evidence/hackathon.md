@@ -60,7 +60,8 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 | | 4. Security review, 44 attempts, 7 to 0: https://x.com/Boopathiraja/status/2109500941406028273 |
 | | 5. The honest "Not done" fix: https://x.com/Boopathiraja/status/2109501132871696803 |
 | | 6. Final pass on the real app: https://x.com/Boopathiraja/status/2109501372450459895 |
-| | 7. The demo video, live (Mon 12 Oct 19:31 IST; tags @GoogleDevss, @neatlogs, @EntireHQ and @arithecfo): https://x.com/Boopathiraja/status/2109645545971356066 |
+| | 7. The demo as a native video (Mon 12 Oct 19:41 IST): https://x.com/Boopathiraja/status/2109648038574854580 |
+| | 8. **The submission**, quoting the neatlogs launch post with the demo attached (Mon 12 Oct 20:08 IST): https://x.com/Boopathiraja/status/2109654881942569421. Form submitted: id `544fce52-05d9-4e8e-83bf-bf8a560ad52e` |
 | Texts and images | `evidence/posts.md`, `evidence/posts/` |
 | Small commits by both people across the event, with evidence for each piece | `git log`, this folder |
 | Two coding agents working as teammates over ccbridge (requests, reviews, acks) | `HANDOFF.md`, `BRIDGE.md` |
