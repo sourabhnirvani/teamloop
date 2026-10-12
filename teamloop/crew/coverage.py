@@ -35,9 +35,20 @@ _CLAIM = r"\b{name}\b(?:'s)?\s*(?::|says?\b|said\b|found\b|reports?\b|saved\b|wr
          r"looked\b|checked\b|confirmed\b)"
 
 
+_WEBBY = re.compile(r"\b(?:site|website|web ?page|page|link|url|https?://|www\.)", re.I)
+
+
 def missing(goal: str, used: set[str]) -> list[str]:
     """The asks in `goal` that no tool used in this job covers (an attempt counts, even a denied one)."""
-    return [label for label, said, tools in ASKS if said.search(goal or "") and not (tools & used)]
+    out = []
+    for label, said, tools in ASKS:
+        if not said.search(goal or ""):
+            continue
+        if label == "open it" and not _WEBBY.search(goal or ""):
+            tools = tools - {"browser_open"}  # Web reading an article isn't opening the person's report
+        if not (tools & used):
+            out.append(label)
+    return out
 
 
 def missing_actions(goal: str, used: set[str]) -> list[str]:

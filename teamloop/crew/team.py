@@ -28,6 +28,12 @@ log = logging.getLogger(__name__)
 HISTORY_LIMIT, SAVE_HISTORY_LIMIT = 20, 8
 SAVE_MAX_STEPS = 5
 MAX_HANDOFF_DEPTH = 2
+# Research hand-offs per job, counted at the lead (measured: S sent Scout and Web back 7 times chasing a detail the
+# person never asked for, then ran out of steps before save/open/remind; capping Scout alone just moved it to Web).
+RESEARCH_BOTS = frozenset({"scout", "web"})
+MAX_RESEARCH_HANDOFFS = 2
+ENOUGH_RESEARCH = ("You have enough research: put everything you still need into ONE instruction next time, and now "
+                   "go on with the next step (write/save/open/remind) using what you have.")
 STOP_WORDS = {"stop", "stop it", "cancel", "stop now"}
 _MENTION = re.compile(r"@(\w+)|\bask (\w+) to\b", re.IGNORECASE)
 _ADDRESS = re.compile(r"^\s*(?:hey\s+|ok\s+)?(\w+)\s*[,:]\s+\S", re.IGNORECASE)
@@ -263,6 +269,10 @@ class Crew:
             return ToolResult(False, "Give the teammate a clear instruction.")
         if ctx.depth >= MAX_HANDOFF_DEPTH:
             return ToolResult(False, "Too many handoffs in a row. Do this step yourself or ask the person.")
+        if bot.id in RESEARCH_BOTS:
+            if sum(h in RESEARCH_BOTS for h in ctx.handoffs) >= MAX_RESEARCH_HANDOFFS:
+                return ToolResult(False, ENOUGH_RESEARCH)
+        ctx.handoffs.append(bot.id)
         await self.say(ctx.chat_id, ctx.bot_id, f"@{bot.name} {instruction}", kind="handoff")
         task = await self.board_add(_task_title(instruction), status="doing", bot=bot.id, by=ctx.bot_id,
                                     chat_id=ctx.chat_id, source="delegate")

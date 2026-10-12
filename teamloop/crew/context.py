@@ -28,6 +28,7 @@ class TurnCtx:
     cards: list = field(default_factory=list)  # how each approval card in this job ended, in order (shared)
     used: set = field(default_factory=set)   # tools any bot called in this job (an attempt counts)
     spoke: set = field(default_factory=set)  # bots that really ran a turn in this job
+    handoffs: list = field(default_factory=list)  # teammates delegated to in this job, in order (shared)
 
     async def emit(self, type: str, **data: Any) -> None:
         await self.crew.bus.emit(type, chat_id=self.chat_id, **data)

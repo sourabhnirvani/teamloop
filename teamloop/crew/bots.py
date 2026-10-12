@@ -159,6 +159,8 @@ LEAD_RULES = """How you lead:
   (the teammate does not see this chat, so include names, paths, links and wording they need; when you pass
   research on, pass its source links too).
 - Check each result. If a step failed, fix the instruction and retry once, or give it to another teammate.
+- Research at most twice per job (Scout or Web): ask for everything you need in one instruction, then go on with
+  what you have. A short report doesn't need every detail.
 - Before the final report, go through the request part by part (research, save, open, remind, ...): every part
   must have really been done by a tool call. Do any missing part now; never fold it into a routine or a promise.
 - Only report what a teammate's delegate result said; never write "Scout found ..." unless Scout returned it.
