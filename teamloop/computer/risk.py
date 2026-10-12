@@ -15,6 +15,9 @@ MESSAGING = re.compile(
 COMMIT_WORDS = re.compile(
     r"^\W*(send|post|reply( all)?|tweet|publish|submit|share|comment|buy|pay|place order|checkout|"
     r"confirm|delete|remove|uninstall|format|empty recycle bin|sign out|log out)\b", re.IGNORECASE)
+# Clicking a window's Close or a save prompt's "Don't Save" throws work away just like Alt+F4 does (seen live: a model
+# replayed "close without saving" through click_on and skipped close_app's discard card).
+DISCARD_WORDS = re.compile(r"\b(don'?t save|don’t save|do not save|discard|close|exit|quit)\b", re.IGNORECASE)
 DESTRUCTIVE_KEYS = {"shift+delete", "ctrl+shift+delete", "alt+f4"}
 SEND_KEYS = {"enter", "ctrl+enter", "alt+s"}
 
@@ -84,7 +87,7 @@ def secret_kind(text: str, field: str = "") -> str | None:
 def click_risk(control_name: str, window_title: str = "") -> str:
     if own_window(window_title):
         return NEVER
-    if COMMIT_WORDS.search(control_name or ""):
+    if COMMIT_WORDS.search(control_name or "") or DISCARD_WORDS.search(control_name or ""):
         return ASK
     return SAFE
 

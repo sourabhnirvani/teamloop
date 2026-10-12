@@ -23,7 +23,7 @@ DENY_MEMORY = 600.0  # seconds a "no" holds for the same request in the same cha
 RULES = "always_allowed"  # setting: [{id, title, key, label, bot, added}]
 
 # cards that can never become "always allow": anything that sends, posts, submits, buys, replaces or powers off
-_NEVER_ALWAYS = re.compile(r"^(Type and send|Type |Press |Click |Select |Fill |Submit|Open a checkout page|Replace a file|"
+_NEVER_ALWAYS = re.compile(r"^(Type and send|Type |Press |Click |Mouse:|Select |Fill |Submit|Open a checkout page|Replace a file|"
                            r"Lock|Sleep|Restart|Shutdown)", re.I)
 _RISKY_COMMANDS = {"delete", "power", "registry", "run-code"}
 _BY_TITLE = re.compile(r"^(Close |Turn Wi-Fi off)")  # "always allow closing Notepad", whatever windows are open
