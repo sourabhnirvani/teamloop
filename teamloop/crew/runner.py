@@ -24,8 +24,9 @@ RETRY_NOTE = "This looks temporary: try the same call once more before you repor
 RETRY_NUDGE = "\n(" + RETRY_NOTE + ")"
 REPEATED = ("SKIPPED: you already made this exact call twice and the result won't change. Use what you have, "
             "try something different, or reply to the person.")
-# Research caps per turn (measured: one Scout turn ran 20 web_search + 4 fetch_page, 81% of a 135k-token job;
-# the same job done well took 3 calls). Different queries each time, so the repeat guard alone never stopped it.
+# Research caps per JOB, across every turn of that bot (measured: one Scout turn ran 20 web_search + 4 fetch_page, 81%
+# of a 135k-token job; with a per-turn cap the lead just sent Scout back three times: 15 + 9). Different queries each
+# time, so the repeat guard alone never stopped it.
 CAPS = {"scout": {"web_search": 5, "fetch_page": 3}}
 ENOUGH = "SKIPPED: You've searched enough: answer with the sources you have."
 
@@ -39,7 +40,6 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
     messages: list[dict] = [{"role": "system", "content": system_prompt(bot, members, facts=_facts(ctx))}, *history,
                             {"role": "user", "content": user_text}]
     seen: dict[tuple[str, str], int] = {}
-    counted: dict[str, int] = {}  # research calls this turn, for CAPS
     ctx.spoke.add(bot.id)
     checked = False  # the lead is sent back at most once per job for a skipped step or an invented result
     with trace.span(f"{bot.name} turn", "agent", bot=bot.id, chat=ctx.chat_id, depth=ctx.depth) as sp:
@@ -72,8 +72,9 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
                     continue
                 cap = CAPS.get(bot.id, {}).get(call.name)
                 if cap is not None:
-                    counted[call.name] = counted.get(call.name, 0) + 1
-                    if counted[call.name] > cap:
+                    tally = f"{bot.id}:{call.name}"
+                    ctx.research[tally] = ctx.research.get(tally, 0) + 1
+                    if ctx.research[tally] > cap:
                         messages.append({"role": "tool", "tool_call_id": call.id, "content": ENOUGH})
                         continue
                 await ctx.emit("step", bot=bot.id, tool=call.name, args=call.args, status="start")

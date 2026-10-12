@@ -1,0 +1,161 @@
+{
+  "goal": "Research the top 3 free LLM APIs for students, write a short report on the Desktop, open it, and remind me about it every Monday.",
+  "rows": [
+    {
+      "mode": "crew",
+      "seconds": 77.7,
+      "model_requests": 38,
+      "tokens": 151390,
+      "tool_calls": 32,
+      "tool_failures": 1,
+      "bots_involved": [
+        "desk",
+        "s",
+        "scout",
+        "writer"
+      ],
+      "final_reply": "- Top 3 free LLM APIs report created at **C:\\Users\\BCE\\Desktop\\FreeLLMAPIsReport.txt** and opened for you.  \n- A reminder to open and review it is scheduled for every Monday at 09:00.  \n\nLet me know if you need anything else.",
+      "run": 1,
+      "steps": 32,
+      "outcome": {
+        "researched": true,
+        "saved_with_links": true,
+        "opened": true,
+        "routine": true,
+        "success": true
+      },
+      "tokens_by_bot": {
+        "s": 17581,
+        "scout": 126712,
+        "writer": 2881,
+        "desk": 4216
+      },
+      "tools": [
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page FAILED",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "s:delegate",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "s:delegate",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "s:delegate",
+        "writer:write_file",
+        "s:delegate",
+        "s:schedule_routine",
+        "desk:open_file",
+        "s:delegate"
+      ]
+    },
+    {
+      "mode": "crew",
+      "seconds": 30.2,
+      "model_requests": 19,
+      "tokens": 61174,
+      "tool_calls": 14,
+      "tool_failures": 0,
+      "bots_involved": [
+        "desk",
+        "s",
+        "scout",
+        "writer"
+      ],
+      "final_reply": "- Desk opened **C:\\Users\\BCE\\Desktop\\FreeLLM_APIs_for_Students_Report.txt** in Notepad.  \n\n- Report saved: top 3 free LLM APIs for students (OpenRouter, Google Gemini via AI Studio, Groq).  \n- Reminder routine set for every Monday at 9 am (ID 9e713499).  \n\nAll steps completed. Let me know if you need anything else.",
+      "run": 2,
+      "steps": 14,
+      "outcome": {
+        "researched": true,
+        "saved_with_links": true,
+        "opened": true,
+        "routine": true,
+        "success": true
+      },
+      "tokens_by_bot": {
+        "s": 13071,
+        "scout": 41085,
+        "writer": 2754,
+        "desk": 4264
+      },
+      "tools": [
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:fetch_page",
+        "s:delegate",
+        "writer:write_file",
+        "s:delegate",
+        "s:schedule_routine",
+        "desk:open_file",
+        "s:delegate"
+      ]
+    },
+    {
+      "mode": "crew",
+      "seconds": 31.6,
+      "model_requests": 20,
+      "tokens": 59603,
+      "tool_calls": 14,
+      "tool_failures": 0,
+      "bots_involved": [
+        "desk",
+        "s",
+        "scout",
+        "writer"
+      ],
+      "final_reply": "Done.  \n- Scout gave the top‑3 free LLM APIs for students.  \n- Writer saved a report at **C:\\Users\\BCE\\Desktop\\FreeLLM_APIs_Student_Report.txt** and opened it.  \n- A weekly reminder is scheduled: every Monday at 9 am the file will open and you’ll be reminded to review it.  \n\nYou’re all set. Let me know if you need anything else.",
+      "run": 3,
+      "steps": 14,
+      "outcome": {
+        "researched": true,
+        "saved_with_links": true,
+        "opened": true,
+        "routine": true,
+        "success": true
+      },
+      "tokens_by_bot": {
+        "s": 12181,
+        "scout": 39504,
+        "writer": 3674,
+        "desk": 4244
+      },
+      "tools": [
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "s:delegate",
+        "s:delegate",
+        "writer:write_file",
+        "s:delegate",
+        "desk:open_file",
+        "s:delegate",
+        "s:schedule_routine"
+      ]
+    }
+  ]
+}

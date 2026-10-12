@@ -1,5 +1,6 @@
-"""Scout's research is capped per turn: at most 5 web_search and 3 fetch_page, then "answer with what you have".
-Measured before the cap: one Scout turn made 20 searches and 4 page reads, 81% of a 135k-token job."""
+"""Scout's research is capped per job: at most 5 web_search and 3 fetch_page across all its turns, then "answer with
+what you have". Measured: one Scout turn made 20 searches and 4 page reads (81% of a 135k-token job), and with a
+per-turn cap the lead simply sent Scout back three times."""
 
 import asyncio
 
@@ -52,3 +53,21 @@ async def test_other_bots_are_not_capped(tmp_path, monkeypatch):
     ctx = TurnCtx("dm-web", "web", crew, asyncio.Event())
     await runner.run_bot_turn(BOTS["web"], router, [], "look these up", ctx)
     assert len(ran) == 7
+
+
+async def test_the_cap_holds_across_scout_turns_in_one_job(tmp_path, monkeypatch):
+    kits.load_all()
+    ran = []
+
+    async def handler(args, ctx):
+        ran.append(args["query"])
+        return registry.ToolResult(True, "ok")
+    monkeypatch.setattr(registry.REGISTRY["web_search"], "handler", handler)
+    four = lambda tag: Reply("", [ToolCall(f"{tag}{i}", "web_search", {"query": f"{tag}{i}"}) for i in range(4)],  # noqa: E731
+                             "fake", "fake-1")
+    router = FakeRouter([four("a"), "First pass.", four("b"), "Second pass."])
+    crew = build_crew(tmp_path / "j.db", router=router)
+    job = TurnCtx("team", "s", crew, asyncio.Event())
+    await runner.run_bot_turn(BOTS["scout"], router, [], "research it", job.for_bot("scout", depth=1))
+    await runner.run_bot_turn(BOTS["scout"], router, [], "research it more", job.for_bot("scout", depth=1))
+    assert len(ran) == 5                                   # 4 in the first turn, only 1 more in the second

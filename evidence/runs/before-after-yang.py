@@ -72,7 +72,7 @@ async def main(runs: int):
     trace.init("teamloop-compare")
     rows = []
     for i in range(1, runs + 1):
-        for solo in (True, False):
+        for solo in MODES:
             CALLS.clear()
             TOKENS_BY.clear()
             with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
@@ -88,7 +88,9 @@ async def main(runs: int):
             await asyncio.sleep(1)
             close_reports()
     trace.flush()
-    (ROOT / "evidence" / "runs" / "before-after-yang.json").write_text(
+    name = "before-after-capped-yang.json" if "--crew-only" in sys.argv else "before-after-yang.json"
+    (ROOT / "evidence" / "runs" / name).write_text(
         json.dumps({"goal": GOAL, "rows": rows}, indent=2, ensure_ascii=False), encoding="utf-8")
 
-asyncio.run(main(int(sys.argv[1]) if len(sys.argv) > 1 else 2))
+MODES = (False,) if "--crew-only" in sys.argv else (True, False)
+asyncio.run(main(int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 2))
