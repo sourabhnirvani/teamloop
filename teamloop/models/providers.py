@@ -1,7 +1,7 @@
 """Free model providers. They all speak the OpenAI chat API, so one client type covers them.
 
 Keys come from the environment: GEMINI_API_KEY, GEMINI_API_KEY_2, ... form one pool.
-Model lists can be overridden per provider, e.g. GROQ_MODELS="llama-3.3-70b-versatile,...".
+Model lists can be overridden per provider, e.g. GROQ_MODELS="openai/gpt-oss-120b,...".
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ PROVIDERS: dict[str, Provider] = {p.id: p for p in [
              "GEMINI_API_KEY", ("gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"),
              r"AIza[0-9A-Za-z_\-]{35}", aliases=("GOOGLE_API_KEY",)),
     Provider("groq", "Groq", "https://api.groq.com/openai/v1",
-             "GROQ_API_KEY", ("llama-3.3-70b-versatile", "openai/gpt-oss-120b", "llama-3.1-8b-instant"),
+             "GROQ_API_KEY", ("openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"),  # Oct 2026 list
              r"gsk_[0-9A-Za-z]{52}"),
     Provider("openrouter", "OpenRouter", "https://openrouter.ai/api/v1",
              "OPENROUTER_API_KEY", ("openai/gpt-oss-20b:free", "meta-llama/llama-3.3-70b-instruct:free",

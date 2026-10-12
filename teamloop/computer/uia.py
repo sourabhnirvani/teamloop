@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 import uuid
 from pathlib import Path
@@ -115,6 +116,9 @@ _SPECIAL = set("{}+^%~()")
 _NAMED = {"enter": "{ENTER}", "tab": "{TAB}", "esc": "{ESC}", "up": "{UP}", "down": "{DOWN}", "left": "{LEFT}",
           "right": "{RIGHT}", "delete": "{DELETE}", "backspace": "{BACKSPACE}", "home": "{HOME}", "end": "{END}",
           "pgup": "{PGUP}", "pageup": "{PGUP}", "pgdn": "{PGDN}", "pagedown": "{PGDN}", "space": "{SPACE}",
+          "pgdown": "{PGDN}", "spacebar": "{SPACE}", "insert": "{INSERT}", "ins": "{INSERT}",
+          "uparrow": "{UP}", "downarrow": "{DOWN}", "leftarrow": "{LEFT}", "rightarrow": "{RIGHT}",
+          "arrowup": "{UP}", "arrowdown": "{DOWN}", "arrowleft": "{LEFT}", "arrowright": "{RIGHT}",
           **{f"f{i}": f"{{F{i}}}" for i in range(1, 13)}}
 _MODS = {"ctrl": "^", "shift": "+", "alt": "%"}
 
@@ -133,13 +137,33 @@ def escape_text(text: str) -> str:
     return "".join(out)
 
 
+def _named(part: str) -> str:
+    """One key: 'page down', 'Page_Down', 'PageDown' and 'pgdown' are all {PGDN}; a single character is itself."""
+    if len(part) == 1:
+        return escape_text(part)
+    name = re.sub(r"[\s_\-]+", "", part.lower())
+    return _NAMED.get(name) or "{" + name.upper() + "}"
+
+
+def unknown_key(keys: str) -> str | None:
+    """The key name pywinauto wouldn't know in `keys`, or None when every key is fine (checked before pressing)."""
+    from pywinauto.keyboard import parse_keys
+
+    try:
+        parse_keys(keys_to_sendkeys(keys))
+    except (RuntimeError, ValueError, KeyError) as e:
+        code = re.search(r"Unknown code: (\S+)", str(e))
+        return code.group(1) if code else keys
+    return None
+
+
 def keys_to_sendkeys(keys: str) -> str:
     from teamloop.computer.risk import normalize_keys
 
     parts = normalize_keys(keys).split("+")
     mods = [p for p in parts if p in _MODS or p == "win"]
     rest = [p for p in parts if p not in _MODS and p != "win"]
-    key = "".join(_NAMED.get(r, escape_text(r) if len(r) == 1 else "{" + r.upper() + "}") for r in rest)
+    key = "".join(_named(r) for r in rest)
     combo = "".join(_MODS[m] for m in mods if m in _MODS) + (f"({key})" if len(rest) > 1 else key)
     if "win" in mods:
         return "{VK_LWIN down}" + combo + "{VK_LWIN up}"

@@ -231,6 +231,10 @@ async def press_keys(args: dict, ctx) -> ToolResult:
     keys = str(args.get("keys", "")).strip()
     if not keys:
         return ToolResult(False, "Which keys?")
+    unknown = await com.run(uia.unknown_key, keys)
+    if unknown:
+        return ToolResult(False, f"I don't know the key \"{unknown}\". Use names like enter, tab, esc, pagedown, "
+                                 "pageup, home, end, f5, or a letter.")
     win = await _window(args.get("window"))
     title = win.title if win else ""
     level = risk.keys_risk(keys, _where(win) if win else "")
