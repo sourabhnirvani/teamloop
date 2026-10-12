@@ -1,0 +1,18 @@
+Top 3 Free LLM APIs for Students
+
+1. Groq (Free tier)
+- Description: Groq offers a forever‑free API key that gives access to all its hosted models (e.g., Llama‑3.1‑8B, Mixtral‑8x7B). Ideal for student projects and rapid prototyping.
+- Usage limits: Rate‑limited to 30 requests per minute per key; no hard token‑cap but fair‑use throttling applies.
+- Sources: https://groq.com/pricing, https://github.com/groq/groq-api-docs
+
+2. Google Gemini API (Free tier)
+- Description: Google’s Gemini models are available through the Vertex AI API with a free tier that provides generous usage for developers and learners.
+- Usage limits: Free tier includes $0.00 spend limit with up to 15 B tokens per month across Gemini‑1.5‑flash and Gemini‑1.5‑pro; per‑project request limits apply.
+- Sources: https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-reference/gemini, https://cloud.google.com/vertex-ai/pricing#free-tier
+
+3. Mistral AI (Free tier)
+- Description: Mistral offers a free‑tier API key granting access to its Mistral‑7B‑instruct and Mixtral‑8x7B models, suitable for coursework and experiments.
+- Usage limits: Up to 2 M tokens per month and 10 requests per second; additional usage requires paid plan.
+- Sources: https://mistral.ai/pricing, https://docs.mistral.ai/api-reference
+
+These APIs provide robust, no‑cost options for students to experiment with large language models while staying within usage caps.

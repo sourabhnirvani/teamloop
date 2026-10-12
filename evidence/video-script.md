@@ -1,7 +1,8 @@
 # TeamLoop: 3-minute demo video, draft script (jrkrishh, Mon 12 Oct)
 
 The rules ask, for **each** tool (neatlogs, Entire, cfo.ai): architecture, implementation, runtime, reasoning, result.
-Times are targets. Each block lists the screen, then the voice-over.
+Times are targets. Each block lists the screen, then the voice-over. **The exact words to say are in
+`evidence/video-voiceover.md`.**
 - **Record from:** the `demo` tag (`git checkout demo`), with a **fresh chat for every take**, so the chat history from
   earlier takes doesn't leak in.
 - **Model:** Groq's free tier.
@@ -53,10 +54,16 @@ Times are targets. Each block lists the screen, then the voice-over.
   work from the CLI.
 
 ## 2:15-2:45 cfo.ai
-- **Screen:** the cfo.ai plan: pricing, costs, revenue, runway.
-- **Architecture / reasoning:** TeamLoop costs **$0 to run** (free tiers plus local models), so the business is in
-  paid convenience: a hosted phone hub, more parallel bots, team plans.
-- **Result:** the runway number from the plan. ⚠ The plan export still has to land in `evidence/`.
+- **Screen:** the business plan's scenario table (`evidence/cfo/teamloop-plan.md`, computed by
+  `scripts/business_plan.py` from the cfo.ai brief): pricing, costs, revenue, runway.
+- **Architecture / reasoning:** TeamLoop costs **$0 per user to run** (free models with your own keys, and the phone hub
+  on your own free Cloudflare account), so the business is paid convenience: Pro $5/month, Team seats.
+- **Result, the reasoning beat:**
+  - If both founders draw pay from month 7, cash runs out in **May 2027**; the base case needs about **$22.6k** to
+    break even in Oct 2028.
+  - Bootstrapped (founders paid only from revenue), cash **never runs out** and the plan is profitable from **Aug 2027**.
+  - The lever is how many users go Pro, not model costs.
+- **Honesty line:** if cfo.ai needed a card, say so (see the voice-over).
 
 ## 2:45-3:00 Close
 - **Screen:** the Board with the job done; the evidence folder.
@@ -68,5 +75,5 @@ Times are targets. Each block lists the screen, then the voice-over.
 - The before/after table: `evidence/runs/before-after-yang.md`.
 - Ctrl+Alt+Q balloon: `evidence/ui/operator-ctrl-alt-q-balloon-crop-yang.png`.
 - ⚠ The neatlogs trace of the demo run.
-- ⚠ The cfo.ai plan.
-- ⚠ The #neatHack posts.
+- The cfo.ai plan: `evidence/cfo/teamloop-plan.md`.
+- The #neatHack posts: links in `evidence/hackathon.md`.

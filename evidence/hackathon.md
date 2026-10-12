@@ -25,7 +25,8 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 | Entire checkpoints link agent sessions to the commits they produced. **Day 1: both laptops** | `evidence/entire/checkpoints-sourabh.md`, `evidence/entire/checkpoints-jrkrishh.md` |
 | **Day 2: Sourabh's laptop**: 11 checkpoints, and 10 of that day's commits carry an `Entire-Checkpoint:` trailer (prompts stripped, no transcripts) | `evidence/entire/checkpoints-sourabh-day2.md` |
 | Not captured: Yang's day-2 work ran in the Claude desktop app, which Entire's Claude Code hook doesn't record. That laptop has no checkpoints after 11 Oct 01:51; its commits are still in `git log` with their dates | `git log --author=JrKrishh` |
-| ⚠ cfo.ai business plan (pricing, costs, revenue, runway) | Export from cfo.ai into `evidence/` (Sourabh's account) |
+| Business plan: 24 months, four scenarios (pricing, costs, revenue, runway), computed from the cfo.ai brief with the real $0-per-user inference and hub costs; the rest is labelled as assumptions. Finding: as briefed, cash runs out in May 2027 (about $22.6k needed to break even in Oct 2028); bootstrapped, it never runs out and is profitable from Aug 2027 | `evidence/cfo/teamloop-plan.md` (+ 4 CSVs), `scripts/business_plan.py` |
+| ⚠ The same plan inside cfo.ai: its 14-day trial needs a card, and the team doesn't pay; checking Yang's workspace for access without one | `evidence/cfo/` |
 
 ## The agent (30%)
 | Claim | Evidence |
@@ -65,4 +66,4 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 ## Demo video (20%)
 | Claim | Evidence |
 |---|---|
-| ⚠ ≤ 3 min, covering architecture, implementation, runtime, reasoning and result for each tool | draft script: `evidence/video-script.md` |
+| ⚠ ≤ 3 min, covering architecture, implementation, runtime, reasoning and result for each tool (Yang records from the `demo` tag, from 14:30 IST) | script: `evidence/video-script.md`; exact voice-over: `evidence/video-voiceover.md` |
