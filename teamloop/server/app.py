@@ -478,14 +478,20 @@ def create_app(crew: Crew | None = None) -> FastAPI:
         checked = {(r["provider"], r["model"]): r["ok"] for r in getattr(router, "last_doctor", [])}
         out = []
         for p in P.chain():
-            local = p.id == "ollama"
+            local = p.id in P.LOCAL  # Ollama or LM Studio, on this laptop
             base = P.base_url_for(p)
-            running = P.ollama_running(base) if local else None
-            names = P.models_for(p) if not local or running else []  # Ollama off: no made-up model names
+            if p.id == "ollama":
+                running = P.ollama_running(base)
+                names = P.models_for(p) if running else []  # Ollama off: no made-up model names
+            elif local:
+                names = P.models_for(p)  # LM Studio lists nothing when it's off (or has no model loaded)
+                running = bool(names)
+            else:
+                running, names = None, P.models_for(p)
             rows = []
             for m in names:
                 row = {"id": m, "dead": (p.id, m) in dead, "ok": checked.get((p.id, m))}
-                if local:  # what Ollama says the model can do: tools natively, or written into its prompt
+                if p.id == "ollama":  # what Ollama says the model can do: tools natively, or written into its prompt
                     info = P.ollama_model_info(base, m)
                     row.update(tools=info.get("tools"), thinking=bool(info.get("thinking")), ctx=info.get("ctx"))
                 rows.append(row)

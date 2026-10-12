@@ -61,3 +61,23 @@ def test_the_router_never_pace_waits_for_a_local_model():
     router = Router(env={})
     slots = [(P.PROVIDERS["lmstudio"], "", "qwen2.5-7b-instruct"), (P.PROVIDERS["ollama"], "", "qwen2.5:7b")]
     assert router.pace_wait(slots, now=1000.0) is None
+
+
+
+def test_the_app_lists_lm_studio_models_when_it_runs_and_says_so_when_it_doesnt(tmp_path, monkeypatch):
+    # (Sourabh's side) the model picker and Settings > AI models
+    from fakes import FakeRouter
+    from fastapi.testclient import TestClient
+
+    from teamloop.models import providers as P
+    from teamloop.server.app import build_crew, create_app
+
+    monkeypatch.setenv("TEAMLOOP_CHAIN", "lmstudio")
+    monkeypatch.setattr(P, "lmstudio_models", lambda base_url, ttl=60.0: ["qwen2.5-7b-instruct"])
+    with TestClient(create_app(build_crew(tmp_path / "l.db", router=FakeRouter([])))) as client:
+        [row] = client.get("/api/models").json()
+        assert (row["provider"], row["local"], row["running"]) == ("lmstudio", True, True)
+        assert [m["id"] for m in row["models"]] == ["qwen2.5-7b-instruct"]
+        monkeypatch.setattr(P, "lmstudio_models", lambda base_url, ttl=60.0: [])
+        [off] = client.get("/api/models").json()
+        assert off["running"] is False and off["models"] == []

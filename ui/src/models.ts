@@ -17,15 +17,19 @@ export function labelOf(models: ModelInfo[], value: string | null | undefined): 
 
 export function canDo(m: LocalModel): string {
   return [
-    m.tools === false ? "tools written into its prompt" : "uses tools",
+    m.tools === false ? "tools written into its prompt" : m.tools ? "uses tools" : "",  // unknown: say nothing
     m.thinking ? "thinks first" : "",
     m.ctx ? `${Math.round(m.ctx / 1024)}k context` : "",
   ].filter(Boolean).join(" · ");
 }
 
 export function localState(p: ModelInfo): string {
-  if (p.running === false) return "Ollama isn't running: start it (free from ollama.com), then check again";
-  if (!p.models.length) return "Ollama is running but has no models yet: run “ollama pull qwen2.5:7b”";
+  if (p.provider === "lmstudio") {
+    if (!p.models.length) return "LM Studio isn't running, or has no model loaded: start its local server (free from lmstudio.ai)";
+  } else {
+    if (p.running === false) return "Ollama isn't running: start it (free from ollama.com), then check again";
+    if (!p.models.length) return "Ollama is running but has no models yet: run “ollama pull qwen2.5:7b”";
+  }
   return `${p.models.length} model${p.models.length > 1 ? "s" : ""} on this laptop`;
 }
 
@@ -38,8 +42,10 @@ export function choices(models: ModelInfo[]): Choice[] {
         continue;
       }
       for (const m of p.models) {
+        const can = canDo(m);
         out.push({ value: `${p.provider}:${m.id}`, label: `Local · ${m.id}`, ok: !m.dead,
-                   note: m.dead ? "not answering" : `on this laptop · ${canDo(m)}`, disabled: !!m.dead });
+                   note: m.dead ? "not answering" : `on this laptop${p.provider === "lmstudio" ? " (LM Studio)" : ""}${can ? ` · ${can}` : ""}`,
+                   disabled: !!m.dead });
       }
       continue;
     }
