@@ -52,8 +52,13 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 ## Building in public (15%)
 | Claim | Evidence |
 |---|---|
-| #neatHack posts during the event | 1. Crew 4/4 vs one bot 0/4 (Mon 12 Oct 09:49 IST): https://x.com/Boopathiraja/status/2109499059828675014 |
-| ⚠ more posts | drafts with measured results: `evidence/posts.md`, images in `evidence/posts/` |
+| #neatHack posts during the event, from @Boopathiraja, tagging teammate @GoogleDevss (Mon 12 Oct, 09:49-09:58 IST) | 1. Crew 4/4 vs one bot 0/4: https://x.com/Boopathiraja/status/2109499059828675014 (reply tagging @GoogleDevss: https://x.com/Boopathiraja/status/2109500024497606917) |
+| | 2. Computer use with the red-ring card: https://x.com/Boopathiraja/status/2109500453218344964 |
+| | 3. Pause while you work, Ctrl+Alt+Q stops all: https://x.com/Boopathiraja/status/2109500650220663080 |
+| | 4. Security review, 44 attempts, 7 to 0: https://x.com/Boopathiraja/status/2109500941406028273 |
+| | 5. The honest "Not done" fix: https://x.com/Boopathiraja/status/2109501132871696803 |
+| | 6. Final pass on the real app: https://x.com/Boopathiraja/status/2109501372450459895 |
+| Texts and images | `evidence/posts.md`, `evidence/posts/` |
 | Small commits by both people across the event, with evidence for each piece | `git log`, this folder |
 | Two coding agents working as teammates over ccbridge (requests, reviews, acks) | `HANDOFF.md`, `BRIDGE.md` |
 
