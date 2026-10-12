@@ -288,7 +288,7 @@ class Router:
 
 
     async def _call_ollama(self, provider: P.Provider, model: str, messages: list[dict], tools: list[dict] | None,
-                           max_tokens: int | None) -> Reply:
+                           max_tokens: int | None, _retried: bool = False) -> Reply:
         """A local model through Ollama's own API (see models/local.py for why not the OpenAI-style one)."""
         import httpx
 
@@ -317,6 +317,9 @@ class Router:
                      for i, c in enumerate(msg.get("tool_calls") or []) if (c.get("function") or {}).get("name")]
             calls, text = _settle(calls, text, tools)
             if not text and not calls:
+                if not _retried:  # small local models sometimes return nothing once; the same call usually works
+                    sp.set("output.value", "empty reply: asking the same model once more")
+                    return await self._call_ollama(provider, model, messages, tools, max_tokens, _retried=True)
                 raise Transient("empty reply")
             sp.set("output.value", text or json.dumps([[c.name, c.args] for c in calls]))
         return Reply(text=text, tool_calls=calls, provider=provider.id, model=model,
