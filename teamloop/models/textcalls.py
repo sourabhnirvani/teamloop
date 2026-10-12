@@ -79,7 +79,8 @@ def extract(text: str, tool_names: Iterable[str]) -> tuple[list[tuple[str, dict]
     return calls, re.sub(r"\n{3,}", "\n\n", rest).strip()
 
 
-_PY_CALL = re.compile(r"(?m)^[ \t`]*([A-Za-z_]\w*)\((.*)\)[ \t`;]*$")
+# a call on its own line; small models sometimes write ".delegate(...)", "functions.delegate(...)" or "tools.x(...)"
+_PY_CALL = re.compile(r"(?m)^[ \t`]*(?:\.|functions\.|tools\.)?([A-Za-z_]\w*)\((.*)\)[ \t`;]*$")
 
 
 def _params(tools: Iterable[dict]) -> dict[str, dict]:

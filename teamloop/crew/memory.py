@@ -36,12 +36,41 @@ def forget_fact(store, fact_id: int) -> bool:
     return store._run("DELETE FROM memory WHERE id=?", (fact_id,)).rowcount > 0
 
 
+INSTRUCTION = re.compile(r"^\s*(?:please\s+|can you\s+|could you\s+)?(?:save|open|create|delete|send|write|remind|"
+                         r"close)\b", re.I)
+ASKED_TO_REMEMBER = re.compile(r"\bremember\b|\bnote\b|\bdon'?t forget\b|\bkeep in mind\b", re.I)
+
+
+def _flat(text: str) -> str:
+    return re.sub(r"\W+", " ", text or "").strip().lower()
+
+
+def is_task(fact: str, person_said: str) -> bool:
+    """A "fact" that is really the request (seen live: S stored "Save a file at workspace/evals/..." and a later
+    turn offered to save that old file again). Fine when the person's own words asked to remember it."""
+    if ASKED_TO_REMEMBER.search(person_said or ""):
+        return False
+    return bool(INSTRUCTION.match(fact)) or (bool(person_said) and _flat(fact) == _flat(person_said))
+
+
+def _person_said(ctx) -> str:
+    """The person's latest message in this chat."""
+    try:
+        said = [m for m in ctx.crew.store.messages(ctx.chat_id, limit=20) if m["sender"] == "user"]
+        return said[-1]["text"] if said else ""
+    except Exception:  # no store (a bare test ctx): judge the fact alone
+        return ""
+
+
 @tool("remember", "Save a fact the person wants the crew to remember (preferences, names, details).",
       {"fact": {"type": "string"}, "required": ["fact"]}, kit="memory")
 async def remember(args: dict, ctx) -> ToolResult:
     fact = str(args.get("fact", "")).strip()
     if not fact:
         return ToolResult(False, "What should I remember?")
+    if is_task(fact, _person_said(ctx)):
+        return ToolResult(False, "That's a task, not a fact about the person, so I didn't store it: do the task "
+                                 "instead. remember is for preferences, names and details.")
     fid = remember_fact(ctx.crew.store, fact, ctx.bot_id)
     return ToolResult(True, f"Remembered (#{fid}): {fact}")
 

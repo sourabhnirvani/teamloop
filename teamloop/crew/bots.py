@@ -193,6 +193,7 @@ def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | No
         parts.append("Your teammates (use these ids with delegate):\n"
                      + "\n".join(f"- {b.id}: {b.name}, {b.role}. {_what_it_does(b.persona)}" for b in team))
     if facts:
-        parts.append("Things the person asked the crew to remember:\n" + "\n".join(f"- {f}" for f in facts))
+        parts.append("Facts about the person (not tasks; never redo something listed here) the crew was asked to "
+                     "remember:\n" + "\n".join(f"- {f}" for f in facts))
     parts.append(f"Now: {now:%A %d %B %Y, %H:%M}.")
     return "\n\n".join(parts)
