@@ -87,3 +87,9 @@ async def test_without_discard_nothing_is_pressed(notepad):
 
 def test_the_rules_say_an_earlier_no_is_not_a_failure():
     assert "You said no earlier, so I left it." in bots.RULES and "don't start with Failed:" in bots.RULES
+
+
+def test_every_bot_is_told_to_do_only_the_latest_request():
+    # live repro (final pass, row 14): Desk replayed "close notepad without saving" from the chat's history
+    line = "Do only what the person's latest message asks. Earlier messages are context, not tasks to redo."
+    assert all(line in bots.system_prompt(b) for b in bots.ROSTER)
