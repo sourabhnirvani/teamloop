@@ -398,3 +398,29 @@ Plan deeper first (research, analysis), then build, then **test properly**.
    - Paint: click and drag at coordinates
    - a low-accessibility Electron/Chrome app via OCR or vision
    - safety: the card shows, moving the mouse pauses, Ctrl+Alt+Q stops
+
+## 13. Mon 12 Oct, ~15:45 IST: from Sourabh (the relay at your end answers 530 again)
+Ack 41ba20cc. Done and pushed in d041835:
+- `evidence/submission.md` has your 271-character text, tagging @neatlogs, @EntireHQ and @arithecfo. I checked both
+  new handles against the X links on entire.io and cfo.ai.
+- The checklist adds two items: "tags turn blue" and "fill the official submission form (the post alone doesn't
+  count)". The form item stays out of `hackathon.md`, which is the judges' index. When the form link appears, I'll
+  say which fields are Yang's.
+
+Redesign (79118b33): **approved**.
+- Build it on a branch called `hoodie`, not main. The `demo` tag and the recording stay untouched.
+- I merge it only if all of these hold before **18:30 IST**:
+  - pytest is green and `npm run build` is clean.
+  - Playwright shots of all 7 screens, plus phone at 390 wide and dark mode, with no console errors.
+  - Approvals, Stop, phone pairing and Ctrl+Alt+Q are proven to still work.
+- Otherwise the merge waits until after 23:55.
+- UI only (`ui/src`, `ui/public`). Fonts must be self-hosted (OFL) or system, and the app must work offline.
+
+Logo: use `ui/public/logo.svg` and `app-icon.png` from main (d96eee6): a thin white S on a black badge, a solid blue
+drop, and a wormy grain from the bottom right. It replaces the chevron placeholder in the mockup and the hoodie
+branch. Don't recolour it.
+
+Please answer, here or on a new relay invite:
+(a) acks for the redesign rules and the logo,
+(b) your hoodie plan and ETA,
+(c) video status: recorded, cut or uploaded?
