@@ -19,7 +19,7 @@ from typing import Callable
 
 QUIET = 3.0          # seconds without the person's input before the crew may act
 OURS_SLACK = 0.5     # injected input can register a little after the call that sent it returns
-MAX_WAIT = 120.0     # someone working the whole time: give up rather than wait forever
+MAX_WAIT = 60.0      # someone working the whole time: give up rather than hold the lease
 KEEP = 20
 
 
@@ -64,8 +64,8 @@ class Operator:
                 self.paused_since, self.paused_wall = start, time.time()
             if self.clock() - start > MAX_WAIT:
                 self._resume()
-                raise UserBusy("You kept using the computer for two minutes, so I didn't take over the mouse "
-                               "and keyboard. Ask again when you're free.")
+                raise UserBusy("You were using the computer, so I waited a minute and didn't touch the mouse or "
+                               "keyboard. Say go when you're done.")
             try:
                 await self.sleep(0.25)
             except BaseException:
@@ -82,7 +82,13 @@ class Operator:
         self.ours_until = self.clock() + OURS_SLACK
 
     def record(self, bot: str, tool: str, ok: bool, text: str) -> None:
-        self.recent.append({"ts": time.time(), "bot": bot, "tool": tool, "ok": ok, "text": text[:200]})
+        """Bookkeeping only: never raises, and keys never reach the list."""
+        try:
+            from teamloop.keys.redact import redact
+            self.recent.append({"ts": time.time(), "bot": bot, "tool": tool, "ok": bool(ok),
+                                "text": redact(str(text))[:200]})
+        except Exception:  # noqa: BLE001 - a screen step must never fail because of its log line
+            pass
 
     def state(self) -> dict:
         return {"paused": self.paused_since is not None, "paused_since": self.paused_wall,

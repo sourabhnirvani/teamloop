@@ -51,7 +51,7 @@ async def test_our_own_input_does_not_count():
     assert await op.wait_until_quiet() == 0
 
 
-async def test_gives_up_after_two_minutes_of_the_person_working():
+async def test_gives_up_after_a_minute_of_the_person_working():
     fake = FakeClock(person_until=10_000)
     op = operator.Operator(fake.idle, fake.clock, fake.sleep)
     with pytest.raises(operator.UserBusy):
@@ -111,3 +111,21 @@ def test_stop_all_stops_every_chat(tmp_path):
         state = c.get("/api/operator").json()
     assert set(result["stopped"]) == {"team", "dm-desk"}
     assert state["paused"] is False and state["quiet_seconds"] == operator.QUIET
+
+
+def test_recorded_text_hides_keys_and_never_raises(monkeypatch):
+    import os
+    key = "gsk_" + "fakeoperatorkeyfortests0123456789abcdEFGH"
+    os.environ["GROQ_API_KEY"] = key
+    op = operator.Operator(lambda: 1e9)
+    op.record("desk", "type_text", True, f"Typed {key} into Notepad.")
+    op.record("desk", "type_text", True, object())   # nonsense text: still no exception
+    assert key not in str(op.state()) and "[hidden key]" in op.state()["recent"][1]["text"]
+
+
+def test_stop_all_refuses_other_websites_but_not_the_app(tmp_path):
+    crew = build_crew(tmp_path / "o.db", router=FakeRouter([]))
+    with TestClient(create_app(crew)) as c:
+        assert c.post("/api/stop-all", headers={"origin": "https://evil.example"}).status_code == 403
+        assert c.post("/api/stop-all").status_code == 200                      # Electron: no Origin
+        assert c.post("/api/stop-all", headers={"origin": "http://127.0.0.1:8790"}).status_code == 200
