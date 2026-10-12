@@ -24,11 +24,17 @@ Times are targets. Each block lists the screen, then the voice-over.
   - "Writer saves, and Desk opens the file, but only after I approve; the ring shows exactly where it will click."
   - "If I move my mouse, the crew waits; Ctrl+Alt+Q stops everything."
 
-## 1:05-1:45 neatlogs
+## 1:05-1:45 neatlogs, with one real failure and what the agent did next
 - **Screen:** the neatlogs trace of that run: workflow, then one AGENT span per bot turn, then TOOL spans.
 - **Architecture:** each bot turn is an AGENT span and each tool call a TOOL span. Keys are hidden before anything
   leaves the laptop (`teamloop/trace.py`).
-- **Runtime:** open the recovery trace: `write_file` failed, then retried, then saved.
+- **Runtime, the failure story (judges ask for it):** show Sourabh's traced local-model pair from
+  `evals-local-sourabh.md`, side by side.
+  - **Before:** a 7B model said "saved the file", but the trace shows **no tool span**, and no file exists.
+  - **After:** the same request now ends **"Not done: save the file (no tool ran for it). Say 'try again' and I'll
+    do it."** It never fakes a success.
+  - **Backup, if that trace isn't ready:** the Groq run in `evals-yang.md` §2. `write_file` failed (simulated), then
+    failed again for a real reason (a bad path); Writer fixed the path and saved. Three TOOL spans, two red, one green.
 - **Reasoning:** "The trace is how we found real bugs." Examples:
   - a 7B model said "saved" with no tool call, and now gets an honest "Not done" line
   - Scout once made 20 searches in one job

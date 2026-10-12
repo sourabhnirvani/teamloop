@@ -20,10 +20,11 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 | Claim | Evidence |
 |---|---|
 | Every bot turn is an AGENT span and every tool call a TOOL span in neatlogs; keys are hidden before they reach neatlogs | `teamloop/trace.py`, `tests/test_trace.py` |
-| A traced before/after pair on a local model: run 1 used to say "saved" with no tool behind it, and now ends "Not done: save the file"; run 2 really recovered | `evidence/runs/evals-local-sourabh.md` |
+| A traced before/after pair on a local model (qwen2.5:7b, $0): before, it said "saved" with no tool behind it; after, the run ends "Not done: save the file". Then 3 traced rounds: writer 3/3, recovery 1/3, with **both failures honest** and **zero fabricated successes** | `evidence/runs/evals-local-sourabh.md` |
 | ⚠ neatlogs trace links/screenshots for the Groq runs | Yang's machine has no neatlogs key yet; re-run `evidence/runs/before-after-yang.py` with one |
-| Entire checkpoints link agent sessions to the commits they produced (both laptops) | `evidence/entire/checkpoints-sourabh.md`, `evidence/entire/checkpoints-jrkrishh.md` |
-| ⚠ Entire on day 2 | Yang's day-2 work ran in the Claude desktop app, which Entire's Claude Code hook doesn't capture: no checkpoints after 11 Oct 01:51 on that laptop |
+| Entire checkpoints link agent sessions to the commits they produced. **Day 1: both laptops** | `evidence/entire/checkpoints-sourabh.md`, `evidence/entire/checkpoints-jrkrishh.md` |
+| **Day 2: Sourabh's laptop**: 11 checkpoints, and 10 of that day's commits carry an `Entire-Checkpoint:` trailer (prompts stripped, no transcripts) | `evidence/entire/checkpoints-sourabh-day2.md` |
+| Not captured: Yang's day-2 work ran in the Claude desktop app, which Entire's Claude Code hook doesn't record. That laptop has no checkpoints after 11 Oct 01:51; its commits are still in `git log` with their dates | `git log --author=JrKrishh` |
 | ⚠ cfo.ai business plan (pricing, costs, revenue, runway) | Export from cfo.ai into `evidence/` (Sourabh's account) |
 
 ## The agent (30%)
