@@ -1,0 +1,5 @@
+1. Google Gemini (Flash models) – free tier: 10 requests per minute (RPM), 250K tokens per minute (TPM), 1,500 requests per day; Flash‑Lite 15 RPM. No credit‑card needed, sign‑up via Google AI Studio, extensive docs and tutorials for learners. Source: https://pecollective.com/tools/gemini-free-tier-guide/
+2. Groq – free tier: 30 RPM, 6,000 TPM, 1,000 requests per day (Gemma 2 9B gets 15,000 TPM). Simple API key creation, no credit‑card, clear rate‑limit docs, fast inference suitable for student projects. Source: https://tokenmix.ai/blog/groq-free-tier-limits-2026
+3. OpenRouter – free tier: 20 requests per minute, 200 requests per day; offers many models (DeepSeek R1, Llama 3.3 70B Instruct, Mistral 7B Instruct) with an OpenAI‑compatible API, easy onboarding for students. Source: https://flo2.com/blog/openrouter-free-tier-limits
+
+All sources accessed October 2026.

@@ -1,0 +1,77 @@
+1. Calculator: 12+30 by clicking buttons by name, then read the result
+   click_on(window='Calculator', target='Clear') -> FAIL in 5.0s: Clicked "Clear" in "Calculator" (found by uia, mouse), but nothing changed after 2 tries.
+   click_on(window='Calculator', target='One') -> OK in 2.3s: Clicked "One" in "Calculator" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>), 1 went away.
+   click_on(window='Calculator', target='Two') -> OK in 2.4s: Clicked "Two" in "Calculator" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>), 1 went away.
+   click_on(window='Calculator', target='Plus') -> OK in 2.4s: Clicked "Plus" in "Calculator" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>).
+   click_on(window='Calculator', target='Three') -> OK in 2.1s: Clicked "Three" in "Calculator" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>), 1 went away.
+   click_on(window='Calculator', target='Zero') -> OK in 2.1s: Clicked "Zero" in "Calculator" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>), 1 went away.
+   click_on(window='Calculator', target='Equals', expect='Display is 42') -> OK in 2.0s: Clicked "Equals" in "Calculator" (found by uia, invoke). "Display is 42" shows. Now: 2 things appeared (e.g. <names hidden>), 2 went away.
+   find_on_screen(window='Calculator', text='Display is') -> OK in 1.2s: "Display is 42" is at (988, 384) in "Calculator" (found by uia).
+==> Calculator 12+30: PASS (8 tries) display: Display is 42 [cu-calc-yang.png]
+
+2. Notepad: type text, then File > Save As through the menus and the dialog
+   type_text(window='Notepad', text="Typed by TeamLoop's Desk in a live test.") -> OK in 0.5s: Typed 40 characters into "Untitled - Notepad".
+   click_on(window='Notepad', target='File menu', expect='Save As') -> OK in 1.4s: Clicked "File" in "*Untitled - Notepad" (found by uia, invoke). "Save As" shows. Now: 8 things appeared (e.g. <names hidden>).
+   click_on(window='Notepad', target='Save As', expect='File name') -> OK in 6.5s: Clicked "Save As...	Ctrl+Shift+S" in "*Untitled - Notepad" (found by uia, invoke). "File name" shows. Now: 64 things appeared (e.g. <names hidden>), 8 went away.
+   click_on(window='Save As', target='File name box', action='focus') -> OK in 4.7s: Focused "File name:" in "Save As" (found by uia, focus).
+   press_keys(window='Save As', keys='ctrl+a') -> OK in 0.1s: Pressed ctrl+a in "Save As".
+   type_text(window='Save As', text='C:\\Users\\BCE\\AppData\\Local\\Temp\\teamloop-live-1791775660.txt') -> OK in 0.7s: Typed 60 characters into "Save As".
+   click_on(window='Save As', target='Save button') -> OK in 2.6s: Clicked "Save" in "Save As" (found by uia, invoke). Now: 0 things appeared, 70 went away.
+==> Notepad Save As: PASS (4 tries) file on disk: teamloop-live-1791775660.txt (40 bytes), title now "Untitled - Notepad" [cu-notepad-yang.png]
+
+3. Settings: System > Display
+   click_on(window='Settings', target='System', expect='Display') -> OK in 3.9s: Clicked "System" in "Settings" (found by uia, invoke). "Display" shows. Now: 33 things appeared (e.g. <names hidden>), 34 went away.
+   click_on(window='Settings', target='Display', expect='Scale') -> OK in 2.9s: Clicked "Display" in "Settings" (found by uia, select). "Scale" shows.
+==> Settings > System > Display: PASS (2 tries) Clicked "Display" in "Settings" (found by uia, select). "Scale" shows. [cu-settings-yang.png]
+
+4. File Explorer: go to Documents and open a folder
+   click_on(window='File Explorer', target='Documents') -> OK in 7.8s: Clicked "Documents" in "File Explorer" (found by uia, mouse). Now: the window is now titled "Documents"; 46 things appeared (e.g. <names hidden>), 19 went away.
+   click_on(window='Documents', target='TeamLoop live test', action='double_click') -> OK in 5.2s: Double-clicked "TeamLoop live test" in "Documents" (found by uia, mouse). Now: the window is now titled "TeamLoop live test"; 16 things appeared (e.g. <names hidden>), 45 went away.
+==> Explorer > Documents > a folder: PASS (3 tries) opened "TeamLoop live test" -> window "TeamLoop live test" [cu-explorer-yang.png]
+
+5. Paint: click at a point, then drag a line (canvas: no accessibility tree, coordinates only)
+   click_on(window='Paint', target='Pencil') -> OK in 4.6s: Clicked "Pencil" in "Untitled - Paint" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>), 1 went away.
+   mouse(window='Paint', action='click', x=300, y=350) -> OK in 2.3s: Click at (300, 350) over "Using Pencil tool on Canvas" (Pane). 1 things appeared (e.g. <names hidden>).
+   mouse(window='Paint', action='drag', x=320, y=380, to_x=620, to_y=480) -> OK in 2.7s: Dragged from (320, 380) to (620, 480) over "Using Pencil tool on Canvas" (Pane). 0 things appeared, 1 went away.
+==> Paint click + drag: PASS (2 tries) pixels changed inside window box (0, 5, 845, 481) (dot at 300,350, line 320,380 -> 620,480) [cu-paint-yang.png]
+
+6. Low-accessibility app: a page drawn on a <canvas> in Edge (no button in the tree). Find it by OCR
+   find_on_screen(window='Canvas only', text='Start game') -> OK in 1.6s: "Start game" is at (551, 362) in "Canvas only" (found by ocr).
+   click_on(window='Canvas only', target='Start game', expect='Game started') -> OK in 6.1s: Clicked "Start game" in "Canvas only" (found by ocr, mouse). "Game started" shows.
+==> Canvas button via OCR: PASS (1 try) found by ocr; Clicked "Start game" in "Canvas only" (found by ocr, mouse). "Game started" shows. [cu-ocr-yang.png]
+
+7. Safety: (a) a card with a red ring for an unnamed 'Delete all' icon, (b) moving the mouse pauses a click, (c) Stop mid-plan through /api/stop-all
+   find_on_screen(window='Canvas delete', text='Delete all') -> OK in 2.1s: "Delete all" is at (534, 357) in "Canvas delete" (found by ocr).
+      [approval card] Mouse: click at (534, 357) on "Delete all": click at (534, 357) on "Delete all" in Canvas delete [msedge.exe] (red ring on the picture -> Deny
+   mouse(window='Canvas delete', action='click', x=513, y=344) -> FAIL in 0.8s: The person said no, so I didn't click there.
+   find_on_screen(window='Canvas delete', text='Delete all') -> OK in 1.9s: "Delete all" is at (534, 357) in "Canvas delete" (found by ocr).
+==> Safety (a): card with ring, denied, nothing clicked: PASS (1 try) card: ['Mouse: click at (534, 357) on "Delete all"']; canvas still says 'Delete all': True [cu-safety-card-ring-yang.png]
+
+   click_on(window='Calculator', target='Clear') -> OK in 2.9s: Clicked "Clear" in "Calculator" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>), 2 went away.
+   click_on(window='Calculator', target='Five', expect='Display is 5') -> OK in 7.8s: Clicked "Five" in "Calculator" (found by uia, invoke). "Display is 5" shows. Now: 1 things appeared (e.g. <names hidden>), 1 went away.
+==> Safety (b): mouse moving pauses the click: PASS (1 try) the person moved the mouse for 4 s; the click finished after 8.5 s; display Display is 5 [-]
+
+   click_on(window='Calculator', target='Clear') -> OK in 1.6s: Clicked "Clear" in "Calculator" (found by uia, invoke). Now: 1 things appeared (e.g. <names hidden>), 1 went away.
+==> Safety (c): Stop mid-plan (while paused): PASS (1 try) paused before Stop: True; stop-all: ['dm-desk']; display after: Display is 0 [-]
+
+8. The existing tools still behave with per-monitor DPI (screenshot, window_state, ui_act, card picture)
+      [chat event] screenshot: bot, url
+   screenshot(window='Calculator') -> OK in 0.0s: Took a screenshot of Calculator.
+   window_state(window='Calculator', state='minimize') -> OK in 0.3s: "Calculator" is minimized.
+   window_state(window='Calculator', state='restore') -> OK in 0.3s: "Calculator" is restored.
+   ui_snapshot(window='Calculator') -> OK in 0.3s: "Calculator" shows 40 controls.
+   ui_act(window='Calculator', index=34, action='click') -> OK in 0.3s: Clicked Button "Eight" in "Calculator".
+   card picture (418, 675) vs window rect 418x675 (physical)
+==> Existing tools under per-monitor DPI: PASS (1 try) display Display is 8 [-]
+
+SUMMARY
+  PASS | Calculator 12+30 | tries 8 | display: Display is 42 | cu-calc-yang.png
+  PASS | Notepad Save As | tries 4 | file on disk: teamloop-live-1791775660.txt (40 bytes), title now "Untitled - Notepad" | cu-notepad-yang.png
+  PASS | Settings > System > Display | tries 2 | Clicked "Display" in "Settings" (found by uia, select). "Scale" shows. | cu-settings-yang.png
+  PASS | Explorer > Documents > a folder | tries 3 | opened "TeamLoop live test" -> window "TeamLoop live test" | cu-explorer-yang.png
+  PASS | Paint click + drag | tries 2 | pixels changed inside window box (0, 5, 845, 481) (dot at 300,350, line 320,380 -> 620,480) | cu-paint-yang.png
+  PASS | Canvas button via OCR | tries 1 | found by ocr; Clicked "Start game" in "Canvas only" (found by ocr, mouse). "Game started" shows. | cu-ocr-yang.png
+  PASS | Safety (a): card with ring, denied, nothing clicked | tries 1 | card: ['Mouse: click at (534, 357) on "Delete all"']; canvas still says 'Delete all': True | cu-safety-card-ring-yang.png
+  PASS | Safety (b): mouse moving pauses the click | tries 1 | the person moved the mouse for 4 s; the click finished after 8.5 s; display Display is 5 | -
+  PASS | Safety (c): Stop mid-plan (while paused) | tries 1 | paused before Stop: True; stop-all: ['dm-desk']; display after: Display is 0 | -
+  PASS | Existing tools under per-monitor DPI | tries 1 | display Display is 8 | -

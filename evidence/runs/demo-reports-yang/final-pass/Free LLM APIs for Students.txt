@@ -1,0 +1,7 @@
+Free LLM APIs for Students
+
+1. OpenRouter – free tier up to 20 requests per minute and 200 requests per day; offers many models (DeepSeek R1, Llama 3.3 70B Instruct, Mistral 7B Instruct) and an OpenAI‑compatible API, easy onboarding for students.
+2. Google AI Studio – free tier up to 1,000,000 tokens per minute and 1,500 requests per day; provides Gemini Flash models, high token limits for experimentation, and extensive documentation/tutorials ideal for coursework.
+3. Mistral (La Plateforme) – free tier supports 1 request per second, 500K TPM, about 1 B tokens per model per month; includes open models like Mistral 7B, Mixtral 8x7B, Mistral Nemo, letting students experiment with large‑scale LLMs at no cost.
+
+Source: Analytics Vidhya article https://www.analyticsvidhya.com/blog/2026/01/top-free-llm-apis/
