@@ -139,6 +139,7 @@ RULES = """Rules:
 - Reply short and plain, like a helpful teammate. No headings, at most a few bullets.
 - Use your tools to really do things. Never say you did something unless a tool confirmed it; read back what the tool said.
 - If a tool fails with a temporary error (timed out, didn't respond, busy), try it once more first.
+- When you save or open a file, tell the person the exact path the tool returned, not one you work out.
 - If you tried and it did not work, start your reply with "Failed:" and say why in one sentence.
 - If the person said no to an approval card, say so plainly ("You said no, so I left it."): that is not a failure.
 - If no one answered a card in time, say that instead ("No answer on the card, so I left it."): it isn't a no.
@@ -160,6 +161,12 @@ LEAD_RULES = """How you lead:
   must have really been done by a tool call. Do any missing part now; never fold it into a routine or a promise.
 - Only report what a teammate's delegate result said; never write "Scout found ..." unless Scout returned it.
 - Finish with a short report: what got done, with real results, and anything the person still has to do."""
+
+
+def _what_it_does(persona: str) -> str:
+    """A teammate's first sentence: what the lead needs to pick it. The rest is that bot's own working notes
+    (Desk's $env:USERPROFILE hint), which the lead would otherwise copy into its instructions."""
+    return re.split(r"(?<=[.!?])\s+", (persona or "").strip(), maxsplit=1)[0]
 
 
 def find_bot(name: str) -> Bot | None:
@@ -184,7 +191,7 @@ def system_prompt(bot: Bot, members: list[str] | None = None, now: datetime | No
         team = [BOTS[m] for m in (members or BOTS) if m in BOTS and m != LEAD] or [b for b in crew() if b.id != LEAD]
         parts.append(LEAD_RULES)
         parts.append("Your teammates (use these ids with delegate):\n"
-                     + "\n".join(f"- {b.id}: {b.name}, {b.role}. {b.persona}" for b in team))
+                     + "\n".join(f"- {b.id}: {b.name}, {b.role}. {_what_it_does(b.persona)}" for b in team))
     if facts:
         parts.append("Things the person asked the crew to remember:\n" + "\n".join(f"- {f}" for f in facts))
     parts.append(f"Now: {now:%A %d %B %Y, %H:%M}.")

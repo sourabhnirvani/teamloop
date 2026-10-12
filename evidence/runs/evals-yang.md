@@ -71,3 +71,24 @@ write-up shouldn't claim it does.
   `set TEAMLOOP_CHAIN=groq && .venv\Scripts\python.exe evidence\runs\evals-yang.py` once.
 - **Keys for the other providers:** Gemini and NVIDIA free keys, if the "×3 per provider" table is wanted. Only Groq
   has a key here.
+
+## After fixing those 3 bugs (same script, same free model, ~08:15 IST)
+Sourabh OK'd edits to his files. The fixes:
+- `evals/run.py`'s recovery task really fails first, and asserts that it did.
+- `files.resolve` expands `$env:X` and `%X%`, then runs the same folder checks.
+- RULES says "tell the person the exact path the tool returned".
+- The lead sees only each teammate's first persona sentence, so Desk's `$env:USERPROFILE` note no longer reaches S.
+
+Tests: `tests/test_eval_and_path_fixes.py` (4).
+
+| Task | Passed | Avg seconds | Avg calls | Avg tokens | Avg steps |
+|---|---|---|---|---|---|
+| live_writer | 3/3 | 1.1 | 2.0 | 1,712 | 1.0 |
+| live_desk | 3/3 | 4.7 | 2.0 | 4,132 | 2.0 |
+| live_recovery | 3/3 | 2.3 | 5.0 | **5,310** (was 8,338) | 3.0 (was 4.0) |
+
+- **Paths:** every Writer and S reply now quotes the real path (`…\teamloop\workspace\files\evals\…`).
+- **No `$env:`:** none of the 9 runs' messages contain `$env:`.
+- **Cheaper recovery:** it costs 36% fewer tokens, because no turn is spent on a bad path.
+
+Raw data: `evals-yang-before-fixes.json`, `evals-yang-after-fixes.json`.

@@ -88,8 +88,18 @@ def dedupe_link_lines(text: str) -> str:
     return "\n".join(out)
 
 
+_PS_VAR = re.compile(r"\$env:(\w+)", re.IGNORECASE)
+
+
+def expand(text: str) -> str:
+    """$env:USERPROFILE (PowerShell) and %USERPROFILE% / $HOME, the way a model often writes paths. The folder
+    checks in resolve() run on the expanded path, so a variable can't reach outside the allowed folders."""
+    text = _PS_VAR.sub(lambda m: os.environ.get(m.group(1), m.group(0)), text)
+    return os.path.expandvars(text)
+
+
 def resolve(raw: str) -> Path:
-    text = raw.strip().strip('"').replace("\\", "/")
+    text = expand(raw.strip().strip('"')).replace("\\", "/")
     if not text:
         raise ValueError("Give a file path.")
     folders = roots()

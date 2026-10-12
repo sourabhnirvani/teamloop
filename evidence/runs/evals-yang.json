@@ -7,20 +7,20 @@
       "ok": true,
       "seconds": 2.0,
       "model_calls": 2,
-      "tokens": 1677,
+      "tokens": 1715,
       "steps": 1,
       "kinds": {
         "chat": 1
       },
-      "detail": "live-1791771391.txt written through S -> Writer",
-      "chat": "eval-live_writer-1791771391",
+      "detail": "live-1791771749.txt written through S -> Writer",
+      "chat": "eval-live_writer-1791771749",
       "failures_seen": [],
       "tool_calls": [
         {
           "bot": "writer",
           "tool": "write_file",
           "ok": true,
-          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\live-1791771391.txt (12 bytes)."
+          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\live-1791771749.txt (12 bytes)."
         }
       ]
     },
@@ -28,15 +28,15 @@
       "round": 1,
       "task": "live_desk",
       "ok": true,
-      "seconds": 4.6,
+      "seconds": 6.4,
       "model_calls": 2,
-      "tokens": 4027,
+      "tokens": 4150,
       "steps": 2,
       "kinds": {
         "chat": 1
       },
       "detail": "S handed it to Desk and Notepad really opened",
-      "chat": "eval-live_desk-1791771393",
+      "chat": "eval-live_desk-1791771751",
       "failures_seen": [],
       "tool_calls": [
         {
@@ -57,113 +57,16 @@
       "round": 1,
       "task": "live_recovery",
       "ok": true,
-      "seconds": 3.7,
-      "model_calls": 6,
-      "tokens": 6869,
-      "steps": 4,
-      "kinds": {
-        "handoff": 1,
-        "chat": 2
-      },
-      "detail": "write_file failed once (simulated) and the crew retried until the file existed",
-      "chat": "eval-live_recovery-1791771397",
-      "failures_seen": [
-        "writer write_file: write_file failed: the app didn't respond in time (simulated glitch for the recovery demo).",
-        "writer write_file: write_file failed: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'C:\\\\Users\\\\BCE\\\\neathack\\\\teamloop\\\\workspace\\\\files\\\\$env"
-      ],
-      "tool_calls": [
-        {
-          "bot": "writer",
-          "tool": "write_file",
-          "ok": false,
-          "text": "write_file failed: the app didn't respond in time (simulated glitch for the recovery demo)."
-        },
-        {
-          "bot": "writer",
-          "tool": "write_file",
-          "ok": false,
-          "text": "write_file failed: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'C:\\\\Users\\\\BCE\\\\neathack\\\\teamloop\\\\workspace\\\\files\\\\$env"
-        },
-        {
-          "bot": "writer",
-          "tool": "write_file",
-          "ok": true,
-          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771397.txt (9 bytes)."
-        },
-        {
-          "bot": "s",
-          "tool": "delegate",
-          "ok": true,
-          "text": "Writer replied: Saved the file\u202f`recover-1791771397.txt` with the text \u201crecovered\u201d in your workspace\u202f`evals` folder."
-        }
-      ]
-    },
-    {
-      "round": 2,
-      "task": "live_writer",
-      "ok": true,
-      "seconds": 0.7,
-      "model_calls": 2,
-      "tokens": 1691,
-      "steps": 1,
-      "kinds": {
-        "chat": 1
-      },
-      "detail": "live-1791771401.txt written through S -> Writer",
-      "chat": "eval-live_writer-1791771401",
-      "failures_seen": [],
-      "tool_calls": [
-        {
-          "bot": "writer",
-          "tool": "write_file",
-          "ok": true,
-          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\live-1791771401.txt (12 bytes)."
-        }
-      ]
-    },
-    {
-      "round": 2,
-      "task": "live_desk",
-      "ok": true,
-      "seconds": 3.7,
-      "model_calls": 2,
-      "tokens": 4015,
-      "steps": 2,
-      "kinds": {
-        "chat": 1
-      },
-      "detail": "S handed it to Desk and Notepad really opened",
-      "chat": "eval-live_desk-1791771402",
-      "failures_seen": [],
-      "tool_calls": [
-        {
-          "bot": "desk",
-          "tool": "open_app",
-          "ok": true,
-          "text": "Opened Notepad; its window \"Untitled - Notepad\" is in front."
-        },
-        {
-          "bot": "desk",
-          "tool": "close_app",
-          "ok": true,
-          "text": "Closed 1 window of notepad."
-        }
-      ]
-    },
-    {
-      "round": 2,
-      "task": "live_recovery",
-      "ok": true,
-      "seconds": 2.1,
+      "seconds": 2.0,
       "model_calls": 5,
-      "tokens": 5626,
+      "tokens": 5261,
       "steps": 3,
       "kinds": {
         "handoff": 1,
         "chat": 2
       },
       "detail": "write_file failed once (simulated) and the crew retried until the file existed",
-      "chat": "eval-live_recovery-1791771406",
+      "chat": "eval-live_recovery-1791771757",
       "failures_seen": [
         "writer write_file: write_file failed: the app didn't respond in time (simulated glitch for the recovery demo)."
       ],
@@ -178,13 +81,103 @@
           "bot": "writer",
           "tool": "write_file",
           "ok": true,
-          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771406.txt (9 bytes)."
+          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771757.txt (9 bytes)."
         },
         {
           "bot": "s",
           "tool": "delegate",
           "ok": true,
-          "text": "Writer replied: File created at `C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771406.txt` with the exact content \u201crecovered\u201d."
+          "text": "Writer replied: File saved at `C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771757.txt`."
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "task": "live_writer",
+      "ok": true,
+      "seconds": 0.6,
+      "model_calls": 2,
+      "tokens": 1717,
+      "steps": 1,
+      "kinds": {
+        "chat": 1
+      },
+      "detail": "live-1791771759.txt written through S -> Writer",
+      "chat": "eval-live_writer-1791771759",
+      "failures_seen": [],
+      "tool_calls": [
+        {
+          "bot": "writer",
+          "tool": "write_file",
+          "ok": true,
+          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\live-1791771759.txt (12 bytes)."
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "task": "live_desk",
+      "ok": true,
+      "seconds": 4.2,
+      "model_calls": 2,
+      "tokens": 4149,
+      "steps": 2,
+      "kinds": {
+        "chat": 1
+      },
+      "detail": "S handed it to Desk and Notepad really opened",
+      "chat": "eval-live_desk-1791771760",
+      "failures_seen": [],
+      "tool_calls": [
+        {
+          "bot": "desk",
+          "tool": "open_app",
+          "ok": true,
+          "text": "Opened Notepad; its window \"Untitled - Notepad\" is in front."
+        },
+        {
+          "bot": "desk",
+          "tool": "close_app",
+          "ok": true,
+          "text": "Closed 1 window of notepad."
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "task": "live_recovery",
+      "ok": true,
+      "seconds": 2.8,
+      "model_calls": 5,
+      "tokens": 5331,
+      "steps": 3,
+      "kinds": {
+        "handoff": 1,
+        "chat": 2
+      },
+      "detail": "write_file failed once (simulated) and the crew retried until the file existed",
+      "chat": "eval-live_recovery-1791771764",
+      "failures_seen": [
+        "writer write_file: write_file failed: the app didn't respond in time (simulated glitch for the recovery demo)."
+      ],
+      "tool_calls": [
+        {
+          "bot": "writer",
+          "tool": "write_file",
+          "ok": false,
+          "text": "write_file failed: the app didn't respond in time (simulated glitch for the recovery demo)."
+        },
+        {
+          "bot": "writer",
+          "tool": "write_file",
+          "ok": true,
+          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771764.txt (9 bytes)."
+        },
+        {
+          "bot": "s",
+          "tool": "delegate",
+          "ok": true,
+          "text": "Writer replied: File saved at\u202fC:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771764.txt."
         }
       ]
     },
@@ -192,22 +185,22 @@
       "round": 3,
       "task": "live_writer",
       "ok": true,
-      "seconds": 1.0,
+      "seconds": 0.6,
       "model_calls": 2,
-      "tokens": 1643,
+      "tokens": 1703,
       "steps": 1,
       "kinds": {
         "chat": 1
       },
-      "detail": "live-1791771408.txt written through S -> Writer",
-      "chat": "eval-live_writer-1791771408",
+      "detail": "live-1791771767.txt written through S -> Writer",
+      "chat": "eval-live_writer-1791771767",
       "failures_seen": [],
       "tool_calls": [
         {
           "bot": "writer",
           "tool": "write_file",
           "ok": true,
-          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\live-1791771408.txt (12 bytes)."
+          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\live-1791771767.txt (12 bytes)."
         }
       ]
     },
@@ -215,15 +208,15 @@
       "round": 3,
       "task": "live_desk",
       "ok": true,
-      "seconds": 3.9,
+      "seconds": 3.6,
       "model_calls": 2,
-      "tokens": 4050,
+      "tokens": 4097,
       "steps": 2,
       "kinds": {
         "chat": 1
       },
       "detail": "S handed it to Desk and Notepad really opened",
-      "chat": "eval-live_desk-1791771409",
+      "chat": "eval-live_desk-1791771767",
       "failures_seen": [],
       "tool_calls": [
         {
@@ -244,16 +237,16 @@
       "round": 3,
       "task": "live_recovery",
       "ok": true,
-      "seconds": 4.3,
-      "model_calls": 8,
-      "tokens": 12518,
-      "steps": 5,
+      "seconds": 2.0,
+      "model_calls": 5,
+      "tokens": 5338,
+      "steps": 3,
       "kinds": {
-        "handoff": 2,
-        "chat": 3
+        "handoff": 1,
+        "chat": 2
       },
       "detail": "write_file failed once (simulated) and the crew retried until the file existed",
-      "chat": "eval-live_recovery-1791771413",
+      "chat": "eval-live_recovery-1791771771",
       "failures_seen": [
         "writer write_file: write_file failed: the app didn't respond in time (simulated glitch for the recovery demo)."
       ],
@@ -268,25 +261,13 @@
           "bot": "writer",
           "tool": "write_file",
           "ok": true,
-          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771413.txt (9 bytes)."
+          "text": "Saved C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771771.txt (9 bytes)."
         },
         {
           "bot": "s",
           "tool": "delegate",
           "ok": true,
-          "text": "Writer replied: File created at `C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771413.txt` with the exact content \u201crecovered\u201d."
-        },
-        {
-          "bot": "desk",
-          "tool": "read_file",
-          "ok": true,
-          "text": "Read C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771413.txt (9 characters)."
-        },
-        {
-          "bot": "s",
-          "tool": "delegate",
-          "ok": true,
-          "text": "Desk replied: File exists. Its content is:\n\n```\nrecovered\n```"
+          "text": "Writer replied: File saved at `C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\evals\\recover-1791771771.txt`."
         }
       ]
     }

@@ -183,7 +183,10 @@ async def live_desk(ev: Eval) -> str:
 async def live_recovery(ev: Eval) -> str:
     import os
 
+    from teamloop.tools import registry
+
     name = f"recover-{int(time.time())}.txt"
+    registry._failed_once.discard("write_file")   # it fails once per process: make this run's save fail
     os.environ["TEAMLOOP_FAIL_ONCE"] = "write_file"
     try:
         reply = await ev.say(f"Save a file at workspace/evals/{name} with the text: recovered")
@@ -191,6 +194,7 @@ async def live_recovery(ev: Eval) -> str:
         os.environ.pop("TEAMLOOP_FAIL_ONCE", None)
     from teamloop.tools.files import resolve
 
+    assert "write_file" in registry._failed_once, "the simulated failure never happened, so recovery wasn't tested"
     assert resolve(f"workspace/evals/{name}").exists(), f"didn't recover; reply: {reply}"
     return "write_file failed once (simulated) and the crew retried until the file existed"
 
