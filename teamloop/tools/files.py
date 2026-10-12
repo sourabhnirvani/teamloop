@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from pathlib import Path
 
 from teamloop import config
@@ -17,7 +18,42 @@ from teamloop.tools.registry import ToolResult, tool
 READ_CHARS = 8000
 
 
+# Windows' own ids for the person's folders: asking Windows beats guessing. A OneDrive\Documents folder can exist while
+# Explorer's Documents is C:\Users\me\Documents, and saved files then landed where the person never looks
+# (found by jrkrishh on his laptop, and true on Sourabh's too).
+_FOLDER_IDS = {"Desktop": "B4BFCC3A-DB2C-424C-B029-7FE99A87C641", "Documents": "FDD39AD0-238F-46AF-ADB4-6C85480369C7",
+               "Downloads": "374DE290-123F-4565-9164-39C4925E467B"}
+
+
+def _windows_folder(name: str) -> Path | None:
+    """Where Windows itself says the folder is (SHGetKnownFolderPath), or None off Windows or on failure."""
+    if sys.platform != "win32" or name not in _FOLDER_IDS:
+        return None
+    import ctypes
+    import uuid
+
+    class GUID(ctypes.Structure):
+        _fields_ = [("Data1", ctypes.c_uint32), ("Data2", ctypes.c_uint16), ("Data3", ctypes.c_uint16),
+                    ("Data4", ctypes.c_ubyte * 8)]
+
+    u = uuid.UUID(_FOLDER_IDS[name])
+    guid = GUID(u.time_low, u.time_mid, u.time_hi_version, (ctypes.c_ubyte * 8).from_buffer_copy(u.bytes[8:]))
+    out = ctypes.c_wchar_p()
+    try:
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(guid), 0, None, ctypes.byref(out)) != 0:
+            return None
+        return Path(out.value) if out.value else None
+    except OSError:
+        return None
+    finally:
+        if out:
+            ctypes.windll.ole32.CoTaskMemFree(out)
+
+
 def known_folder(name: str) -> Path:
+    found = _windows_folder(name)
+    if found:
+        return found
     home = Path.home()
     for base in (Path(os.environ["OneDrive"]) if os.environ.get("OneDrive") else None, home / "OneDrive", home):
         if base and (base / name).is_dir():

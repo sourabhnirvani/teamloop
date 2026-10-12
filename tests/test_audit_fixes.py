@@ -56,3 +56,17 @@ def test_a_routine_reads_without_its_internal_id(tmp_path):  # row 2
     out = asyncio.run(routines.schedule_routine({"task": "Remind me about the report", "schedule": "every monday at 9am"}, ctx))
     assert out.ok and out.text.startswith('Routine set: "Remind me about the report"'), out.text
     assert out.data.get("id") or out.data.get("routine")  # the id is still there for the model to use
+
+
+def test_folders_are_where_windows_says_not_a_guess(monkeypatch):  # found by jrkrishh during N's live tests
+    import subprocess
+    import sys
+
+    from teamloop.tools import files
+
+    if sys.platform == "win32":
+        real = subprocess.run(["powershell", "-NoProfile", "-Command", "[Environment]::GetFolderPath('MyDocuments')"],
+                              capture_output=True, text=True, timeout=60).stdout.strip()
+        assert str(files.known_folder("Documents")) == real  # not OneDrive\Documents just because it exists
+    monkeypatch.setattr(files, "_windows_folder", lambda name: None)  # off Windows, or if the call fails: the old guess
+    assert files.known_folder("Documents").name == "Documents"
