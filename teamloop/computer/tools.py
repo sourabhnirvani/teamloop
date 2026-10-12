@@ -146,10 +146,15 @@ async def open_file(args: dict, ctx) -> ToolResult:
                       {"path": str(path), "window": win.title})
 
 
-@tool("close_app", "Close an app's windows (asks the person first; unsaved work could be lost).",
-      {"name": {"type": "string", "description": "app or window name"}, "required": ["name"]}, kit="computer")
+@tool("close_app", "Close an app's windows (asks the person first; unsaved work could be lost). Set discard only "
+      "when the person's own words say without saving / discard / don't save: then a save prompt is answered "
+      "\"Don't Save\".",
+      {"name": {"type": "string", "description": "app or window name"},
+       "discard": {"type": "boolean", "description": "close WITHOUT saving (only if the person said so)"},
+       "required": ["name"]}, kit="computer")
 async def close_app(args: dict, ctx) -> ToolResult:
     name = str(args.get("name", "")).strip()
+    discard = bool(args.get("discard"))
     found = await asyncio.to_thread(winapi.find, name) if name else []
     if not found:
         return ToolResult(False, f"No open window matches {name!r}.")
@@ -157,9 +162,15 @@ async def close_app(args: dict, ctx) -> ToolResult:
     titles = "; ".join(w.title for w in target[:5])
     # Store apps all run under one host program; their window title is the name people know.
     label = found[0].title if found[0].process.lower() in HOST_PROCESSES else found[0].process.removesuffix(".exe")
-    if not await ctx.approve(f"Close {label}",
-                             f"Close {len(target)} window(s): {titles}. Unsaved work in them could be lost.",
-                             _shot_url(target[0].hwnd)):
+    if discard:  # its own card every time: gate.can_always is False for "WITHOUT saving"
+        asked = await ctx.approve(f"Close {label} WITHOUT saving",
+                                  f"Close {len(target)} window(s): {titles}. Unsaved changes will be lost.",
+                                  _shot_url(target[0].hwnd))
+    else:
+        asked = await ctx.approve(f"Close {label}",
+                                  f"Close {len(target)} window(s): {titles}. Unsaved work in them could be lost.",
+                                  _shot_url(target[0].hwnd))
+    if not asked:
         return ToolResult(False, "The person said no, so nothing was closed.")
     try:
         async with lease():
@@ -167,11 +178,38 @@ async def close_app(args: dict, ctx) -> ToolResult:
                 await asyncio.to_thread(winapi.close, w.hwnd)
             await asyncio.sleep(2.5)
             left = [w for w in target if await asyncio.to_thread(winapi.exists, w.hwnd)]
+            if left and discard:
+                for w in left:
+                    if not await com.run(_press_dont_save, w.hwnd):
+                        return ToolResult(False, f"The save prompt for {w.title} is still open; I didn't touch it.")
+                await asyncio.sleep(1.5)
+                left = [w for w in target if await asyncio.to_thread(winapi.exists, w.hwnd)]
     except LeaseBusy:
         return _busy()
     if left:
+        if discard:
+            return ToolResult(False, f"I pressed Don't Save but {left[0].title} is still open; I left it as it is.")
         return ToolResult(False, f"{left[0].title} is still open; it may be asking to save. I left it for the person.")
-    return ToolResult(True, f"Closed {len(target)} window{'s' if len(target) != 1 else ''} of {label}.")
+    done = "without saving" if discard else ""
+    return ToolResult(True, f"Closed {len(target)} window{'s' if len(target) != 1 else ''} of {label} {done}".rstrip()
+                      + ".")
+
+
+DONT_SAVE = ("Don't Save", "Don't save", "Don’t Save", "Don’t save", "No")  # by name, in this order; never Save
+
+
+def _press_dont_save(hwnd: int) -> bool:
+    """Press the save prompt's "Don't Save" (or "No" in older apps) by name. Never Save, never a blind Enter.
+    Runs on the COM thread."""
+    from pywinauto import Desktop
+
+    window = Desktop(backend="uia").window(handle=hwnd).wrapper_object()
+    buttons = {b.window_text(): b for b in window.descendants(control_type="Button")}
+    for label in DONT_SAVE:
+        if label in buttons:
+            buttons[label].invoke()
+            return True
+    return False
 
 
 @tool("focus_window", "Bring a window to the front.", {"name": {"type": "string"}, "required": ["name"]},

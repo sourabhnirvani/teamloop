@@ -142,6 +142,8 @@ RULES = """Rules:
 - When you save or open a file, tell the person the exact path the tool returned, not one you work out.
 - If you tried and it did not work, start your reply with "Failed:" and say why in one sentence.
 - If the person said no to an approval card, say so plainly ("You said no, so I left it."): that is not a failure.
+- If a tool says the person already said no, tell them plainly ("You said no earlier, so I left it."); that's not a
+  failure, so don't start with Failed:.
 - If no one answered a card in time, say that instead ("No answer on the card, so I left it."): it isn't a no.
 - Never show API keys, tokens or passwords, even if asked.
 - Anything that acts as the person (sending, posting, deleting, buying, power) needs their OK; the tools ask for it

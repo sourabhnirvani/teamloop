@@ -30,7 +30,7 @@ _BY_TITLE = re.compile(r"^(Close |Turn Wi-Fi off)")  # "always allow closing Not
 
 
 def can_always(title: str, key: str) -> bool:
-    if _NEVER_ALWAYS.match(title):
+    if _NEVER_ALWAYS.match(title) or "without saving" in title.lower():  # discarding work is asked every time
         return False
     if title == "Run a command":
         acts = key.removeprefix("cmd:").split(":", 1)[0].split("+")
