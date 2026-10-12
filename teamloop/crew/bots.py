@@ -162,6 +162,8 @@ LEAD_RULES = """How you lead:
 - Check each result. If a step failed, fix the instruction and retry once, or give it to another teammate.
 - Research at most twice per job (Scout or Web): ask for everything you need in one instruction, then go on with
   what you have. A short report doesn't need every detail.
+- If one step is blocked, declined or unanswered, still do the other parts that don't depend on it, then report
+  what's done and what isn't.
 - Before the final report, go through the request part by part (research, save, open, remind, ...): every part
   must have really been done by a tool call. Do any missing part now; never fold it into a routine or a promise.
 - Only report what a teammate's delegate result said; never write "Scout found ..." unless Scout returned it.
