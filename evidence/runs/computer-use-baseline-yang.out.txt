@@ -1,0 +1,16 @@
+C:\Users\BCE\neathack\teamloop\.venv\Lib\site-packages\pywinauto\__init__.py:80: UserWarning: Revert to STA COM threading mode
+  warnings.warn("Revert to STA COM threading mode", UserWarning)
+this process DPI awareness (0 unaware, 1 system, 2 per-monitor): 0
+GetSystemMetrics screen: 1536 x 864
+
+Calculator: "Calculator" rect=(779, 207, 1197, 882) -> 40 controls in 1.0s
+  wanted by name: {'Seven': True, 'Plus': True, 'Equals': True, 'Display is 0': True}
+  first 25: ['MenuItem:System', 'Button:Minimize Calculator', 'Button:Maximize Calculator', 'Button:Close Calculator', 'Text:Calculator', 'Button:Open Navigation', 'Text:Display is 0', 'Button:Open history flyout', 'Button:Clear all memory', 'Button:Memory recall', 'Button:Memory add', 'Button:Memory subtract', 'Button:Memory store', 'Button:Open memory flyout', 'Button:Percent', 'Button:Clear entry', 'Button:Clear', 'Button:Backspace', 'Button:Reciprocal', 'Button:Square', 'Button:Square root', 'Button:Divide by', 'Button:Multiply by', 'Button:Minus', 'Button:Plus']
+
+Paint: "Paint" rect=(-9, -9, 1929, 1039) -> 67 controls in 0.9s
+  wanted by name: {'File': False, 'Pencil': True, 'Brushes': True}
+  first 25: ['Button:Save', 'Button:Undo', 'Button:Redo', 'Button:Customize Quick Access Toolbar', 'Button:File tab', 'TabItem:Home', 'TabItem:View', 'Button:Minimize the Ribbon', 'Button:Help', 'SplitButton:Paste', 'SplitButton:Paste', 'Button:Cut', 'Button:Copy', 'SplitButton:Select', 'SplitButton:Select', 'Button:Crop', 'Button:Resize', 'SplitButton:Rotate', 'Button:Pencil', 'Button:Fill with color', 'Button:Text', 'Button:Eraser', 'Button:Color picker', 'Button:Magnifier', 'SplitButton:Brushes']
+
+Notepad: "Untitled - Notepad" rect=(33, 33, 1902, 887) -> 18 controls in 0.1s
+  wanted by name: {'File': True, 'Edit': True, 'Text editor': True}
+  first 25: ['Edit:Text Editor', 'Button:Line up', 'Button:Line down', 'Button:Column left', 'Button:Column right', 'Text:Ln 1, Col 1', 'Text:100%', 'Text:Windows (CRLF)', 'Text:UTF-8', 'MenuItem:System', 'Button:Minimize', 'Button:Maximize', 'Button:Close', 'MenuItem:File', 'MenuItem:Edit', 'MenuItem:Format', 'MenuItem:View', 'MenuItem:Help']
