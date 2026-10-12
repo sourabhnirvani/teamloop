@@ -1,0 +1,15 @@
+Semantic changes a89d491252363f5520c99a26e5574d67cc311b64..f61f473a9425eb330834e42bd23b3d76a9fb7871
+
+ui/index.html (HTML)
+  ~ module ui/index.html body changed (0 dependents)
+
+ui/public/sw.js (JavaScript)
+  ~ module ui/public/sw.js body changed (0 dependents)
+
+ui/src/App.tsx (TypeScript)
+  ~ function App body changed (2 dependents)
+
+Warnings
+  ! E_PARSE_ERROR ui/src/SettingsView.tsx
+    dependent references in this file may be undercounted because it failed to parse cleanly
+    tree-sitter syntax error nodes present: error ERROR at line 376 column 151 near "& updates."

@@ -1,0 +1,37 @@
+Index: cache-hit (324ms) | Query: 1ms | Total: 326ms
+Completeness: no parse failures in Python (122 files parsed); 3 elsewhere (TypeScript 3) cannot affect this answer — see --format json.
+Impact: Gate.ask (teamloop/computer/gate.py:55) def=55 span=55-96 [method in Gate]
+Blast radius: 1 caller (1 direct, 0 transitive), 5 callees, 0 type consumers, 2 data flows, 8 co-change files, 10 siblings.
+Callers (1 direct, 0 transitive; who breaks if behavior changes):
+- test_gate_approve_deny_and_timeout (tests/test_crew.py:94, def :90) [+2 more call sites]
+Callees (5; what it depends on):
+- asyncio.get_running_loop
+- asyncio.wait_for
+- time.monotonic
+- can_always (teamloop/computer/gate.py:32)
+- Gate.rule_for (teamloop/computer/gate.py:114)
+Type consumers (0 in, 0 out; USES_TYPE/PARAM_TYPE/RETURNS_TYPE):
+- none
+Data flows (0 in, 2 out):
+- -> can_always (teamloop/computer/gate.py:32)
+- -> Gate.rule_for (teamloop/computer/gate.py:114)
+Co-change coupling (8; files that historically change with teamloop/computer/gate.py):
+- teamloop/computer/risk.py [files changed together in 3 recent commits]
+- teamloop/crew/bots.py [files changed together in 3 recent commits]
+- teamloop/crew/context.py [files changed together in 3 recent commits]
+- teamloop/crew/store.py [files changed together in 2 recent commits]
+- teamloop/crew/team.py [files changed together in 3 recent commits]
+- teamloop/server/app.py [files changed together in 3 recent commits]
+- teamloop/tools/registry.py [files changed together in 2 recent commits]
+- tests/test_server_and_files.py [files changed together in 2 recent commits]
+Same-container siblings (10):
+- Gate.__init__ (teamloop/computer/gate.py:46)
+- Gate.answer (teamloop/computer/gate.py:98)
+- Gate.rules (teamloop/computer/gate.py:111)
+- Gate.rule_for (teamloop/computer/gate.py:114)
+- Gate.allow (teamloop/computer/gate.py:120)
+- Gate.forget_rule (teamloop/computer/gate.py:131)
+- Gate.waiting_cards (teamloop/computer/gate.py:137)
+- Gate.pending_in (teamloop/computer/gate.py:140)
+- Gate.deny_all (teamloop/computer/gate.py:143)
+- Gate.forget_denials (teamloop/computer/gate.py:150)

@@ -1,0 +1,24 @@
+Index: cache-miss (9586ms) | Query: 2ms | Total: 9589ms
+Completeness: no parse failures in Python (122 files parsed); 3 elsewhere (TypeScript 3) cannot affect this answer — see --format json.
+Impact: click_risk (teamloop/computer/risk.py:87) def=87 span=87-92 [function]
+Blast radius: 0 callers (0 direct, 0 transitive), 1 callee, 0 type consumers, 1 data flow, 9 co-change files, 0 siblings.
+Callers (0 direct, 0 transitive; who breaks if behavior changes):
+- none
+Callees (1; what it depends on):
+- own_window (teamloop/computer/risk.py:53)
+Type consumers (0 in, 0 out; USES_TYPE/PARAM_TYPE/RETURNS_TYPE):
+- none
+Data flows (0 in, 1 out):
+- -> own_window (teamloop/computer/risk.py:53)
+Co-change coupling (9; files that historically change with teamloop/computer/risk.py):
+- teamloop/computer/gate.py [files changed together in 3 recent commits]
+- teamloop/computer/terminal.py [files changed together in 2 recent commits]
+- teamloop/computer/tools.py [files changed together in 2 recent commits]
+- teamloop/crew/bots.py [files changed together in 2 recent commits]
+- teamloop/crew/context.py [files changed together in 2 recent commits]
+- teamloop/crew/team.py [files changed together in 2 recent commits]
+- tests/test_browser.py [files changed together in 2 recent commits]
+- tests/test_computer.py [files changed together in 3 recent commits]
+- tests/test_terminal.py [files changed together in 2 recent commits]
+Same-container siblings (0):
+- none

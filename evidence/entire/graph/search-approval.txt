@@ -1,0 +1,51 @@
+1. teamloop/crew/team.py:80-100 score=20.4069 symbol=Crew.post kind=method focus=88 signals=path,body,symbol-name,graph:callers,complete-symbol
+    async def post(self, chat_id: str, text: str) -> dict:
+        chat = self.store.get_chat(chat_id)
+        if chat is None:
+            raise KeyError(chat_id)
+        for _, key in detect_keys(text):
+            add_secret(key)  # a pasted key is never stored, shown or sent to a model
+        for _, _, key in wallet.service_keys(text):
+            add_secret(key)
+        msg = self.store.add_message(chat_id, "user", redact(text))
+        await self.bus.emit("message", chat_id=chat_id, message=msg)
+        if text.strip().lower().rstrip("!.") in STOP_WORDS:
+            await self.stop(chat_id)
+            return msg
+        waiting = self.gate.pending_in(chat_id)
+        answer = _YES_NO.get(text.strip().lower().rstrip("!."))
+        if waiting and answer is not None:  # typed answer to the newest approval card
+            self.gate.answer(waiting[-1], answer)
+            return msg
+        previous = self._tasks.get(chat_id)
+        self._tasks[chat_id] = asyncio.create_task(self._handle(chat, text, previous))
+        return msg
+
+2. teamloop/server/app.py:130-135 score=18.9576 symbol=build_crew kind=function focus=130 signals=body,symbol-name,graph:callers
+def build_crew(db_path: Path | str | None = None, router: Any = None) -> Crew:
+    store = Store(db_path or config.db_path())
+    bus = Bus()
+    crew = Crew(store, router or Router(on_usage=usage_hook(store, bus)), bus)
+    crew.ensure_default_chats()
+    return crew
+
+3. teamloop/crew/coverage.py:54-60 score=18.7975 symbol=missing_actions kind=function focus=54 signals=path,body,symbol-name,complete-symbol
+def missing_actions(goal: str, used: set[str]) -> list[str]:
+    """Like missing(), for things done to the laptop only (save, open, remind, close, volume, brightness), and
+    never for a question ("can you save files?"): those must have a tool behind them even when the lead
+    handed nothing out. Research is left out: the lead may answer a question from what it knows."""
+    if (goal or "").rstrip().endswith("?"):
+        return []
+    return [label for label in missing(goal, used) if label != "do the research"]
+
+4. teamloop/crew/team.py:160 Crew._handle  [body: def Crew._handle]
+5. ui/src/ChatView.tsx:95 Approval  [body: def Approval]
+COVERING TEST (what hit 1 is supposed to do; not a fix site):
+6. tests/test_routines.py:42-42 symbol=test_due_routine_posts_into_chat_and_reschedules kind=function signals=related:covering-test
+    assert routines.cancel(crew, row["id"]) and routines.listing(crew) == []
+
+VERIFY: python -m pytest tests/test_routines.py -k test_due_routine_posts_into_chat_and_reschedules
+  targets tests/test_routines.py (from pytest.ini pytest config + covering test path) tier=narrow
+  run it ONCE after editing; if it fails, fix the code and re-run THIS command.
+  do not build an alternative test harness, hand-assemble a classpath, or re-verify by
+  reverting and reapplying the edit.

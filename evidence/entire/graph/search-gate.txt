@@ -1,0 +1,38 @@
+1. teamloop/computer/gate.py:114-118 score=51.4580 symbol=Gate.rule_for kind=method focus=114 signals=graph:calls,graph:incoming,graph:callers
+    def rule_for(self, title: str, key: str) -> dict | None:
+        if not can_always(title, key):
+            return None
+        want = rule_key(title, key)
+        return next((r for r in self.rules() if r["title"] == title and r["key"] == want), None)
+
+2. teamloop/computer/gate.py:120-129 score=49.9371 symbol=Gate.allow kind=method focus=120 signals=graph:calls,graph:incoming,graph:callers,complete-symbol
+    def allow(self, title: str, key: str, bot: str, details: str = "") -> dict:
+        existing = self.rule_for(title, key)
+        if existing:
+            return existing
+        first = (details or key).splitlines()[0] if (details or key) else ""
+        label = title if _BY_TITLE.match(title) else f"{title}: {first[:120]}"
+        rule = {"id": uuid.uuid4().hex[:10], "title": title, "key": rule_key(title, key), "label": label,
+                "bot": bot, "added": time.time()}
+        self.store.set_setting(RULES, [*self.rules(), rule])
+        return rule
+
+3. teamloop/server/app.py:339 forget_allowed  [body: def forget_allowed]
+4. teamloop/computer/gate.py:131 Gate.forget_rule  [body: def Gate.forget_rule]
+5. tests/test_always_allow.py:58-62 score=34.3122 symbol=test_commands_are_only_allowed_exactly kind=function focus=61 signals=path,body,symbol-name,symbol-usage,complete-symbol
+async def test_commands_are_only_allowed_exactly(tmp_path, monkeypatch):
+    crew = make_crew(tmp_path, [])
+    rule = crew.gate.allow("Run a command", "cmd:kill:node.exe", "desk", "Stop-Process -Name node")
+    assert crew.gate.rule_for("Run a command", "cmd:kill:node.exe") == rule
+    assert crew.gate.rule_for("Run a command", "cmd:kill:chrome.exe") is None  # another program still asks
+
+VERIFY: python -m pytest tests/test_always_allow.py -k test_commands_are_only_allowed_exactly
+  targets tests/test_always_allow.py (from pytest.ini pytest config + ranked test path) tier=narrow
+  run it ONCE after editing; if it fails, fix the code and re-run THIS command.
+  do not build an alternative test harness, hand-assemble a classpath, or re-verify by
+  reverting and reapplying the edit.
+SAME-CONCEPT LITERAL "can_always" — 15 in 7 files repo-wide:
+  teamloop/computer/gate.py:32 can_always CONSUMER
+  teamloop/computer/gate.py:75 Gate.ask CONSUMER
+  teamloop/computer/tools.py:165 close_app CONSUMER
+  tests/test_always_allow.py:47 test_always_allow_skips_the_card_next_time CONSUMER

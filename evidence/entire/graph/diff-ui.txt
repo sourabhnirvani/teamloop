@@ -1,0 +1,369 @@
+Semantic changes demo..video
+
+ui/src/App.tsx (TypeScript)
+  ~ function App body changed (2 dependents)
+  + function askChat added
+  ~ function row body changed (55 dependents)
+  + function crewRow added
+
+ui/src/Avatar.tsx (TypeScript)
+  ~ variable COLORS signature changed (2 dependents)
+  ~ function botColor body changed (5 dependents)
+  + variable S_FRAMES added
+  + function mascotSrc added
+  ~ function Eyes signature changed (2 dependents)
+  ~ function Mouth signature changed (1 dependent)
+  ~ function Mascot body changed (4 dependents)
+  ~ function lost (renamed from onLeave) moved from ui/src/CrewRoom.tsx (6 dependents)
+  - function Blush removed (0 dependents)
+  - function Body removed (1 dependent)
+  ~ variable SIGNS signature changed (1 dependent)
+  ~ function toolSign body changed (1 dependent)
+  + function Sign added
+  ~ function Avatar body changed (11 dependents)
+  - function lighten removed (0 dependents)
+  - function mix removed (4 dependents)
+  - function LookBody removed (0 dependents)
+
+ui/src/BoardView.tsx (TypeScript)
+  + function stamp added
+  + function word added
+  + function finishedJob added
+  + function latestRun added
+  ~ function BoardView signature changed (1 dependent)
+  ~ function card body changed (60 dependents)
+
+ui/src/BotBuilder.tsx (TypeScript)
+  ~ function LookPicker body changed (2 dependents)
+  ~ function PersonalityPicker body changed (2 dependents)
+  ~ function NewBotSheet body changed (1 dependent)
+
+ui/src/BotProfile.tsx (TypeScript)
+  ~ function BotProfile body changed (1 dependent)
+  + function sentence added
+  + function nextRun added
+
+ui/src/ChatView.tsx (TypeScript)
+  ~ type Props signature changed (2 dependents)
+  + field Props.live added
+  ~ function Handoff body changed (9 dependents)
+  ~ function Step body changed (12 dependents)
+  ~ function Approval body changed (2 dependents)
+  ~ function ChatView signature changed (1 dependent)
+  + function names added
+
+ui/src/CrewRoom.tsx (TypeScript)
+  ~ field TodayJob.done renamed from Rig.jumpUntil (104 dependents)
+  ~ field TodayJob.title renamed from Orb.from (209 dependents)
+  ~ field TodayJob.total renamed from Rig.nextQuirk (8 dependents)
+  + type TodayJob added
+  ~ type Props signature changed (2 dependents)
+  + field Props.job added
+  - field Eye.base removed (9 dependents)
+  - field Eye.pupil removed (0 dependents)
+  - field Eye.range removed (38 dependents)
+  - type Eye removed (0 dependents)
+  + function seats added
+  - type Rig removed (0 dependents)
+  - field Rig.id removed (325 dependents)
+  - field Rig.root removed (5 dependents)
+  + function side added
+  - field Rig.body removed (91 dependents)
+  - field Rig.skin removed (0 dependents)
+  - field Rig.eyes removed (14 dependents)
+  - field Rig.eyeScale removed (0 dependents)
+  - field Rig.hit removed (13 dependents)
+  - field Rig.shadow removed (7 dependents)
+  - field Rig.bubble removed (1 dependent)
+  + type Status added
+  - field Rig.extra removed (5 dependents)
+  - field Rig.pos removed (1 dependent)
+  - field Rig.vel removed (0 dependents)
+  ~ function CrewRoom signature changed (2 dependents)
+  - field Rig.target removed (46 dependents)
+  - field Rig.home removed (10 dependents)
+  - field Rig.heading removed (0 dependents)
+  - field Rig.speed removed (0 dependents)
+  - field Rig.nextWander removed (0 dependents)
+  - field Rig.dashUntil removed (0 dependents)
+  - field Rig.daydreamUntil removed (0 dependents)
+  - field Rig.quirkUntil removed (0 dependents)
+  - field Rig.hop removed (3 dependents)
+  + function state added
+  - field Rig.catchUntil removed (0 dependents)
+  - field Rig.label removed (75 dependents)
+  - field Rig.lastMove removed (0 dependents)
+  - field Rig.signShown removed (0 dependents)
+  + function tag added
+  - field Particle.life removed (0 dependents)
+  - field Particle.max removed (42 dependents)
+  - field Particle.mesh removed (0 dependents)
+  - field Particle.spin removed (1 dependent)
+  - field Particle.vel removed (0 dependents)
+  - type Particle removed (0 dependents)
+  - field Orb.mesh removed (0 dependents)
+  - field Orb.t removed (192 dependents)
+  - field Orb.to removed (155 dependents)
+  - field Orb.trail removed (0 dependents)
+  - type Orb removed (0 dependents)
+  + function fx added
+  - function clay removed (0 dependents)
+  - function blobTexture removed (0 dependents)
+  - function signTexture removed (0 dependents)
+  - function addEyes removed (0 dependents)
+  - function addFace removed (0 dependents)
+  - function heartShape removed (0 dependents)
+  - function build removed (13 dependents)
+  - function texFor removed (0 dependents)
+  - function layoutHomes removed (0 dependents)
+  - function emit removed (26 dependents)
+  - function throwOrb removed (0 dependents)
+  - function size removed (85 dependents)
+  - function onMove removed (0 dependents)
+  - function onClick removed (31 dependents)
+  - function tick removed (4 dependents)
+  - function at removed (71 dependents)
+
+ui/src/CrewView.tsx (TypeScript)
+  ~ function CrewView signature changed (1 dependent)
+  + function done added
+  ~ function status body changed (116 dependents)
+  + function openAsk added
+
+ui/src/Icon.tsx (TypeScript)
+  + type IconName added
+  + variable ICON_NAMES added
+  + function Icon added
+
+ui/src/JobsView.tsx (TypeScript)
+  ~ function JobsView body changed (1 dependent)
+
+ui/src/Look.tsx (TypeScript)
+  + variable HOOD added
+  + variable FACE added
+  + variable INK added
+  ~ variable FRAMES signature changed (1 dependent)
+  ~ function BodyShape body changed (1 dependent)
+  ~ function AccessoryBack signature changed (1 dependent)
+  ~ function AccessoryFront body changed (1 dependent)
+
+ui/src/ModelChip.tsx (TypeScript)
+  ~ function ModelChip body changed (1 dependent)
+
+ui/src/SettingsView.tsx (TypeScript)
+  ~ function SettingsView body changed (1 dependent)
+  ~ function card signature changed (60 dependents)
+  ~ function header signature changed (18 dependents)
+  ~ function HubBox body changed (1 dependent)
+  ~ function PhonePage body changed (1 dependent)
+  + function pair added
+
+ui/src/Sheet.tsx (TypeScript)
+  ~ function Sheet body changed (4 dependents)
+
+ui/src/hoodie-crew.css (CSS)
+  + selector hd-crew-page added
+  + selector hd-crew-head added
+  + selector hd-crew-line added
+  + selector hd-floor added
+  + selector hd-job added
+  + selector hd-job-k added
+  + selector hd-job-bar added
+  + selector hd-spark added
+  + selector hd-others added
+  + selector hd-tag added
+  + selector hd-desk added
+  + selector hd-name added
+  + selector hd-figure added
+  + selector hd-cards added
+  + selector hd-pro-head added
+  + selector hd-pro-tile added
+  + selector hd-pro-who added
+  + selector hd-pro-role added
+  + selector hd-pro-tags added
+  + selector hd-pro-model added
+  + selector hd-pro-state added
+  + selector hd-pro-body added
+  + selector hd-pro-actions added
+  + selector hd-pro-sec added
+  + selector hd-rules added
+  + selector hd-rule added
+  + selector hd-tools added
+  + selector hd-routine added
+  + selector hd-routine-add added
+  + selector hd-pro-foot added
+  + selector hd-pro-crew added
+  + selector hd-meta added
+  + selector hd-floor added
+  + selector hd-spark added
+  + selector hd-job added
+  + selector hd-figure added
+  + selector hd-others added
+  + selector hd-desk added
+  + selector hd-cards added
+  + selector hd-pro-head added
+  + selector hd-pro-body added
+
+ui/src/hoodie-views.css (CSS)
+  + selector hv-meta added
+  + selector hv-k added
+  + selector hv-done added
+  + selector hv-done-text added
+  + selector hv-done-k added
+  + selector hv-done-h added
+  + selector hv-done-s added
+  + selector hv-done added
+  + selector hv-done-h added
+  + selector hv-done-s added
+  + selector hv-set-list added
+  + selector hv-panel added
+  + selector hv-head added
+  + selector hv-panel added
+  + selector hv-pair added
+  + selector hv-pair-text added
+  + selector hv-code added
+  + selector hv-wave added
+  + selector hv-phones added
+  + selector hv-phone added
+  + selector hv-pair added
+  + selector hv-code added
+  + selector hv-wave added
+
+ui/src/index.css (CSS)
+  ~ selector body body changed (91 dependents)
+  ~ selector button body changed (51 dependents)
+  - selector code removed (54 dependents)
+  ~ selector quiet body changed (16 dependents)
+  ~ selector rail body changed (3 dependents)
+  ~ selector logo body changed (5 dependents)
+  ~ selector rail-btn body changed (0 dependents)
+  ~ selector dot-badge body changed (0 dependents)
+  ~ selector live body changed (40 dependents)
+  ~ selector sidebar body changed (1 dependent)
+  ~ selector brand body changed (1 dependent)
+  ~ selector hero body changed (6 dependents)
+  + selector hero-pose added
+  + selector hero-text added
+  + selector hero-name added
+  ~ selector side-group renamed from group-badge (0 dependents)
+  ~ selector section body changed (8 dependents)
+  ~ selector chat-row body changed (0 dependents)
+  ~ selector row-text body changed (0 dependents)
+  ~ selector badge body changed (8 dependents)
+  + selector ok-pill added
+  ~ selector new-group body changed (0 dependents)
+  ~ selector offline-bar body changed (0 dependents)
+  ~ selector chat-head body changed (0 dependents)
+  ~ selector chat-title body changed (0 dependents)
+  ~ selector stop body changed (52 dependents)
+  ~ selector log body changed (49 dependents)
+  ~ selector hint body changed (3 dependents)
+  ~ selector new-pill body changed (0 dependents)
+  ~ selector row body changed (55 dependents)
+  ~ selector body body changed (91 dependents)
+  ~ selector who body changed (26 dependents)
+  ~ selector bubble body changed (1 dependent)
+  ~ selector tag body changed (8 dependents)
+  ~ selector ts body changed (68 dependents)
+  ~ selector activity body changed (3 dependents)
+  + selector tick added
+  ~ selector flow body changed (4 dependents)
+  ~ selector arrow body changed (3 dependents)
+  ~ selector handoff-text body changed (0 dependents)
+  ~ selector step-who body changed (0 dependents)
+  ~ selector step-text body changed (0 dependents)
+  ~ selector spin body changed (1 dependent)
+  ~ selector shot body changed (22 dependents)
+  + selector approval-row added
+  + selector approval-avatar added
+  + selector approval-head-avatar added
+  ~ selector approval body changed (81 dependents)
+  + selector approval-main added
+  ~ selector approval-head body changed (0 dependents)
+  ~ selector approval-title body changed (0 dependents)
+  ~ selector approval-shot renamed from crew (0 dependents)
+  ~ selector approval-btns body changed (0 dependents)
+  + selector approval-pose added
+  ~ selector approval-done body changed (0 dependents)
+  ~ selector error body changed (47 dependents)
+  + selector composer-wrap added
+  ~ selector composer body changed (3 dependents)
+  ~ selector send body changed (35 dependents)
+  ~ selector composer-hint body changed (0 dependents)
+  ~ selector crew-stage body changed (0 dependents)
+  ~ selector room-loading body changed (0 dependents)
+  ~ selector crew-card body changed (0 dependents)
+  ~ selector set-card body changed (0 dependents)
+  ~ selector set-icon body changed (0 dependents)
+  ~ selector chev body changed (2 dependents)
+  + selector mark-line added
+  + selector ok-mark added
+  + selector bad-mark added
+  ~ selector switch-row body changed (0 dependents)
+  ~ selector overlay body changed (7 dependents)
+  ~ selector sheet body changed (4 dependents)
+  ~ selector profile-hero body changed (0 dependents)
+  + selector app added
+  ~ selector sidebar body changed (1 dependent)
+  ~ selector tabbar body changed (1 dependent)
+  ~ selector chat-head body changed (0 dependents)
+  ~ selector chat-title body changed (0 dependents)
+  + selector stop added
+  ~ selector log body changed (49 dependents)
+  ~ selector gutter body changed (1 dependent)
+  + selector row added
+  + selector bubble added
+  + selector activity added
+  ~ selector step-tool body changed (0 dependents)
+  + selector shot added
+  + selector approval-row added
+  + selector approval-avatar added
+  + selector approval-head-avatar added
+  ~ selector approval renamed from composer (81 dependents)
+  + selector approval-main added
+  + selector approval-title added
+  + selector approval-pose added
+  + selector approval-btns added
+  + selector composer-wrap added
+  ~ selector composer body changed (3 dependents)
+  ~ selector new-pill body changed (0 dependents)
+  ~ selector column body changed (48 dependents)
+  ~ selector count body changed (13 dependents)
+  ~ selector task body changed (66 dependents)
+  ~ selector task-id body changed (0 dependents)
+  + selector job-row added
+  ~ selector model-chip body changed (0 dependents)
+  ~ selector menu body changed (10 dependents)
+  ~ selector menu-title body changed (0 dependents)
+  ~ selector builder-preview body changed (0 dependents)
+  ~ selector chip body changed (4 dependents)
+  + selector step-tool added
+
+ui/src/settings/KeysList.tsx (TypeScript)
+  ~ function KeysList body changed (2 dependents)
+
+ui/src/settings/OperatorPage.tsx (TypeScript)
+  ~ function OperatorPage body changed (1 dependent)
+
+ui/src/settings/SecurityPage.tsx (TypeScript)
+  ~ function SecurityPage body changed (1 dependent)
+
+Warnings
+  ! E_PARSE_ERROR ui/src/BotBuilder.tsx
+    file parsed with syntax errors on one side; diff kept but may be incomplete or contain phantom changes
+    tree-sitter syntax error nodes present: error ERROR at line 112 column 40 near "& rules"
+  ! E_PARSE_ERROR ui/src/BotProfile.tsx
+    file parsed with syntax errors on one side; diff kept but may be incomplete or contain phantom changes
+    tree-sitter syntax error nodes present: error ERROR at line 118 column 67 near "& rules"
+  ! E_PARSE_ERROR ui/src/SettingsView.tsx
+    file parsed with syntax errors on one side; diff kept but may be incomplete or contain phantom changes
+    tree-sitter syntax error nodes present: error ERROR at line 376 column 151 near "& updates."
+  ! E_PARSE_ERROR ui/src/BotBuilder.tsx
+    dependent references in this file may be undercounted because it failed to parse cleanly
+    tree-sitter syntax error nodes present: error ERROR at line 112 column 40 near "& rules"
+  ! E_PARSE_ERROR ui/src/BotProfile.tsx
+    dependent references in this file may be undercounted because it failed to parse cleanly
+    tree-sitter syntax error nodes present: error ERROR at line 118 column 67 near "& rules"
+  ! E_PARSE_ERROR ui/src/SettingsView.tsx
+    dependent references in this file may be undercounted because it failed to parse cleanly
+    tree-sitter syntax error nodes present: error ERROR at line 376 column 151 near "& updates."

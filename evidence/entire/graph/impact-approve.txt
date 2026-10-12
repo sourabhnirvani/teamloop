@@ -1,0 +1,31 @@
+Index: cache-hit (309ms) | Query: 2ms | Total: 311ms
+Completeness: no parse failures in Python (122 files parsed); 3 elsewhere (TypeScript 3) cannot affect this answer — see --format json.
+Impact: TurnCtx.approve (teamloop/crew/context.py:36) def=36 span=36-49 [method in TurnCtx]
+Blast radius: 0 callers (0 direct, 0 transitive), 1 callee, 0 type consumers, 0 data flows, 14 co-change files, 3 siblings.
+Callers (0 direct, 0 transitive; who breaks if behavior changes):
+- none
+Callees (1; what it depends on):
+- TurnCtx.check_stop (teamloop/crew/context.py:51)
+Type consumers (0 in, 0 out; USES_TYPE/PARAM_TYPE/RETURNS_TYPE):
+- none
+Data flows (0 in, 0 out):
+- none
+Co-change coupling (14; files that historically change with teamloop/crew/context.py):
+- teamloop/computer/gate.py [files changed together in 3 recent commits]
+- teamloop/computer/risk.py [files changed together in 2 recent commits]
+- teamloop/computer/terminal.py [files changed together in 3 recent commits]
+- teamloop/crew/bots.py [files changed together in 5 recent commits]
+- teamloop/crew/coverage.py [files changed together in 2 recent commits]
+- teamloop/crew/runner.py [files changed together in 4 recent commits]
+- teamloop/crew/store.py [files changed together in 2 recent commits]
+- teamloop/crew/team.py [files changed together in 4 recent commits]
+- teamloop/server/app.py [files changed together in 2 recent commits]
+- teamloop/tools/registry.py [files changed together in 3 recent commits]
+- tests/test_denials.py [files changed together in 2 recent commits]
+- tests/test_scout_cap.py [files changed together in 2 recent commits]
+- tests/test_server_and_files.py [files changed together in 2 recent commits]
+- tests/test_terminal.py [files changed together in 2 recent commits]
+Same-container siblings (3):
+- TurnCtx.emit (teamloop/crew/context.py:33)
+- TurnCtx.check_stop (teamloop/crew/context.py:51)
+- TurnCtx.for_bot (teamloop/crew/context.py:55)
