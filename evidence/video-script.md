@@ -2,7 +2,8 @@
 
 The rules ask, for **each** tool (neatlogs, Entire, cfo.ai): architecture, implementation, runtime, reasoning, result.
 Times are targets. Each block lists the screen, then the voice-over.
-- **Record from:** the `demo` tag.
+- **Record from:** the `demo` tag (`git checkout demo`), with a **fresh chat for every take**, so the chat history from
+  earlier takes doesn't leak in.
 - **Model:** Groq's free tier.
 - **Tracing:** neatlogs on.
 

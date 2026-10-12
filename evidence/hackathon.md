@@ -46,11 +46,13 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 | Fixed phone link on a free Cloudflare Worker, live | `evidence/runs/hub-live-2026-10-11.md` |
 | UI audit (13 rows), all fixed and re-checked at 375/1100/1440 | `evidence/runs/ui-audit-yang.md`, `evidence/ui/audit-fix-*.png` |
 | Eval results over time | `evidence/evals/*.json` |
+| **Final regression pass on the real desktop app before the freeze**: every §6 debug row passes, the demo goal passed 3 of the last 4 runs through the UI (cards approved in the app), computer use 10/10; it found and fixed a safety hole (discard clicks with no card) and a history-replay bug | `evidence/runs/final-pass-yang.md` |
+| The video and demo are recorded from the frozen, checked build: git tag `demo` | `git show demo` |
 
 ## Building in public (15%)
 | Claim | Evidence |
 |---|---|
-| ⚠ #neatHack posts during the event | add the post links here |
+| ⚠ #neatHack posts during the event | drafts with measured results: `evidence/posts.md`; add the post links here once posted |
 | Small commits by both people across the event, with evidence for each piece | `git log`, this folder |
 | Two coding agents working as teammates over ccbridge (requests, reviews, acks) | `HANDOFF.md`, `BRIDGE.md` |
 
