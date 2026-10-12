@@ -146,7 +146,7 @@ class Router:
         not resting) gets a free slot; None when there is no such key."""
         waits = []
         for provider, key, _ in slots:
-            if provider.id == "ollama":
+            if provider.id in P.LOCAL:
                 continue
             st = self.state(provider.id, key)
             st.ready(now)  # drops calls older than a minute
@@ -175,7 +175,7 @@ class Router:
             now = self.clock()
             if not st.ready(now):
                 continue
-            if provider.id == "ollama" and not _waited:
+            if provider.id in P.LOCAL and not _waited:
                 # A cloud key that is only pacing itself frees up within a minute; that beats a slow local model.
                 wait = self.pace_wait(slots, now)
                 if wait is not None and wait <= PACE_WAIT_MAX:
@@ -206,7 +206,7 @@ class Router:
                     errors.append(f"{provider.name} {model}: broken tool call ({type(e).__name__})")
                     continue
             except Transient as e:
-                if provider.id != "ollama":  # every local model shares one "key": one model's trouble mustn't bench the rest
+                if provider.id not in P.LOCAL:  # every local model shares one "key": one model's trouble mustn't bench the rest
                     st.rest_until = self.clock() + 20
                 errors.append(f"{provider.name} {model}: {e}")
                 continue

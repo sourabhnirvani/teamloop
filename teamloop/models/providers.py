@@ -51,9 +51,14 @@ PROVIDERS: dict[str, Provider] = {p.id: p for p in [
              "NEBIUS_API_KEY", ("meta-llama/Llama-3.3-70B-Instruct",)),
     Provider("ollama", "Local (Ollama)", "http://localhost:11434/v1",
              "OLLAMA_API_KEY", ("qwen2.5:7b",), needs_key=False),
+    # LM Studio's local server: OpenAI-style, no key; its models are whatever it has loaded (GET /v1/models)
+    Provider("lmstudio", "Local (LM Studio)", "http://localhost:1234/v1",
+             "LMSTUDIO_API_KEY", (), needs_key=False),
 ]}
 
-DEFAULT_CHAIN: tuple[str, ...] = ("gemini", "groq", "openrouter", "nvidia", "zai", "nebius", "ollama")
+LOCAL = frozenset({"ollama", "lmstudio"})  # models on this laptop: no pace limits, one shared "key"
+
+DEFAULT_CHAIN: tuple[str, ...] = ("gemini", "groq", "openrouter", "nvidia", "zai", "nebius", "ollama", "lmstudio")
 
 
 # Free only, always, unless TEAMLOOP_ALLOW_PAID=1: Nebius bills per token once its trial credit runs out,
@@ -102,8 +107,33 @@ def models_for(provider: Provider, env: Mapping[str, str] | None = None) -> list
     models = [m.strip() for m in override.split(",") if m.strip()]
     if not models and provider.id == "ollama":
         models = installed_ollama_models(base_url_for(provider, env))
+    if not models and provider.id == "lmstudio":
+        models = lmstudio_models(base_url_for(provider, env))
     models = models or list(provider.models)
     return [m for m in models if free_to_use(provider.id, m, env)]
+
+
+_lmstudio_seen: dict[str, tuple[float, list[str]]] = {}
+
+
+def lmstudio_models(base_url: str, ttl: float = 60.0) -> list[str]:
+    """The chat models LM Studio's server has (embedding models skipped); [] when it isn't running, so it gets
+    no slots and the router never waits on it. Looked up at most once a minute."""
+    import time
+
+    import httpx
+
+    now = time.monotonic()
+    cached = _lmstudio_seen.get(base_url)
+    if cached and now - cached[0] < ttl:
+        return cached[1]
+    try:
+        data = httpx.get(base_url.rstrip("/") + "/models", timeout=0.5).json().get("data") or []
+        models = [m["id"] for m in data if m.get("id") and "embed" not in m["id"].lower()]
+    except (httpx.HTTPError, ValueError, AttributeError, TypeError):
+        models = []
+    _lmstudio_seen[base_url] = (now, models)
+    return models
 
 
 _ollama_seen: dict[str, tuple[float, list[str]]] = {}
@@ -159,6 +189,8 @@ def base_url_for(provider: Provider, env: Mapping[str, str] | None = None) -> st
     env = os.environ if env is None else env
     if provider.id == "ollama":
         return env.get("OLLAMA_URL") or provider.base_url
+    if provider.id == "lmstudio":
+        return env.get("LMSTUDIO_URL") or provider.base_url
     return provider.base_url
 
 
