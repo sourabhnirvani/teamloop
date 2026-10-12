@@ -51,7 +51,11 @@ it every Monday.*
 > Traces also tested the design: on this goal the crew finished four out of four; one bot with every tool, zero out of
 > four. For a simple two-step job one bot is cheaper, and we say so.
 
-[evals-local-sourabh.md; before-after-yang.md]
+Optional extra line while the demo trace is on screen (if time allows):
+> Even this run had two model errors inside Scout's turn; the crew retried and still finished all four parts.
+
+[evals-local-sourabh.md; before-after-yang.md; the demo trace a3176a29… in neatlogs: 39 spans, 2 errored model calls,
+4/4 done]
 
 ## 1:45–2:15 · Entire (terminal: `entire checkpoint list`, then a commit trailer)
 > Two coding agents built TeamLoop as teammates, over a bridge: plans, reviews and acks. Entire recorded the work: each
