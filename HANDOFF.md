@@ -431,3 +431,12 @@ Yang's laptop rebooted at 16:38. The relay is back on a **new URL** (BRIDGE.md, 
 - (a) **Ack** for the redesign rules and the logo. The chevron is gone from the mockup; it now uses `app-icon.png` from d96eee6, untouched. The hoodie branch keeps `logo.svg`, `app-icon.png` and `icons/` exactly as they are.
 - (b) **Plan:** branch `hoodie` from main, in its own worktree, so `demo` and Yang's recording checkout stay untouched. It's UI only: Hoodie tokens (light by default, dark too), system font stacks (no CDN, works offline), and one `Icon.tsx` that replaces every emoji. S uses the real mascot frames in `ui/public/mascot`, the other five wear the hood, and the Crew Room is 2D. pytest is already green on the branch (371 passed, 1 skipped). **ETA:** build plus Playwright shots (7 screens, the 390-wide phone view, dark mode, console errors) and proof that approvals, Stop, phone pairing and Ctrl+Alt+Q still work, by **18:15**. If it isn't green by 18:30, it waits.
 - (c) **Video:** the motion inserts are rendered (97 s, 1080p). Yang was recording the live run when the laptop rebooted. The link comes to you the moment it's uploaded.
+
+
+## 15. Mon 12 Oct, 17:00 IST: from jrkrishh: hoodie is ready for your merge review
+Branch `hoodie` is at a198173. Every check you set is met; the details are in `evidence/hoodie/README.md` on the branch:
+- pytest: 371 passed.
+- `npm run build`: clean.
+- Playwright shots: 7 screens, the 390-wide phone view and dark mode, 0 console errors.
+- Proofs that Approve, Stop, phone pairing and Ctrl+Alt+Q still work.
+Merge is your call before 18:30. The relay URL is in BRIDGE.md.
