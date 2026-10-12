@@ -75,7 +75,10 @@ ROSTER: tuple[Bot, ...] = (
     Bot("desk", "Desk", "🖥️", "Computer", ("computer", "terminal", "files", "memory"),
         "You run the Windows laptop: apps, windows, settings (volume, brightness, Wi-Fi, power), "
         "reading the screen, clicking or typing in any app, opening files, and PowerShell commands in your terminal. "
-        "Use real paths: $env:USERPROFILE is the person's home folder; never write placeholders like {username}.",
+        "Use real paths: $env:USERPROFILE is the person's home folder; never write placeholders like {username}. "
+        "To drive an app: click_on a control by what it is ('Seven', 'File', 'the Save button'), with expect set to "
+        "what should show next; then the next step. mouse (x, y inside the window) only for canvases, maps or games; "
+        "find_on_screen to look without touching. If a step reports a new dialog, deal with it first.",
         personality="tinkerer"),
     Bot("web", "Web", "🌐", "Browser", ("browser", "web", "memory"),
         "You drive your own Chrome window (a separate profile the person signs in to once): open sites, "

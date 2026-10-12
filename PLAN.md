@@ -138,6 +138,8 @@ Coming next (Phase 2, 11-12 Oct; each lands with tests, the UI follows):
 | `GET /api/overview` · `GET /api/security` | Settings home status lines; key vault count + blocked key-leak attempts |
 | `GET /api/keys/entries` · `POST /api/keys/test` · `DELETE /api/keys/{env}` · `POST /api/keys/cleanup` | one row per key `{env, provider, provider_name, masked "…abcd", status: works/rejected/unchecked, reason, source: vault/env}` (`GET /api/keys` stays a list, unchanged); test all returns the rows; remove gives 409 for a key from .env, 404 for an unknown name; cleanup removes rejected vault keys and returns `{removed, kept_env}` |
 | `GET /api/security` | `{locked: vault entry count, names: [vault names only], blocked: [{ts, bot, tool, what}]}` |
+| `POST /api/stop-all` · `GET /api/operator` | stop every chat (Ctrl+Alt+Q) → `{stopped: [chat ids], chats}`; `{paused, paused_since, quiet_seconds, recent: [{ts, bot, tool, ok, text}]}` |
+| tools `click_on` · `mouse` · `find_on_screen` (computer kit) | `click_on {window, target, action: click/double_click/right_click/focus, expect?}` → finds by UIA then OCR, acts, verifies, 1 retry, data `{found: {name, x, y, box, how, role}, how, tries, changed}`; `mouse {action: move/click/double_click/right_click/scroll/drag, x, y, to_x?, to_y?, amount?, window?}` (physical px, inside the window if given); `find_on_screen {window?, text}` → `{found, screen_text ≤1500 chars, redacted}` |
 | `GET /api/hub` · `POST /api/hub/setup` | fixed phone link status / set up (laptop only) |
 
 ## 5. Talking to each other: ccbridge

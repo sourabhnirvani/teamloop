@@ -249,7 +249,8 @@ async def press_keys(args: dict, ctx) -> ToolResult:
     return ToolResult(True, f"Pressed {risk.normalize_keys(keys)}" + (f" in \"{title}\"." if title else "."))
 
 
-@tool("ui_snapshot", "List the buttons, fields and text inside a window, numbered, so you can act on them.",
+@tool("ui_snapshot", "List the buttons, fields and text inside a window, numbered. To click something, use "
+      "click_on with its name instead; use this only to see everything a window offers.",
       {"window": {"type": "string"}, "required": ["window"]}, kit="computer")
 async def ui_snapshot(args: dict, ctx) -> ToolResult:
     win = await _window(args.get("window"))

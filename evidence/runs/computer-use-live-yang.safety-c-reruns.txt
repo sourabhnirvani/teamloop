@@ -1,0 +1,3 @@
+==> Safety (c): Stop mid-plan (while paused): PASS (1 try) paused before Stop: True; stop-all: ['dm-desk']; display after: Display is 0 [-]
+==> Safety (c): Stop mid-plan (while paused): PASS (1 try) paused before Stop: True; stop-all: ['dm-desk']; display after: Display is 0 [-]
+==> Safety (c): Stop mid-plan (while paused): PASS (1 try) paused before Stop: True; stop-all: ['dm-desk']; display after: Display is 0 [-]
