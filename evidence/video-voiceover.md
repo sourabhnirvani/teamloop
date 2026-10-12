@@ -52,7 +52,8 @@ it every Monday.*
 > four. For a simple two-step job one bot is cheaper, and we say so.
 
 Optional extra line while the demo trace is on screen (if time allows):
-> Even this run had two model errors inside Scout's turn; the crew retried and still finished all four parts.
+> Even this run failed twice: the model invented a tool that doesn't exist, the provider rejected it, and the crew
+> retried with the real one and still finished all four parts.
 
 [evals-local-sourabh.md; before-after-yang.md; the demo trace a3176a29… in neatlogs: 39 spans, 2 errored model calls,
 4/4 done]
