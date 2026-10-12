@@ -48,7 +48,7 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 | UI audit (13 rows), all fixed and re-checked at 375/1100/1440 | `evidence/runs/ui-audit-yang.md`, `evidence/ui/audit-fix-*.png` |
 | Eval results over time | `evidence/evals/*.json` |
 | **Final regression pass on the real desktop app before the freeze**: every §6 debug row passes, the demo goal passed 3 of the last 4 runs through the UI (cards approved in the app), computer use 10/10; it found and fixed a safety hole (discard clicks with no card) and a history-replay bug | `evidence/runs/final-pass-yang.md` |
-| The video is recorded from git tag `video` (main 0275082): the frozen, checked `demo` build's backend unchanged, plus the Hoodie redesign (UI only, checked on the rehearsal server before merging) | `git show video`; `git diff demo video --stat` (no backend change: only ui/, icons, the logo and plan scripts, and docs); `evidence/hoodie/` |
+| The video is recorded from git tag `video` (main 5356513): the frozen, checked `demo` build's backend unchanged, plus the Hoodie redesign (UI only, checked on the rehearsal server before merging) | `git show video`; `git diff demo video --stat` (no backend change: only ui/, icons, the logo and plan scripts, and docs); `evidence/hoodie/` |
 
 ## Building in public (15%)
 | Claim | Evidence |
@@ -66,4 +66,4 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 ## Demo video (20%)
 | Claim | Evidence |
 |---|---|
-| ⚠ ≤ 3 min, covering architecture, implementation, runtime, reasoning and result for each tool (Yang records from the `video` tag, re-recorded ~18:45 IST after the centred-chat fix) | script: `evidence/video-script.md`; exact voice-over: `evidence/video-voiceover.md` |
+| ⚠ ≤ 3 min, covering architecture, implementation, runtime, reasoning and result for each tool (recorded 17:23 IST from the `video` tag; final cut 2:11.6. Main has since added two small UI fixes with no backend change: the phone's status bar and logo refresh, and a centred chat column on wide screens) | script: `evidence/video-script.md`; exact voice-over: `evidence/video-voiceover.md` |
