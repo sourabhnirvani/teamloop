@@ -1,0 +1,25 @@
+tracing to neatlogs: False
+r1 PASS live_writer       2.0s  calls   2  tokens   1677  steps  1  live-1791771391.txt written through S -> Writer
+r1 PASS live_desk         4.6s  calls   2  tokens   4027  steps  2  S handed it to Desk and Notepad really opened
+tool write_file failed
+Traceback (most recent call last):
+  File "C:\Users\BCE\neathack\teamloop\teamloop\tools\registry.py", line 135, in run
+    result = _block_key_leak(name, args or {}, ctx) or await found.handler(args or {}, ctx)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCE\neathack\teamloop\teamloop\tools\files.py", line 155, in write_file
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\pathlib\_local.py", line 722, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+OSError: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'C:\\Users\\BCE\\neathack\\teamloop\\workspace\\files\\$env:USERPROFILE\\workspace\\evals'
+r1 PASS live_recovery     3.7s  calls   6  tokens   6869  steps  4  write_file failed once (simulated) and the crew retried until the file existed
+r2 PASS live_writer       0.7s  calls   2  tokens   1691  steps  1  live-1791771401.txt written through S -> Writer
+r2 PASS live_desk         3.7s  calls   2  tokens   4015  steps  2  S handed it to Desk and Notepad really opened
+r2 PASS live_recovery     2.1s  calls   5  tokens   5626  steps  3  write_file failed once (simulated) and the crew retried until the file existed
+r3 PASS live_writer       1.0s  calls   2  tokens   1643  steps  1  live-1791771408.txt written through S -> Writer
+r3 PASS live_desk         3.9s  calls   2  tokens   4050  steps  2  S handed it to Desk and Notepad really opened
+r3 PASS live_recovery     4.3s  calls   8  tokens  12518  steps  5  write_file failed once (simulated) and the crew retried until the file existed
+live_writer    3/3 passed  avg 1.2s  2.0 calls  1670.3 tokens  1.0 steps
+live_desk      3/3 passed  avg 4.1s  2.0 calls  4030.7 tokens  2.0 steps
+live_recovery  3/3 passed  avg 3.4s  6.3 calls  8337.7 tokens  4.0 steps
