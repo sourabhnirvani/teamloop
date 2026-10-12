@@ -81,7 +81,7 @@ async def test_history_marks_who_said_what(tmp_path):
     crew.store.add_message("team", "s", "great")
     crew.store.add_message("team", "user", "next")
     assert crew.history("team", "s") == [
-        {"role": "user", "content": "hi all"},
+        {"role": "user", "content": "(earlier message, already handled) hi all"},
         {"role": "user", "content": "[Scout] found it"},
         {"role": "assistant", "content": "great"},
     ]

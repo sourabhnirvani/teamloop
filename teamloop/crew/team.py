@@ -28,6 +28,9 @@ log = logging.getLogger(__name__)
 HISTORY_LIMIT, SAVE_HISTORY_LIMIT = 20, 8
 SAVE_MAX_STEPS = 5
 MAX_HANDOFF_DEPTH = 2
+EARLIER = "(earlier message, already handled) "
+RETRY = re.compile(r"^\s*(?:please\s+)?(?:try (?:it )?again|retry|do it(?: again| now)?|go ahead|yes,? (?:do it|go ahead|"
+                   r"please))\b", re.I)
 # Research hand-offs per job, counted at the lead (measured: S sent Scout and Web back 7 times chasing a detail the
 # person never asked for, then ran out of steps before save/open/remind; capping Scout alone just moved it to Web).
 RESEARCH_BOTS = frozenset({"scout", "web"})
@@ -135,14 +138,20 @@ class Crew:
         return [addressed or self.lead_of(chat)]
 
     def history(self, chat_id: str, bot_id: str, limit: int = HISTORY_LIMIT) -> list[dict]:
-        """Recent chat as the model sees it: its own lines as assistant, everyone else's as user."""
-        rows = self.store.messages(chat_id, limit + 1)[:-1]  # the newest is the message being answered
+        """Recent chat as the model sees it: its own lines as assistant, everyone else's as user. Earlier person
+        messages are marked as handled (seen live: a model redid "close notepad without saving" from history), except
+        the request a "try again" refers to."""
+        everything = self.store.messages(chat_id, limit + 1)
+        rows, newest = everything[:-1], (everything[-1]["text"] if everything else "")  # newest: being answered
+        retry_of = None
+        if RETRY.match(newest or ""):
+            retry_of = next((i for i in range(len(rows) - 1, -1, -1) if rows[i]["sender"] == "user"), None)
         out = []
-        for m in rows:
+        for i, m in enumerate(rows):
             if m["sender"] == bot_id:
                 out.append({"role": "assistant", "content": m["text"]})
             elif m["sender"] == "user":
-                out.append({"role": "user", "content": m["text"]})
+                out.append({"role": "user", "content": m["text"] if i == retry_of else EARLIER + m["text"]})
             else:
                 name = BOTS[m["sender"]].name if m["sender"] in BOTS else m["sender"]
                 out.append({"role": "user", "content": f"[{name}] {m['text']}"})
