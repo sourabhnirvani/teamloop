@@ -131,7 +131,9 @@ async def test_nudge_happens_once(tmp_path, monkeypatch):
     ])
     await run(crew, "team", "Write a note called x on the Desktop and open it")
     assert len(nudges(crew)) == 1
-    assert crew.store.messages("team")[-1]["text"] == "Saved it, really."
+    final = crew.store.messages("team")[-1]["text"]
+    assert final.startswith("Saved it, really.")   # no second nudge; the runner adds the honest line instead
+    assert 'Not done: open it (no tool ran for it). Say "try again"' in final
 
 
 def test_open_as_a_verb_only():

@@ -40,6 +40,20 @@ def missing(goal: str, used: set[str]) -> list[str]:
     return [label for label, said, tools in ASKS if said.search(goal or "") and not (tools & used)]
 
 
+def missing_actions(goal: str, used: set[str]) -> list[str]:
+    """Like missing(), for things done to the laptop only (save, open, remind, close, volume, brightness), and
+    never for a question ("can you save files?"): those must have a tool behind them even when the lead
+    handed nothing out. Research is left out: the lead may answer a question from what it knows."""
+    if (goal or "").rstrip().endswith("?"):
+        return []
+    return [label for label in missing(goal, used) if label != "do the research"]
+
+
+def not_done(todo: list[str]) -> str:
+    """The runner's own honest line when the lead still says a step is done that no tool did."""
+    return f'Not done: {", ".join(todo)} (no tool ran for it). Say "try again" and I\'ll do it.'
+
+
 def false_claims(text: str, names: dict[str, str], spoke: set[str]) -> list[str]:
     """Teammate names the reply quotes as having done something, though they never ran in this job.
     `names` maps bot id -> display name (the lead excluded)."""

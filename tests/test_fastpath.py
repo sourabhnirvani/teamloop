@@ -111,7 +111,9 @@ async def test_fast_path_can_be_switched_off(tmp_path, fake_volume):
     crew.store.set_setting("fast_path", False)
     await crew.post("team", "volume 30")
     await crew.wait_idle("team")
-    assert fake_volume == [] and len(crew.router.calls) == 1
+    # no fast path: the model handles it; it said "ok" with no tool, so it's nudged once and then told the truth
+    assert fake_volume == [] and len(crew.router.calls) == 2
+    assert "Not done: set the volume" in crew.store.messages("team")[-1]["text"]
 
 
 async def test_sleep_and_wake_up(tmp_path, fake_volume):

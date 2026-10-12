@@ -53,6 +53,7 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
                     messages += [{"role": "assistant", "content": text}, {"role": "user", "content": back}]
                     steps = max(steps, 4)  # room to do the missing step and report
                     continue
+                text = _honest(bot, ctx, user_text, text)
                 sp.set("output.value", text)
                 return text
             messages.append(reply.message)
@@ -74,7 +75,7 @@ async def run_bot_turn(bot: Bot, router: Any, history: list[dict], user_text: st
                 messages.append({"role": "tool", "tool_call_id": call.id, "content": content})
         ctx.check_stop()
         final = await router.chat(messages + [{"role": "user", "content": WRAP_UP}], purpose=f"wrapup:{bot.id}", **pick)
-        text = clean_reply(final.text)
+        text = _honest(bot, ctx, user_text, clean_reply(final.text))
         sp.set("output.value", text)
         return text
 
@@ -85,13 +86,22 @@ _CITATION = re.compile(r"\s?【[^】\n]{0,80}】")  # gpt-oss leaves "【fetch_p
 def _check_lead(bot: Bot, ctx: TurnCtx, goal: str, text: str, history: list[dict]) -> str | None:
     """For the lead's own reply to the person: a nudge when a requested step was skipped (only in a job it
     handed out) or when it reports a teammate's result that teammate never produced (in this job or the chat)."""
-    if bot.id != LEAD or ctx.depth != 0:
+    if bot.id != LEAD or ctx.depth != 0 or text.startswith("Not mine"):  # "Not mine" is routing, handled by the crew
         return None
-    todo = coverage.missing(goal, ctx.used) if "delegate" in ctx.used else []
+    todo = coverage.missing(goal, ctx.used) if "delegate" in ctx.used else coverage.missing_actions(goal, ctx.used)
     names = {b.id: b.name for b in BOTS.values() if b.id != LEAD}
     heard = {i for i, n in names.items() if any(str(m.get("content", "")).startswith(f"[{n}]") for m in history)}
     claimed = coverage.false_claims(text, names, ctx.spoke | heard)
     return coverage.nudge(todo, claimed) if (todo or claimed) else None
+
+
+def _honest(bot: Bot, ctx: TurnCtx, goal: str, text: str) -> str:
+    """The lead's final reply, plus the runner's own "Not done: ..." line for any asked-for action that still has no
+    tool behind it (a small model may ignore the nudge and say "saved" anyway). Never reads a skipped step as done."""
+    if bot.id != LEAD or ctx.depth != 0 or text.startswith("Not mine"):
+        return text
+    todo = coverage.missing(goal, ctx.used) if "delegate" in ctx.used else coverage.missing_actions(goal, ctx.used)
+    return f"{text}\n\n{coverage.not_done(todo)}" if todo else text
 
 
 def clean_reply(text: str) -> str:

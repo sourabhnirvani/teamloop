@@ -36,7 +36,8 @@ async def test_lead_not_mine_naming_nobody_plans_it_itself(tmp_path):
     await crew.post("dm-s", "open calculator for me then tell me")
     await crew.wait_idle("dm-s")
     said = [(m["sender"], m["text"]) for m in crew.store.messages("dm-s")]
-    assert said[-1] == ("s", "I'll take it: the Calculator app is open.")
+    # S's scripted "the Calculator app is open" has no tool behind it: it's nudged once, then the reply says so
+    assert said[-1][0] == "s" and "Not done: open it" in said[-1][1]
     assert "Don't reply \"Not mine\"" in crew.router.calls[1]["messages"][-1]["content"]
     assert not any(t.startswith("Not mine") for _, t in said)
 
