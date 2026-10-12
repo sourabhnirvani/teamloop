@@ -129,3 +129,19 @@ def test_stop_all_refuses_other_websites_but_not_the_app(tmp_path):
         assert c.post("/api/stop-all", headers={"origin": "https://evil.example"}).status_code == 403
         assert c.post("/api/stop-all").status_code == 200                      # Electron: no Origin
         assert c.post("/api/stop-all", headers={"origin": "http://127.0.0.1:8790"}).status_code == 200
+
+
+async def test_a_person_who_kept_working_gets_a_plain_answer_not_a_crash_and_no_retry(monkeypatch):
+    # (Sourabh's side) UserBusy used to arrive as "type_text failed: ..." with a traceback in the log
+    from types import SimpleNamespace
+
+    from teamloop.computer.operator import UserBusy
+    from teamloop.tools import registry
+
+    async def busy(args, ctx):
+        raise UserBusy("You were using the computer, so I waited a minute and didn't touch the mouse or keyboard.")
+
+    monkeypatch.setitem(registry.REGISTRY, "busy_tool", registry.Tool("busy_tool", "", {"type": "object"}, "computer", busy))
+    out = await registry.run("busy_tool", {}, SimpleNamespace(bot_id="desk", chat_id="team", last_answer=""))
+    assert not out.ok and out.text.startswith("You were using the computer") and "Don't retry now" in out.text
+    assert "failed" not in out.text

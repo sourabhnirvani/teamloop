@@ -3,14 +3,15 @@ import { canDo, choices, labelOf, localState, type Choice } from "./models";
 import { api, onLaptop, type AllowRule, type Bot, type SecurityInfo, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
 import { KeysList } from "./settings/KeysList";
+import { OperatorPage } from "./settings/OperatorPage";
 import { SecurityPage } from "./settings/SecurityPage";
 import { go, href } from "./router";
 import { applyUpdate, askToNotify, runningVersion, updateAvailable } from "./update";
 
 // Settings: a home page of cards (each with a live status line) that open their own page, on laptop and phone.
 
-type Page = "keys" | "models" | "usage" | "routines" | "phone" | "chrome" | "allowed" | "security" | "appearance";
-const PAGES: string[] = ["keys", "models", "usage", "routines", "phone", "chrome", "allowed", "security", "appearance"];
+type Page = "keys" | "models" | "usage" | "routines" | "phone" | "chrome" | "operator" | "allowed" | "security" | "appearance";
+const PAGES: string[] = ["keys", "models", "usage", "routines", "phone", "chrome", "operator", "allowed", "security", "appearance"];
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -86,6 +87,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         <h2>Devices</h2>
         {card("phone", "📱", "Your phone", `${onLaptop ? (phones ? `${plural(phones.length, "phone")} paired` : "Pair a phone with a QR code") : "This phone is paired"} · ${hub?.connected ? "fixed link on" : hub?.configured ? "fixed link connecting" : "fixed link not set up"}`)}
         {card("chrome", "🌐", "Crew's Chrome", "Sign in to sites once; bots read and draft, you send")}
+        {card("operator", "🖱️", "Operator safety", "Pauses while you use the mouse or keyboard · Ctrl+Alt+Q stops everything")}
         <h2>Safety</h2>
         {card("allowed", "✅", "Always-allowed actions", rules.length ? `${plural(rules.length, "rule")} · the crew goes ahead without asking` : "None: every risky action asks first")}
         {card("security", "🔒", "Key security", security ? `${plural(security.locked, "key")} locked · ${security.blocked.length ? `${plural(security.blocked.length, "call")} blocked` : "nothing blocked"}` : "Keys stay in the vault, never in tools or programs")}
@@ -186,6 +188,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         </>
       )}
       {page === "security" && <SecurityPage header={header("🔒 Key security")} />}
+      {page === "operator" && <OperatorPage header={header("🖱️ Operator safety")} bots={bots} />}
       {page === "appearance" && (
         <>
           {header("🎨 Appearance & updates")}

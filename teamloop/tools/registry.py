@@ -136,8 +136,11 @@ async def run(name: str, args: dict, ctx: Any) -> ToolResult:
         except Exception as e:  # a broken tool must not kill the bot's turn
             if type(e).__name__ == "Stopped":
                 raise
-            log.exception("tool %s failed", name)
-            result = ToolResult(False, f"{name} failed: {e}")
+            if type(e).__name__ == "UserBusy":  # operator safety: the person kept using the computer
+                result = ToolResult(False, f"{e} Don't retry now: wait for the person to say go.")
+            else:
+                log.exception("tool %s failed", name)
+                result = ToolResult(False, f"{name} failed: {e}")
         if not isinstance(result, ToolResult):
             result = ToolResult(False, f"{name} returned nothing usable.")
         result = _say_how_the_card_ended(result, getattr(ctx, "last_answer", ""))

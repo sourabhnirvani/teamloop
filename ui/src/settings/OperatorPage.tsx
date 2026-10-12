@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
+import type { Bot } from "../api";
+import { toolName } from "../Avatar";
 import { req } from "./http";
 
 type Step = { ts: number; bot: string; tool: string; ok: boolean; text: string };
 type OperatorState = { paused: boolean; paused_since: number | null; quiet_seconds: number; recent: Step[] };
 
 const RULES = [
-  "Sends only when your words say send",
+  "Asks you first before anything that sends, posts, buys or deletes",
   "Pauses while you use the mouse or keyboard, then carries on by itself",
   "Ctrl+Alt+Q stops everything, from any app",
   "Never types passwords or keys",
 ];
 
 // Settings > Operator safety: the rules, Paused or Ready (live), and the last screen steps.
-export function OperatorPage({ header }: { header: React.ReactNode }) {
+export function OperatorPage({ header, bots }: { header: React.ReactNode; bots?: Record<string, Bot> }) {
   const [state, setState] = useState<OperatorState | null>(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -55,7 +57,7 @@ export function OperatorPage({ header }: { header: React.ReactNode }) {
         {state?.recent.map((s, i) => (
           <li key={`${s.ts}-${i}`}>
             <span>
-              {s.ok ? "✅" : "❌"} <b>{s.bot || "a bot"}</b> · {s.tool}
+              {s.ok ? "✅" : "❌"} <b>{bots?.[s.bot]?.name ?? (s.bot || "a bot")}</b> · {toolName(s.tool)}
               <br /><small>{time(s.ts)} · {s.text}</small>
             </span>
           </li>
