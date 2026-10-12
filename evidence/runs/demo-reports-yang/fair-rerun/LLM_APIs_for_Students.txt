@@ -1,0 +1,7 @@
+Top 3 Free LLM APIs for Students
+
+1. Google Gemini API – Permanent free tier with free input & output tokens on selected Gemini models, ideal for broad, multimodal student prototypes. Limits vary per project. Source: https://tokenmix.ai/blog/free-llm-api
+
+
+
+End of report.

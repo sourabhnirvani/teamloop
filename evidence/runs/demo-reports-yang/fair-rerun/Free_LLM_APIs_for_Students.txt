@@ -1,0 +1,16 @@
+Top 3 Free LLM APIs for Students
+
+1. Groq
+   • Description: Fast inference LLM service with no credit‑card sign‑up.
+   • Free tier limits: 30 requests/minute, 1,000 requests/day, 8,000 tokens/minute, 200,000 tokens/day.
+   • Docs: https://console.groq.com/docs/rate-limits
+
+2. Cohere
+   • Description: Language models for chat, generation, and embeddings.
+   • Free tier limits: 20 requests/minute (Chat), 10 requests/minute (Rerank), 1,000 API calls per month.
+   • Docs: https://docs.cohere.com/docs/rate-limits
+
+3. Mistral AI
+   • Description: Open‑source style LLMs with easy API access.
+   • Free tier limits: Vary by model, generally a few thousand tokens per month on the free “experiment” tier (no credit card required).
+   • Docs: https://mistral.ai/pricing/

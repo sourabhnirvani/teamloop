@@ -1,0 +1,31 @@
+{
+  "goal": "Check my battery and Wi-Fi, then save a one-line status to workspace/status.txt",
+  "runs": [
+    {
+      "mode": "one bot",
+      "seconds": 4.1,
+      "model_requests": 3,
+      "tokens": 8401,
+      "tool_calls": 2,
+      "tool_failures": 0,
+      "bots_involved": [
+        "s"
+      ],
+      "final_reply": "Battery not found; Wi‑Fi: <network name hidden> saved to workspace/status.txt."
+    },
+    {
+      "mode": "crew",
+      "seconds": 14.0,
+      "model_requests": 14,
+      "tokens": 24560,
+      "tool_calls": 10,
+      "tool_failures": 1,
+      "bots_involved": [
+        "desk",
+        "s",
+        "writer"
+      ],
+      "final_reply": "Battery: N/A, Wi‑Fi: Connected was saved to `C:\\Users\\BCE\\neathack\\teamloop\\workspace\\status.txt`. Let me know if you need anything else."
+    }
+  ]
+}

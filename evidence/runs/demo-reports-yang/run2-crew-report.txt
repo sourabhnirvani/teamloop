@@ -1,0 +1,9 @@
+Top 3 free LLM APIs for students:
+
+1. Google Gemini (Free Student Plan) – Google’s Gemini AI is offered to eligible college students for one year at no cost. It gives unlimited uploads of class material, 2× higher usage limits than the regular free tier, 400 GB of cloud storage, and access to Gemini Omni for video generation. Source: https://gemini.google/students/
+
+2. Anthropic Claude (Free Plan) – The free Claude plan runs the Sonnet 5 model (1 M‑token context window) with web‑search, memory across chats, up to 5 projects, file uploads (20 files × 30 MB), and code execution. No credit card is required, but Opus 5 and Claude Code are not included. Source: https://www.anthropic.com/claude-free-plan (or appropriate article link)
+
+3. Groq (Free Tier) – Groq’s free tier provides access to Llama‑3‑70B‑versatile (and other models) with 30 requests per minute, 14,400 requests per day, and a token budget of 6,000 TPM. No credit card is needed; the limits are generous enough for prototyping and coursework. Source: https://groq.com/docs/rate-limits
+
+This report summarizes each API, key student‑friendly features, and source links.

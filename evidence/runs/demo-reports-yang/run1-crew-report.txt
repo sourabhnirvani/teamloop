@@ -1,0 +1,18 @@
+Top 3 Free LLM APIs for Students
+
+1. Google Gemini (Free Tier)
+   - Features: Multimodal, up to 1 B tokens per month, access to Gemini 1.5 Flash.
+   - Usage limits: 1 B tokens free each month; no cost until you exceed.
+   - Source: https://ai.google.dev/gemini-api/docs/usage-limits
+
+2. Groq (Free Tier)
+   - Features: Low‑latency inference, models like Llama‑3.1‑70B, Mixtral‑8x7B.
+   - Usage limits: $0.00 for up to $5 worth of credits each month (roughly 30 M tokens).
+   - Source: https://groq.com/pricing
+
+3. DeepSeek (Free Tier)
+   - Features: Open‑source style models, Chat and Completion endpoints.
+   - Usage limits: 10 M tokens per month free.
+   - Source: https://platform.deepseek.com/docs/limits
+
+These APIs provide generous free quotas suitable for student projects and coursework.

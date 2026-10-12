@@ -1,0 +1,168 @@
+{
+  "goal": "Research the top 3 free LLM APIs for students, write a short report on the Desktop, open it, and remind me about it every Monday.",
+  "rows": [
+    {
+      "mode": "one bot",
+      "seconds": 7.2,
+      "model_requests": 1,
+      "tokens": 2962,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "bots_involved": [
+        "s"
+      ],
+      "final_reply": "Failed: No model answered: Groq openai/gpt-oss-120b: broken tool call (BadToolCall); Groq llama-3.1-8b-instant: model gone",
+      "run": 1,
+      "steps": 1,
+      "outcome": {
+        "researched": true,
+        "saved_with_links": false,
+        "opened": false,
+        "routine": false,
+        "success": false
+      },
+      "tools": [
+        "s:web_search"
+      ]
+    },
+    {
+      "mode": "crew",
+      "seconds": 108.0,
+      "model_requests": 56,
+      "tokens": 208937,
+      "tool_calls": 48,
+      "tool_failures": 1,
+      "bots_involved": [
+        "desk",
+        "s",
+        "scout",
+        "writer"
+      ],
+      "final_reply": "- Reminder set: every Monday at 9 am the routine will open **C:\\Users\\BCE\\Desktop\\Free_LLM_APIs_for_Students.txt** and remind you about the report.  \n- Scout’s list, Writer’s file, and Desk’s opening have all been completed.\n\nAll requested steps are done. Let me know if you need anything else!",
+      "run": 1,
+      "steps": 48,
+      "outcome": {
+        "researched": true,
+        "saved_with_links": true,
+        "opened": true,
+        "routine": true,
+        "success": true
+      },
+      "tools": [
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "s:delegate",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "s:delegate",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "s:delegate",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:fetch_page",
+        "s:delegate",
+        "writer:write_file",
+        "s:delegate",
+        "desk:open_file",
+        "desk:screen_read",
+        "desk:press_keys FAILED",
+        "desk:mouse",
+        "desk:press_keys",
+        "desk:press_keys",
+        "desk:screen_read",
+        "desk:press_keys",
+        "s:delegate",
+        "s:schedule_routine"
+      ]
+    },
+    {
+      "mode": "one bot",
+      "seconds": 2.4,
+      "model_requests": 0,
+      "tokens": 0,
+      "tool_calls": 0,
+      "tool_failures": 0,
+      "bots_involved": [
+        "s"
+      ],
+      "final_reply": "Failed: No model answered: Groq llama-3.3-70b-versatile: model gone; Groq openai/gpt-oss-120b: broken tool call (BadToolCall); Groq llama-3.1-8b-instant: model gone",
+      "run": 2,
+      "steps": 0,
+      "outcome": {
+        "researched": false,
+        "saved_with_links": false,
+        "opened": false,
+        "routine": false,
+        "success": false
+      },
+      "tools": []
+    },
+    {
+      "mode": "crew",
+      "seconds": 32.2,
+      "model_requests": 21,
+      "tokens": 63169,
+      "tool_calls": 17,
+      "tool_failures": 1,
+      "bots_involved": [
+        "desk",
+        "s",
+        "scout",
+        "writer"
+      ],
+      "final_reply": "Report written and opened on your Desktop at **C:\\Users\\BCE\\Desktop\\Free LLM APIs for Students.txt**.  \n\nA reminder is scheduled for every Monday at 9 AM: “Review the ‘Free LLM APIs for Students.txt’ report on your Desktop.”  \n\nAll done. Let me know if you need anything else.",
+      "run": 2,
+      "steps": 17,
+      "outcome": {
+        "researched": true,
+        "saved_with_links": true,
+        "opened": true,
+        "routine": true,
+        "success": true
+      },
+      "tools": [
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:fetch_page",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "scout:web_search",
+        "s:delegate",
+        "writer:write_file",
+        "s:delegate",
+        "s:schedule_routine",
+        "desk:open_file",
+        "desk:screen_read",
+        "desk:press_keys FAILED",
+        "desk:read_file",
+        "s:delegate"
+      ]
+    }
+  ]
+}

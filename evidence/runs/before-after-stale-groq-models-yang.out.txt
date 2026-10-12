@@ -1,0 +1,54 @@
+no model answered: Groq openai/gpt-oss-120b: broken tool call (BadToolCall); Groq llama-3.1-8b-instant: model gone
+run 1 one bot: INCOMPLETE (saved_with_links, opened, routine) 7.2s, 1 requests, 2962 tokens, 1 steps, 0 failed, bots s
+tool press_keys failed
+Traceback (most recent call last):
+  File "C:\Users\BCE\neathack\teamloop\teamloop\tools\registry.py", line 135, in run
+    result = _block_key_leak(name, args or {}, ctx) or await found.handler(args or {}, ctx)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCE\neathack\teamloop\teamloop\computer\tools.py", line 246, in press_keys
+    await com.run(uia.send_keys_combo, keys)
+  File "C:\Users\BCE\neathack\teamloop\teamloop\computer\com.py", line 22, in run
+    return await asyncio.get_running_loop().run_in_executor(_pool, fn, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\BCE\neathack\teamloop\teamloop\computer\uia.py", line 158, in send_keys_combo
+    send_keys(keys_to_sendkeys(keys), pause=0.02)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCE\neathack\teamloop\.venv\Lib\site-packages\pywinauto\keyboard.py", line 708, in send_keys
+    keys = parse_keys(
+            keys, with_spaces, with_tabs, with_newlines,
+            vk_packet=vk_packet)
+  File "C:\Users\BCE\neathack\teamloop\.venv\Lib\site-packages\pywinauto\keyboard.py", line 630, in parse_keys
+    current_keys = handle_code(code, vk_packet)
+  File "C:\Users\BCE\neathack\teamloop\.venv\Lib\site-packages\pywinauto\keyboard.py", line 572, in handle_code
+    raise RuntimeError("Unknown code: {}".format(code))
+RuntimeError: Unknown code: PAGE
+run 1    crew: SUCCESS (all parts done) 108.0s, 56 requests, 208937 tokens, 48 steps, 1 failed, bots desk,s,scout,writer
+no model answered: Groq llama-3.3-70b-versatile: model gone; Groq openai/gpt-oss-120b: broken tool call (BadToolCall); Groq llama-3.1-8b-instant: model gone
+run 2 one bot: INCOMPLETE (researched, saved_with_links, opened, routine) 2.4s, 0 requests, 0 tokens, 0 steps, 0 failed, bots s
+tool press_keys failed
+Traceback (most recent call last):
+  File "C:\Users\BCE\neathack\teamloop\teamloop\tools\registry.py", line 135, in run
+    result = _block_key_leak(name, args or {}, ctx) or await found.handler(args or {}, ctx)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCE\neathack\teamloop\teamloop\computer\tools.py", line 246, in press_keys
+    await com.run(uia.send_keys_combo, keys)
+  File "C:\Users\BCE\neathack\teamloop\teamloop\computer\com.py", line 22, in run
+    return await asyncio.get_running_loop().run_in_executor(_pool, fn, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\BCE\neathack\teamloop\teamloop\computer\uia.py", line 158, in send_keys_combo
+    send_keys(keys_to_sendkeys(keys), pause=0.02)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCE\neathack\teamloop\.venv\Lib\site-packages\pywinauto\keyboard.py", line 708, in send_keys
+    keys = parse_keys(
+            keys, with_spaces, with_tabs, with_newlines,
+            vk_packet=vk_packet)
+  File "C:\Users\BCE\neathack\teamloop\.venv\Lib\site-packages\pywinauto\keyboard.py", line 630, in parse_keys
+    current_keys = handle_code(code, vk_packet)
+  File "C:\Users\BCE\neathack\teamloop\.venv\Lib\site-packages\pywinauto\keyboard.py", line 572, in handle_code
+    raise RuntimeError("Unknown code: {}".format(code))
+RuntimeError: Unknown code: PGDOWN
+run 2    crew: SUCCESS (all parts done) 32.2s, 21 requests, 63169 tokens, 17 steps, 1 failed, bots desk,s,scout,writer
