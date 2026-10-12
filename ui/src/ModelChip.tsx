@@ -64,7 +64,7 @@ export function ModelChip({ bot }: { bot?: Bot }) {
     <div className="chip-wrap" ref={box}>
       <button className="model-chip" aria-haspopup="menu" aria-expanded={open} title="Which free model answers here"
               onClick={() => setOpen(!open)}>
-        <Icon name="model" size={15} /> {open && settings ? nameOf(current) : shown}{bot?.only ? " · only" : ""}
+        <Icon name="model" size={18} /><span>{open && settings ? nameOf(current) : shown}{bot?.only ? " · only" : ""}</span>
       </button>
       {open && (
         <div className="menu" role="menu" aria-label={bot ? `Model for ${bot.name}` : "Model for the crew"}>

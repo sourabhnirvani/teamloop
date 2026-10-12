@@ -24,6 +24,7 @@ What changed:
 - Fonts are system stacks (Bricolage Grotesque, Figtree and JetBrains Mono when installed). There's no CDN, so the app
   works offline.
 - `Icon.tsx` replaces every emoji and stock glyph.
-- S uses its real mascot frames (`ui/public/mascot/*.webp`). The other five bots wear S's hood in their own colours.
+- Every crew bot is the mascot: S uses its real frames (`ui/public/mascot/*.webp`). Desk, Web, Scout, Inbox and Writer use the same frames with only the hoodie recoloured (`ui/public/mascot/<bot>/`, 9 moods each). Bots people build keep the hood drawing.
+- Second pass: every screen is rebuilt to the approved mockup (https://claude.ai/artifact/JUs1XHLmxnKgTrBWSD6uuF), with real data only. Where the app has no data for something the mockup shows (tool counts, step durations), it is left out rather than invented.
 - The Crew Room is 2D; three.js is no longer imported.
 - Sourabh's `logo.svg`, `app-icon.png` and `icons/` are untouched.

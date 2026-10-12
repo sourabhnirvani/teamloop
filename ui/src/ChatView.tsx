@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
-import { Avatar, botColor, colorOf, type Move, toolName, toolSign } from "./Avatar";
+import { Avatar, botColor, colorOf, type Move, toolName } from "./Avatar";
 import { Icon } from "./Icon";
 import { ModelChip } from "./ModelChip";
 import { RichText } from "./RichText";
@@ -18,6 +18,7 @@ type Props = {
   onBack: () => void;
   onBot: (botId: string) => void;
   onAnswered: (approvalId: string, status: string) => void;
+  live?: boolean;
 };
 
 const HINTS = ["team, plan my evening", "@desk what's my battery?", "@web open news.ycombinator.com", "check models", "remember I like short answers"];
@@ -59,11 +60,11 @@ function Handoff({ from, text, bots, ts }: { from?: Bot; text: string; bots: Rec
   return (
     <button className="activity handoff" onClick={() => setOpen(!open)} aria-expanded={open} title="A job one bot handed to another">
       <span className="flow">
-        <Avatar bot={from} size={20} /> <b>{from?.name ?? "?"}</b>
-        <span className="arrow" style={{ color: botColor(to?.id ?? "") }}><Icon name="arrow" size={16} /></span>
-        <Avatar bot={to} size={20} /> <b>{to?.name ?? "teammate"}</b>
+        {from?.name ?? "?"}
+        <span className="arrow"><Icon name="arrow" size={16} /></span>
+        {to?.name ?? "teammate"}
       </span>
-      <span className={`handoff-text ${open ? "open" : ""}`}>{rest}</span>
+      {rest && <span className={`handoff-text ${open ? "open" : ""}`}>· {rest}</span>}
       <span className="more" aria-hidden="true"><Icon name={open ? "down" : "next"} size={14} /></span>
       <span className="ts">{time(ts)}</span>
     </button>
@@ -74,10 +75,11 @@ function Step({ item, bots }: { item: Extract<Item, { kind: "step" }>; bots: Rec
   const [open, setOpen] = useState(false); // a long result reads in full with a tap (row 12 of the UI audit)
   const parts = (
     <>
-      <span className="mark">{item.status === "start" ? <i className="spin" /> : <Icon name={item.status === "done" ? "ok" : "no"} size={14} />}</span>
-      <span className="step-who" style={{ color: botColor(item.bot) }}>{bots[item.bot]?.name ?? item.bot}</span>
-      <span className="step-tool" title={item.tool}><Icon name={toolSign(item.tool)} size={13} /> {toolName(item.tool)}</span>
+      <span className="tick">{item.status === "start" ? <i className="spin" /> : <Icon name={item.status === "done" ? "ok" : "retry"} size={15} />}</span>
+      <b className="step-who">{bots[item.bot]?.name ?? item.bot}</b>
+      <span className="step-tool" title={toolName(item.tool)}>{item.tool}</span>
       {item.text && <span className={`step-text ${open ? "open" : ""}`}>{item.text}</span>}
+      <span className="ts">{time(item.ts)}</span>
       {item.text && <span className="more" aria-hidden="true"><Icon name={open ? "down" : "next"} size={14} /></span>}
     </>
   );
@@ -100,40 +102,43 @@ function Approval({ item, bots, onAnswered }: { item: Extract<Item, { kind: "app
       onAnswered(item.id, "answered"); // it was already answered (on the phone, by typing yes/no, or it expired)
     }
   };
+  const bot = bots[item.bot];
+  const move = item.status ? "idle" : "ask";
   return (
-    <div className={`approval ${item.status ?? "waiting"}`} style={{ "--bot": botColor(item.bot) } as React.CSSProperties}>
-      <div className="approval-main">
-      <div className="approval-head">
-        <Avatar bot={bots[item.bot]} move={item.status ? "idle" : "ask"} size={30} />
-        <div>
-          <b>{bots[item.bot]?.name ?? item.bot} <span className="ok-pill">needs your OK</span></b>
+    <div className={`approval-row ${item.status ?? "waiting"}`}>
+      <span className="approval-avatar"><Avatar bot={bot} move={move} size={40} /></span>
+      <div className={`approval ${item.status ?? "waiting"}`} style={{ "--bot": botColor(item.bot) } as React.CSSProperties}>
+        <div className="approval-main">
+          <div className="approval-head">
+            <span className="approval-head-avatar"><Avatar bot={bot} move={move} size={28} /></span>
+            <b>{bot?.name ?? item.bot}</b><span className="ok-pill">needs your OK</span>
+          </div>
           <div className="approval-title">{item.title}</div>
-        </div>
-      </div>
-      <p>{item.details}</p>
-      {item.screenshot && <img className="approval-shot" src={item.screenshot} alt="what will be affected" />}
-      {item.status ? (
-        <div className={`approval-done ${item.status}`}>
-          {item.status === "approved" && <Icon name="ok" size={15} />}{item.status === "denied" && <Icon name="no" size={15} />}
-          {DONE_LABEL[item.status] ?? item.status}
-        </div>
-      ) : (
-        <div className="approval-btns">
-          <button className="primary" disabled={sending} onClick={() => answer(true)}>Approve</button>
-          {item.canAlways && (
-            <button disabled={sending} title="Do this again without asking. You can undo it in Settings, under Always-allowed actions."
-                    onClick={() => answer(true, true)}>Always allow</button>
+          {item.details && <p>{item.details}</p>}
+          {item.screenshot && <img className="approval-shot" src={item.screenshot} alt="what will be affected" />}
+          {item.status ? (
+            <div className={`approval-done ${item.status}`}>
+              {item.status === "approved" && <Icon name="ok" size={15} />}{item.status === "denied" && <Icon name="no" size={15} />}
+              {DONE_LABEL[item.status] ?? item.status}
+            </div>
+          ) : (
+            <div className="approval-btns">
+              <button className="primary" disabled={sending} onClick={() => answer(true)}><Icon name="ok" /> Approve</button>
+              {item.canAlways && (
+                <button className="always" disabled={sending} title="Do this again without asking. You can undo it in Settings, under Always-allowed actions."
+                        onClick={() => answer(true, true)}>Always allow</button>
+              )}
+              <button className="deny" disabled={sending} onClick={() => answer(false)}><Icon name="no" /> Deny</button>
+            </div>
           )}
-          <button className="deny" disabled={sending} onClick={() => answer(false)}>Deny</button>
         </div>
-      )}
+        <img className="approval-pose" src="/mascot/click.webp" alt="" width={150} height={200} />
       </div>
-      <img className="approval-pose" src="/mascot/click.webp" alt="" width={110} />
     </div>
   );
 }
 
-export function ChatView({ chat, bots, items, typing, moves, look, draft, setDraft, onBack, onBot, onAnswered }: Props) {
+export function ChatView({ chat, bots, items, typing, moves, look, draft, setDraft, onBack, onBot, onAnswered, live = true }: Props) {
   const [error, setError] = useState("");
   const [behind, setBehind] = useState(false);
   const log = useRef<HTMLDivElement>(null);
@@ -179,6 +184,11 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
   }
 
   const members = chat.members.map((m) => bots[m]).filter(Boolean);
+  const names = (ids: string[]) => ids.map((id) => bots[id]?.name ?? id).join(", ");
+  const waiting = [...new Set(items.filter((i) => i.kind === "approval" && !i.status).map((i) => (i as { bot: string }).bot))];
+  const status = waiting.length ? `${names(waiting)} ${waiting.length > 1 ? "are" : "is"} waiting for you`
+    : typing.length ? `${names(typing)} working…` : "";
+  const leads = status && members.length > 1 && bots.s && chat.members.includes("s") ? ` · ${bots.s.name} leads` : "";
   let lastSender = "";
   let lastTs = 0;
 
@@ -189,16 +199,17 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
         <div className="crew">
           {members.map((b) => (
             <button key={b.id} className="crew-btn" title={`${b.name}: profile`} aria-label={`${b.name} profile`} onClick={() => onBot(b.id)}>
-              <Avatar bot={b} {...look(b.id)} size={34} />
+              <Avatar bot={b} {...look(b.id)} size={36} />
             </button>
           ))}
         </div>
         <div className="chat-title">
           <b>{chat.title}</b>
-          <small>{typing.length ? `${typing.map((id) => bots[id]?.name ?? id).join(", ")} working…` : members.map((b) => b.name).join(" · ")}</small>
+          <small className={`status ${status ? "busy" : ""}`}>{status ? status + leads : members.map((b) => b.name).join(" · ")}</small>
+          <small className="where"><Icon name="phone" size={13} /> on your laptop · {live ? "connected" : "reconnecting…"}</small>
         </div>
         <ModelChip bot={members.length === 1 ? members[0] : undefined} />
-        {busy && <button className="stop" onClick={() => api.stop(chat.id)}><Icon name="stop" size={15} /> Stop</button>}
+        {busy && <button className="stop" onClick={() => api.stop(chat.id)}><Icon name="stop" size={18} /> Stop</button>}
       </header>
 
       <div className="log" ref={log} aria-live="polite"
@@ -223,7 +234,11 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
             }
             if (item.mkind === "routine") {
               lastSender = "";
-              return <div key={item.key} className="activity routine">{item.text}<span className="ts">{time(item.ts)}</span></div>;
+              return (
+                <div key={item.key} className="activity routine">
+                  <span className="tick"><Icon name="routine" size={15} /></span>{item.text}<span className="ts">{time(item.ts)}</span>
+                </div>
+              );
             }
             const failed = !mine && /^failed\b/i.test(item.text);
             const head = !mine && (item.sender !== lastSender || item.ts - lastTs > GROUP_GAP);
@@ -242,7 +257,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
                 <div className="gutter">
                   {head && bot && (
                     <button className="crew-btn" title={`${bot.name}: profile`} aria-label={`${bot.name} profile`} onClick={() => onBot(bot.id)}>
-                      <Avatar bot={bot} move={moves[item.sender]} size={38} />
+                      <Avatar bot={bot} move={moves[item.sender]} size={40} />
                     </button>
                   )}
                 </div>
@@ -250,8 +265,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
                   {head && (
                     <div className="who">
                       <b>{bot?.name ?? item.sender}</b>
-                      <span className="role">{bot?.role}</span>
-                      <span className="ts">{time(item.ts)}</span>
+                      <span className="meta">{[bot?.role, time(item.ts)].filter(Boolean).join(" · ")}</span>
                     </div>
                   )}
                   <div className="bubble">
@@ -268,8 +282,8 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
           if (item.kind === "allowed") {
             return (
               <div key={item.key} className="activity allowed">
-                <span className="mark"><Icon name="ok" size={14} /></span>
-                <span><b style={{ color: botColor(item.bot) }}>{bots[item.bot]?.name ?? item.bot}</b> went ahead: {item.title} (you always allow this)</span>
+                <span className="tick"><Icon name="ok" size={15} /></span>
+                <span><b>{bots[item.bot]?.name ?? item.bot}</b> went ahead: {item.title} (you always allow this)</span>
                 <a href="#/settings/allowed">change</a>
               </div>
             );
@@ -287,6 +301,7 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
       {behind && <button className="new-pill" onClick={() => toEnd(true)}>New messages <Icon name="down" size={14} /></button>}
 
       {error && <div className="error">{error}</div>}
+      <footer className="composer-wrap">
       <form className="composer" onSubmit={send}>
         <textarea
           ref={box}
@@ -302,9 +317,10 @@ export function ChatView({ chat, bots, items, typing, moves, look, draft, setDra
             }
           }}
         />
-        <button className="primary send" disabled={!draft.trim()} aria-label="Send">Send <Icon name="send" size={16} /></button>
+        <button className="primary send" disabled={!draft.trim()} aria-label="Send"><Icon name="send" size={22} /></button>
       </form>
       <div className="composer-hint">@name asks one bot · paste a key to save it · “stop” stops everything</div>
+      </footer>
     </section>
   );
 }

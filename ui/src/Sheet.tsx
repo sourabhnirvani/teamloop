@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Icon } from "./Icon";
+import "./hoodie-views.css";
 
 // One overlay for every dialog and panel: a real dialog (role, focus kept inside, focus given back on close),
 // closed with the close button, Esc or a click outside. Full screen with a back button on phones.
@@ -38,12 +39,12 @@ export function Sheet({ title, onClose, children, wide = false, className = "" }
 
   return (
     <div className="overlay" onClick={onClose}>
-      <div ref={box} className={`sheet ${wide ? "wide" : ""} ${className}`} role="dialog" aria-modal="true" aria-label={title}
+      <div ref={box} className={`sheet hv-sheet ${wide ? "wide" : ""} ${className}`} role="dialog" aria-modal="true" aria-label={title}
            onClick={(e) => e.stopPropagation()}>
         <header className="sheet-head">
           <button className="icon sheet-back" onClick={onClose} aria-label="Back"><Icon name="back" size={24} /></button>
           <b>{title}</b>
-          <button className="icon sheet-close" onClick={onClose} aria-label="Close"><Icon name="no" size={20} /></button>
+          <button className="icon sheet-close hv-close" onClick={onClose} aria-label="Close"><Icon name="no" size={20} /></button>
         </header>
         <div className="sheet-body">{children}</div>
       </div>

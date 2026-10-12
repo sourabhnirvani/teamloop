@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type Bot, type Chat } from "./api";
 import { Avatar, botColor, SIGNS, toolSign, type Move } from "./Avatar";
-import { BoardView } from "./BoardView";
+import { BoardView, latestRun } from "./BoardView";
 import { NewBotSheet } from "./BotBuilder";
 import { BotProfile } from "./BotProfile";
 import { Icon, type IconName } from "./Icon";
@@ -109,6 +109,16 @@ export default function App() {
   const working = useMemo(() => [...new Set(Object.values(typing).flat())], [typing]);
   const asking = useMemo(() => [...new Set(Object.values(items).flat()
     .filter((i) => i.kind === "approval" && !i.status).map((i) => (i as { bot: string }).bot))], [items]);
+  const titles = useMemo(() => Object.fromEntries(chats.map((c) => [c.id, c.title])), [chats]);
+  // the Crew Room's "today's job" card: the newest run of crew steps, only if it started today and its chat has a title
+  const todayJob = useMemo(() => {
+    const run = latestRun(tasks);
+    if (!run || !titles[run.chat] || new Date(run.steps[0].created * 1000).toDateString() !== new Date().toDateString()) return null;
+    return { title: titles[run.chat], done: run.steps.filter((t) => t.status === "done").length, total: run.steps.length };
+  }, [tasks, titles]);
+  // "X needs your OK" opens the chat where that bot's card is waiting
+  const askChat = (bot: string) => Object.entries(items).find(([, list]) =>
+    list.some((i) => i.kind === "approval" && !i.status && (i as { bot: string }).bot === bot))?.[0] ?? `dm-${bot}`;
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
 
   // You typing in a chat: the bot you're talking to perks up and listens (2.5 s after your last key it relaxes).
@@ -144,15 +154,10 @@ export default function App() {
   };
 
   const row = (c: Chat) => {
-    const first = bots[c.members[0]];
     const p = preview(c);
     return (
-      <button key={c.id} className={`chat-row ${c.id === chatId ? "on" : ""}`} onClick={() => openChat(c.id)}>
-        {c.members.length === 1 ? (
-          <Avatar bot={first} {...look(first?.id ?? "")} size={40} />
-        ) : (
-          <span className="group-badge">{c.members.slice(0, 4).map((m) => <Avatar key={m} bot={bots[m]} size={21} />)}</span>
-        )}
+      <button key={c.id} className={`chat-row group ${c.id === chatId ? "on" : ""}`} onClick={() => openChat(c.id)}>
+        <Icon name="chat" size={18} />
         <span className="row-text">
           <span className="row-top"><b>{c.title}</b><time>{ago(c.last?.ts)}</time></span>
           <small className={p.busy ? "busy" : ""}>{p.text}</small>
@@ -162,34 +167,58 @@ export default function App() {
     );
   };
 
+  // a crew row: the bot, its role and whether it's free, working, or waiting for your OK
+  const crewRow = (c: Chat) => {
+    const bot = bots[c.members[0]];
+    const id = bot?.id ?? "";
+    const waits = asking.includes(id);
+    const state = waits ? "" : working.includes(id) ? "working…" : "free";
+    return (
+      <button key={c.id} className={`chat-row ${c.id === chatId ? "on" : ""}`} onClick={() => openChat(c.id)}>
+        <Avatar bot={bot} {...look(id)} size={34} />
+        <span className="row-text">
+          <span className="row-top"><b>{c.title}</b></span>
+          <small className={state === "working…" ? "busy" : ""}>{[bot?.role, state].filter(Boolean).join(" · ")}</small>
+        </span>
+        {waits && <span className="ok-pill">needs your OK</span>}
+        {(unread[c.id] ?? 0) > 0 && <span className="badge">{unread[c.id]}</span>}
+      </button>
+    );
+  };
+
   const chatList = (
     <aside className="sidebar">
-      <div className="brand"><img src="/logo.svg" alt="" /><span><b>TeamLoop</b><small>your AI crew</small></span></div>
+      <div className="brand"><img src="/logo.svg" alt="" width={36} height={36} /><span><b>TeamLoop</b><small>your AI crew</small></span></div>
       {lead && leadChat && (
         <button className={`hero ${leadChat.id === chatId ? "on" : ""}`} style={{ "--bot": botColor("s") } as React.CSSProperties}
                 onClick={() => openChat(leadChat.id)}>
-          <img className="hero-pose" src="/mascot/think.webp" alt="" width={110} height={110} />
-          <span className="row-text">
-            <span className="row-top"><b>{lead.name} <em>LEAD</em></b><time>{ago(leadChat.last?.ts)}</time></span>
+          <img className="hero-pose" src="/mascot/think.webp" alt="" width={112} height={150} />
+          <span className="hero-text">
+            <span className="hero-name"><b>{lead.name}</b><em>LEAD</em></span>
             <small className={preview(leadChat).busy ? "busy" : ""}>{preview(leadChat).text || "Plans jobs and hands steps to the crew"}</small>
           </span>
           {(unread[leadChat.id] ?? 0) > 0 && <span className="badge">{unread[leadChat.id]}</span>}
         </button>
       )}
-      <div className="section">Group chats</div>
-      {groups.map(row)}
-      <button className="new-group" onClick={() => openOverlay("new", "group")}><Icon name="add" /> New group</button>
-      <div className="section">Your crew</div>
-      {dms.map(row)}
-      <button className="new-group" onClick={() => openOverlay("new", "bot")}><Icon name="add" /> Build a bot</button>
+      <div className="side-group">
+        <div className="section">Group chats</div>
+        {groups.map(row)}
+        <button className="new-group" onClick={() => openOverlay("new", "group")}><Icon name="add" /> New group</button>
+      </div>
+      <div className="side-group crew-list">
+        <div className="section">Your crew</div>
+        {dms.map(crewRow)}
+        <button className="new-group" onClick={() => openOverlay("new", "bot")}><Icon name="add" /> Build a bot</button>
+      </div>
     </aside>
   );
 
   let main: React.ReactNode;
   if (route.tab === "crew") {
-    main = <CrewView bots={crewList} moves={moves} look={look} working={working} asking={asking} handoff={handoff} onBot={(id) => openOverlay("bot", id)} />;
+    main = <CrewView bots={crewList} moves={moves} look={look} working={working} asking={asking} handoff={handoff} onBot={(id) => openOverlay("bot", id)}
+      job={todayJob} onAsk={(id) => go(href("chats", askChat(id)))} />;
   } else if (route.tab === "board") {
-    main = <BoardView tasks={tasks} bots={bots} look={look} onChat={(id) => go(href("chats", id))} />;
+    main = <BoardView tasks={tasks} bots={bots} look={look} titles={titles} onChat={(id) => go(href("chats", id))} />;
   } else if (route.tab === "jobs") {
     main = <JobsView chats={chats} onChat={(id) => go(href("chats", id))} />;
   } else if (route.tab === "settings") {
@@ -199,7 +228,7 @@ export default function App() {
       <ChatView key={chat.id} chat={chat} bots={bots} items={items[chat.id] ?? []} typing={typing[chat.id] ?? []} moves={moves} look={look}
                 draft={drafts[chat.id] ?? ""} setDraft={(t) => { setDrafts((d) => ({ ...d, [chat.id]: t })); onTyping(chat, t); }}
                 onBack={() => go(href("chats"))} onBot={(id) => openOverlay("bot", id)}
-                onAnswered={(id, status) => crew.markAnswered(chat.id, id, status)} />
+                onAnswered={(id, status) => crew.markAnswered(chat.id, id, status)} live={live} />
     );
   } else if (!narrow) {
     main = <section className="chat loading">{live ? (ready ? "Pick a chat." : "Loading…") : "Connecting to TeamLoop on this laptop…"}</section>;
@@ -212,11 +241,11 @@ export default function App() {
   return (
     <div className={`app tab-${route.tab} ${inChat ? "in-chat" : ""}`}>
       <nav className="rail" aria-label="TeamLoop">
-        <img className="logo" src="/logo.svg" alt="" />
+        <img className="logo" src="/logo.svg" alt="" width={44} height={44} />
         {TABS.map((t) => (
           <button key={t.tab} className={`rail-btn ${route.tab === t.tab ? "on" : ""}`} aria-current={route.tab === t.tab ? "page" : undefined}
-                  onClick={() => go(href(t.tab, t.tab === "chats" ? chatId : null))}>
-            <span aria-hidden="true"><Icon name={t.icon} size={22} /></span><small>{t.label}</small>
+                  title={t.label} onClick={() => go(href(t.tab, t.tab === "chats" ? chatId : null))}>
+            <span aria-hidden="true"><Icon name={t.icon} size={24} /></span><small>{t.label}</small>
             {t.tab === "chats" && totalUnread > 0 && <i className="dot-badge">{totalUnread}</i>}
           </button>
         ))}
@@ -238,17 +267,15 @@ export default function App() {
         {main}
       </main>
 
-      {!inChat && (
-        <nav className="tabbar" aria-label="TeamLoop">
-          {TABS.map((t) => (
-            <button key={t.tab} className={route.tab === t.tab ? "on" : ""} aria-current={route.tab === t.tab ? "page" : undefined}
-                    onClick={() => go(href(t.tab))}>
-              <span aria-hidden="true"><Icon name={t.icon} size={22} /></span><small>{t.label}</small>
-              {t.tab === "chats" && totalUnread > 0 && <i className="dot-badge">{totalUnread}</i>}
-            </button>
-          ))}
-        </nav>
-      )}
+      <nav className="tabbar" aria-label="TeamLoop">
+        {TABS.map((t) => (
+          <button key={t.tab} className={route.tab === t.tab ? "on" : ""} aria-current={route.tab === t.tab ? "page" : undefined}
+                  onClick={() => go(href(t.tab))}>
+            <span aria-hidden="true"><Icon name={t.icon} size={22} /></span><small>{t.label}</small>
+            {t.tab === "chats" && totalUnread > 0 && <i className="dot-badge">{totalUnread}</i>}
+          </button>
+        ))}
+      </nav>
 
       {profileBot && (
         <BotProfile bot={profileBot} bots={bots} chats={chats} typing={typing} look={look} onClose={closeOverlay}

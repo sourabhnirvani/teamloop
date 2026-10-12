@@ -9,6 +9,7 @@ import { OperatorPage } from "./settings/OperatorPage";
 import { SecurityPage } from "./settings/SecurityPage";
 import { go, href } from "./router";
 import { applyUpdate, askToNotify, runningVersion, updateAvailable } from "./update";
+import "./hoodie-views.css";
 
 // Settings: a home page of cards (each with a live status line) that open their own page, on laptop and phone.
 
@@ -71,47 +72,49 @@ export function SettingsView({ page, bots, theme, setTheme }: {
     }
   }
 
-  if (!page || !PAGES.includes(page)) {
-    const card = (p: Page, icon: IconName, title: string, status: string) => (
-      <button className="set-card" onClick={() => go(href("settings", p))}>
-        <span className="set-icon"><Icon name={icon} size={22} /></span>
-        <span className="set-text"><b>{title}</b><small>{status}</small></span>
-        <span className="chev"><Icon name="next" size={20} /></span>
-      </button>
-    );
-    return (
-      <div className="page settings-page">
-        <h1>Settings</h1>
-        <h2>AI</h2>
-        {card("keys", "key", "API keys", keyCount ? `${keyCount} key${keyCount > 1 ? "s" : ""} for ${plural(keys.filter((k) => k.keys.length).length, "service")} · locked in the vault` : "No keys yet: paste a free Gemini or Groq key")}
-        {card("models", "model", "AI models", `${ready} free provider${ready === 1 ? "" : "s"} ready · crew uses ${labelOf(models, settings?.crew_model)}`)}
-        {card("usage", "usage", "Usage & Save tokens", `Save tokens ${settings?.save_tokens ? "ON" : "OFF"} · ${totals.req} requests today · $0`)}
-        <h2>Crew</h2>
-        {card("routines", "routine", "Routines", routines.length ? `${routines.length} scheduled` : "None yet: “every Monday at 9am, …”")}
-        <h2>Devices</h2>
-        {card("phone", "phone", "Your phone", `${onLaptop ? (phones ? `${plural(phones.length, "phone")} paired` : "Pair a phone with a QR code") : "This phone is paired"} · ${hub?.connected ? "fixed link on" : hub?.configured ? "fixed link connecting" : "fixed link not set up"}`)}
-        {card("telegram", "plane", "Telegram & tracing", links ? `Telegram ${links.telegram.on ? `on as ${links.telegram.bot_name}` : "off"} · neatlogs tracing ${links.tracing.on ? "on" : "off"}` : "Talk to the crew from Telegram")}
-        {card("chrome", "globe", "Crew's Chrome", "Sign in to sites once; bots read and draft, you send")}
-        {card("operator", "mouse", "Operator safety", "Pauses while you use the mouse or keyboard · Ctrl+Alt+Q stops everything")}
-        <h2>Safety</h2>
-        {card("allowed", "shield", "Always-allowed actions", rules.length ? `${plural(rules.length, "rule")} · the crew goes ahead without asking` : "None: every risky action asks first")}
-        {card("security", "lock", "Key security", security ? `${plural(security.locked, "key")} locked · ${security.blocked.length ? `${plural(security.blocked.length, "call")} blocked` : "nothing blocked"}` : "Keys stay in the vault, never in tools or programs")}
-        <h2>App</h2>
-        {card("appearance", "look", "Appearance & updates", `${theme === "dark" ? "Dark" : "Light"} · version ${version}`)}
-      </div>
-    );
-  }
+  // the home list; on wide screens it stays on the left while a page is open on the right
+  const card = (p: Page, icon: IconName, title: string, status: string) => (
+    <button className={`set-card hv-set ${page === p ? "on" : ""}`} aria-current={page === p ? "page" : undefined} onClick={() => go(href("settings", p))}>
+      <span className="set-icon"><Icon name={icon} size={22} /></span>
+      <span className="set-text"><b>{title}</b><small>{status}</small></span>
+      <span className="chev"><Icon name="next" size={18} /></span>
+    </button>
+  );
+  const home = (
+    <section className="hv-set-list">
+      <h1>Settings</h1>
+      <h2>AI</h2>
+      {card("keys", "key", "API keys", keyCount ? `${keyCount} key${keyCount > 1 ? "s" : ""} for ${plural(keys.filter((k) => k.keys.length).length, "service")} · locked in the vault` : "No keys yet: paste a free Gemini or Groq key")}
+      {card("models", "model", "AI models", `${ready} free provider${ready === 1 ? "" : "s"} ready · crew uses ${labelOf(models, settings?.crew_model)}`)}
+      {card("usage", "usage", "Usage & Save tokens", `Save tokens ${settings?.save_tokens ? "ON" : "OFF"} · ${totals.req} requests today · $0`)}
+      <h2>Crew</h2>
+      {card("routines", "routine", "Routines", routines.length ? `${routines.length} scheduled` : "None yet: “every Monday at 9am, …”")}
+      <h2>Devices</h2>
+      {card("phone", "phone", "Your phone", `${onLaptop ? (phones ? `${plural(phones.length, "phone")} paired` : "Pair a phone with a QR code") : "This phone is paired"} · ${hub?.connected ? "fixed link on" : hub?.configured ? "fixed link connecting" : "fixed link not set up"}`)}
+      {card("telegram", "plane", "Telegram & tracing", links ? `Telegram ${links.telegram.on ? `on as ${links.telegram.bot_name}` : "off"} · neatlogs tracing ${links.tracing.on ? "on" : "off"}` : "Talk to the crew from Telegram")}
+      {card("chrome", "globe", "Crew's Chrome", "Sign in to sites once; bots read and draft, you send")}
+      {card("operator", "mouse", "Operator safety", "Pauses while you use the mouse or keyboard · Ctrl+Alt+Q stops everything")}
+      <h2>Safety</h2>
+      {card("allowed", "shield", "Always-allowed actions", rules.length ? `${plural(rules.length, "rule")} · the crew goes ahead without asking` : "None: every risky action asks first")}
+      {card("security", "lock", "Key security", security ? `${plural(security.locked, "key")} locked · ${security.blocked.length ? `${plural(security.blocked.length, "call")} blocked` : "nothing blocked"}` : "Keys stay in the vault, never in tools or programs")}
+      <h2>App</h2>
+      {card("appearance", "look", "Appearance & updates", `${theme === "dark" ? "Dark" : "Light"} · version ${version}`)}
+    </section>
+  );
+  if (!page || !PAGES.includes(page)) return <div className="page settings-page hv-settings">{home}</div>;
 
   const header = (title: string, icon: IconName) => (
-    <div className="page-head">
-      <button className="icon" onClick={() => go(href("settings"))} aria-label="Back to Settings"><Icon name="back" size={24} /></button>
-      <span className="head-icon"><Icon name={icon} size={20} /></span>
+    <div className="page-head hv-head">
+      <button className="icon hv-back" onClick={() => go(href("settings"))} aria-label="Back to Settings"><Icon name="back" size={24} /></button>
+      <span className="head-icon"><Icon name={icon} size={24} /></span>
       <h1>{title}</h1>
     </div>
   );
 
   return (
-    <div className="page settings-page">
+    <div className="page settings-page hv-settings has-page">
+      {home}
+      <section className="hv-panel">
       {page === "keys" && <KeysPage header={header("API keys", "key")} keys={keys} onSaved={(text) => { setNote(text); refresh(); }} note={note} />}
       {page === "models" && settings && (
         <ModelsPage header={header("AI models", "model")} models={models} settings={settings} bots={bots} save={save} note={note} setNote={setNote} refresh={refresh} />
@@ -222,6 +225,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
           {note && <div className="note">{note}</div>}
         </>
       )}
+      </section>
     </div>
   );
 }
@@ -329,7 +333,7 @@ function HubBox({ hub, setHub }: { hub: HubStatus | null; setHub: (h: HubStatus)
   }, [running, setHub]);
   if (!hub) return null;
   return (
-    <div className="hub-box">
+    <div className="hub-box hv-hub">
       <div className="switch-row">
         <span>
           <b>Fixed phone link {hub.connected ? <>· on <Icon name="ok" size={15} className="ok-mark" /></> : hub.configured ? "· connecting…" : ""}</b>
@@ -373,34 +377,47 @@ function PhonePage({ header, phones, refresh, hub, setHub }: {
       </>
     );
   }
+  const pair = async () => {
+    setNote("Opening a secure link to this laptop…");
+    try { setPairing(await api.pairPhone()); setNote(""); } catch (e) { setNote((e as Error).message); }
+  };
   return (
     <>
       {header}
-      <HubBox hub={hub} setHub={setHub} />
       <p className="lead">Use TeamLoop on your phone while this laptop is on. Press Pair, scan the code with the phone camera (or open the link and type the code), then “Add to Home screen”.{hub?.connected ? " The code uses the fixed link." : ""}</p>
-      <button className="primary" onClick={async () => {
-        setNote("Opening a secure link to this laptop…");
-        try { setPairing(await api.pairPhone()); setNote(""); } catch (e) { setNote((e as Error).message); }
-      }}>{pairing ? "New code" : "Pair a phone"}</button>
+      <div className="hv-pair">
+        {pairing ? (
+          <>
+            {/* the QR is an SVG made by our own server */}
+            <div className="qr" dangerouslySetInnerHTML={{ __html: pairing.qr }} />
+            <div className="hv-pair-text">
+              <span className="hv-k">Or type this code</span>
+              <b className="hv-code">{pairing.code}</b>
+              <span className="hv-meta">Works once, until {new Date(pairing.expires * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.</span>
+              <a className="hv-link" href={pairing.link} target="_blank" rel="noreferrer">{pairing.link.split("/pair")[0]}</a>
+              <button className="hv-outline" onClick={pair}>New code</button>
+            </div>
+          </>
+        ) : (
+          <div className="hv-pair-text">
+            <button className="primary hv-solid" onClick={pair}>Pair a phone</button>
+          </div>
+        )}
+        <img className="hv-wave" src="/mascot/wave.webp" alt="S waving" width={96} height={128} />
+      </div>
       {note && <div className="note">{note}</div>}
-      {pairing && (
-        <div className="pairing">
-          {/* the QR is an SVG made by our own server */}
-          <div className="qr" dangerouslySetInnerHTML={{ __html: pairing.qr }} />
-          <p><b className="code">{pairing.code}</b><br />Works once, until {new Date(pairing.expires * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.<br />
-            <a href={pairing.link} target="_blank" rel="noreferrer">{pairing.link.split("/pair")[0]}</a></p>
-        </div>
-      )}
-      <ul className="list">
-        {(phones ?? []).length === 0 && <li><span>No phones paired yet.</span></li>}
+      <div className="hv-phones">
+        <span className="hv-k">Paired phones</span>
+        {(phones ?? []).length === 0 && <p className="hv-meta">No phones paired yet.</p>}
         {(phones ?? []).map((p) => (
-          <li key={p.id}>
-            <b>{p.name}</b>
-            <span>paired {new Date(p.paired * 1000).toLocaleDateString()} · last seen {new Date(p.last_seen * 1000).toLocaleString()}</span>
-            <button className="deny" onClick={() => window.confirm(`Remove ${p.name}? It will have to pair again.`) && api.removePhone(p.id).then(refresh)}>Remove</button>
-          </li>
+          <div key={p.id} className="hv-phone">
+            <Icon name="phone" size={22} />
+            <span><b>{p.name}</b><span className="hv-meta">paired {new Date(p.paired * 1000).toLocaleDateString()} · last seen {new Date(p.last_seen * 1000).toLocaleString()}</span></span>
+            <button className="deny hv-remove" onClick={() => window.confirm(`Remove ${p.name}? It will have to pair again.`) && api.removePhone(p.id).then(refresh)}>Remove</button>
+          </div>
         ))}
-      </ul>
+      </div>
+      <HubBox hub={hub} setHub={setHub} />
     </>
   );
 }
