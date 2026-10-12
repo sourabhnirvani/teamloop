@@ -52,7 +52,8 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 ## Building in public (15%)
 | Claim | Evidence |
 |---|---|
-| ⚠ #neatHack posts during the event | drafts with measured results: `evidence/posts.md`; add the post links here once posted |
+| #neatHack posts during the event | 1. Crew 4/4 vs one bot 0/4 (Mon 12 Oct 09:49 IST): https://x.com/Boopathiraja/status/2109499059828675014 |
+| ⚠ more posts | drafts with measured results: `evidence/posts.md`, images in `evidence/posts/` |
 | Small commits by both people across the event, with evidence for each piece | `git log`, this folder |
 | Two coding agents working as teammates over ccbridge (requests, reviews, acks) | `HANDOFF.md`, `BRIDGE.md` |
 
