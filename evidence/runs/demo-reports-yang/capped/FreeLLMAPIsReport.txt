@@ -1,0 +1,19 @@
+Top 3 Free LLM APIs for Students
+
+1. Google Gemini (Flash models)
+   - Free tier via AI Studio, no credit‑card needed.
+   - Limits: 10 RPM, 250K TPM, 1,500 RPD for Gemini 3 Flash (15 RPM for Flash‑Lite).
+   - Student‑friendly: generous context window, easy sign‑up.
+   - Source: https://pecollective.com/tools/gemini-free-tier-guide/
+
+2. Groq
+   - Hosts open‑weight models like gpt‑oss‑120b, Qwen‑3.8‑27b.
+   - Limits: 30 RPM, 1K RPD, 8K TPM (200K TPD) per organization.
+   - Student‑friendly: instant signup, no card required.
+   - Source: https://console.groq.com/docs/rate-limits
+
+3. Hugging Face Inference API
+   - Free accounts can call any public model via Hub router.
+   - Limits: 1,000 resolver requests, 5,000 hub API calls, 200 page requests per 5‑minute window.
+   - Student‑friendly: no credit‑card, good for low‑volume testing.
+   - Source: https://blog.picassoia.com/hugging-face-inference-api-free-tier-limits-and-pricing

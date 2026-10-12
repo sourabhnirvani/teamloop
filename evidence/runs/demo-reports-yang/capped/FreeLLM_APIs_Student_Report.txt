@@ -1,0 +1,10 @@
+Top 3 Free LLM APIs for Students
+
+1. AnyRouter Free – An OpenAI‑compatible endpoint that provides 1,000 requests per day with no credit‑card required. It routes to any free‑tier provider (e.g., Google Gemini) and works like paid plans, so code stays compatible.
+   Source: https://anyrouter.dev/blog/free-llm-api-for-students
+
+2. Mistral Free (Experiment) plan – Offers free API keys for Mistral’s base models, limited to a modest number of messages/web searches. No card needed, good for simple student projects.
+   Source: https://costbench.com/software/ai-chatbots/mistral/free-plan/
+
+3. Google AI Studio Gemini free tier – Provides free access to Gemini 3 Flash and Flash‑Lite with generous daily quotas (≈1,500 requests/day) and no billing required.
+   Source: https://ai.google.dev/gemini-api/docs/rate-limits

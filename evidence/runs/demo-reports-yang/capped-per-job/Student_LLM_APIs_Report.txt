@@ -1,0 +1,7 @@
+Top 3 Free LLM APIs for Students
+
+Google Gemini (Free Tier): Offers up to 2 M tokens per month with no credit‑card requirement; features include multimodal input, code generation, and real‑time translation. Students can join the Google Cloud for Education program for extra credits.
+
+Groq (Free Tier): Provides 100 K tokens monthly on the Llama‑3‑8B‑instruct model with instant low‑latency inference; sign‑up requires only an email and API key. Groq offers an Education tier granting additional quota for verified academic projects.
+
+Mistral (Free Tier & Student Discount): Free tier supplies 200 K tokens per month on Mistral‑7B‑Instruct; key features are instruction‑following and lightweight deployment. Students receive a 25% discount on paid plans after verifying enrollment via the Mistral Academic Program.

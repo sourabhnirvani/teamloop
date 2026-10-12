@@ -1,0 +1,3 @@
+run 1    crew: INCOMPLETE (routine) 99.2s, 46 requests, 137631 tokens, 30 steps, 2 failed, bots desk,s,scout,web,writer; tokens by bot {'s': 22698, 'scout': 61071, 'writer': 6192, 'web': 40507, 'desk': 7163}
+run 2    crew: SUCCESS (all parts done) 17.5s, 12 requests, 23988 tokens, 9 steps, 0 failed, bots desk,s,scout,writer; tokens by bot {'s': 9125, 'scout': 8122, 'writer': 2477, 'desk': 4264}
+run 3    crew: INCOMPLETE (saved_with_links, opened, routine) 103.1s, 61 requests, 158184 tokens, 36 steps, 0 failed, bots s,scout,web,writer; tokens by bot {'s': 21739, 'scout': 58124, 'web': 76069, 'writer': 2252}

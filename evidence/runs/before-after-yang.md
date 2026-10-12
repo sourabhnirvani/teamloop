@@ -70,3 +70,22 @@ several parts that need different skills, and costs extra when it doesn't.**
 - **Stale Groq models:** `providers.py` lists the retired Llamas. Suggested list:
   `openai/gpt-oss-120b, qwen/qwen3.8-27b, openai/gpt-oss-20b`.
 - **press_keys "page down" crash:** `uia.keys_to_sendkeys` produced `{PAGE}` / `{PGDOWN}`, which pywinauto rejects.
+
+## Capping Scout's research: tried, measured, half kept (Mon ~08:30 IST, crew only, 3 runs each, Groq defaults)
+| Variant | Complete | Tokens per run | What happened |
+|---|---|---|---|
+| No cap (fair runs A and B above) | 4/4 | 64k, 29k, 135k, 26k | one run had 20 Scout searches in a single turn |
+| **Per turn:** 5 `web_search` + 3 `fetch_page` per Scout turn (5d31719) | **3/3** | 151k, 61k, 60k | S sent Scout back up to 3 times, so 15 searches + 9 reads in run 1 |
+| Per job: the same caps across all Scout turns (db29278) | **1/3** | 138k, 24k, 158k | blocked Scout, so S rerouted the research to **Web** (browser tools: 40k and 76k tokens), and two runs ran out of steps before the reminder and the open |
+
+**Straight reading:**
+- **Per job made things worse.** It moved the research to a more expensive bot and lowered success, so it's
+  **reverted**.
+- **Per turn stays.** It stops a single runaway turn and kept success at 3/3.
+- **No variant clearly cut tokens.** With 3 runs each, the noise between runs (24k-158k for the same goal) is larger
+  than any cap effect.
+- **The real lever is upstream.** S re-delegating research it already has costs more than any one turn. A better fix
+  is S checking what it has before asking again; not attempted before the freeze.
+
+Data: `before-after-capped-per-turn-yang.*`, `before-after-capped-per-job-yang.*`; reports in
+`demo-reports-yang/capped/` and `capped-per-job/`.

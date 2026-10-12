@@ -1,0 +1,5 @@
+Top 3 Free LLM APIs for Students
+
+1. Google Gemini (Free tier) – Offers free input + output tokens on Gemini Flash models and Gemini 2.5 Pro with per‑model rate limits; no credit‑card needed. Source: https://ai.google.dev/gemini
+2. Groq – Free plan gives OpenAI‑compatible access to open models (e.g., gpt‑oss‑120b) with ~30 requests / minute and 1 K requests / day limits; sign‑up requires no card. Source: https://groq.com
+3. Mistral – Free tier provides $10 / month in API credits for any model, plus Studio testing; usage is limited to a certain number of messages and coding sessions. Source: https://mistral.ai

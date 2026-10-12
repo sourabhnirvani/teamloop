@@ -1,0 +1,18 @@
+Top 3 Free LLM APIs for Students (October 2026)
+
+1. OpenRouter
+- Description: Aggregates multiple open models (e.g., Llama 3, Mistral) with a unified API. Good for experimentation.
+- Free tier limits: 20 requests per minute, up to 1,000 requests per day, 500,000 tokens per month. No credit card required.
+- Documentation: https://openrouter.ai/docs
+
+2. Google Gemini API (via Google AI Studio)
+- Description: Access to Gemini 1.5 Flash and Gemini 1.5 Pro. Strong for academic tasks.
+- Free tier limits: 250,000 tokens per month, 10 requests per minute, up to 1,500 requests per day.
+- Documentation: https://ai.google.dev/gemini-api/docs
+
+3. Groq
+- Description: High‑throughput inference on Nvidia GPUs, models like Llama 3.1, Mixtral. Simple pricing.
+- Free tier limits: 30 requests per minute, 1,000 requests per day, 6,000 tokens per minute.
+- Documentation: https://groq.com/docs
+
+All three APIs provide generous free quotas suitable for student projects and require an API key for use.
