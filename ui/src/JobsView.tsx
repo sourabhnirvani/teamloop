@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Chat, type Job } from "./api";
+import "./hoodie-views.css";
 
 // Jobs: commands Desk left running in the background (servers, long builds), with their latest output.
 
@@ -29,7 +30,7 @@ export function JobsView({ chats, onChat }: { chats: Chat[]; onChat: (id: string
   const chatTitle = (id: string) => chats.find((c) => c.id === id)?.title ?? id;
 
   return (
-    <div className="page jobs-page">
+    <div className="page jobs-page hv-jobs">
       <h1>Jobs</h1>
       <p className="lead">Commands Desk runs in the background (servers, watchers, long builds). Their output is saved; stop any of them here.</p>
       {error && <div className="error">{error}</div>}

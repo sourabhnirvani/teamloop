@@ -1,12 +1,12 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { Bot } from "./api";
 import { Icon } from "./Icon";
 import { AccessoryBack, AccessoryFront, BodyShape, FRAMES, INK, type Look } from "./Look";
 import "./hoodie-crew.css";
 
-// The crew all wear Agent S's hood. S is the real mascot (drawn frames in /mascot); the others are the same hood in
-// their own colour, with eyes that blink and a mouth that shows what the bot is doing. A small paper sign above the
-// head says what it's up to: listening, thinking, a tool, talking...
+// The crew are drawn mascots: S's frames are in /mascot, each teammate's recoloured frames in /mascot/<id>. Bots you
+// build wear Agent S's hood in their own colour, with eyes that blink and a mouth that shows what the bot is doing.
+// A small paper sign above the head says what it's up to: listening, thinking, a tool, talking...
 export type Move = "idle" | "listen" | "think" | "talk" | "ask" | "cheer" | "oops" | "sleep";
 
 export const COLORS: Record<string, string> = {
@@ -27,11 +27,12 @@ export function colorOf(bot?: Bot | null): string {
   return c && c !== "rainbow" ? c : botColor(bot?.id ?? "?");
 }
 
-// S's drawn frames for each move
+// the drawn frame for each move (the same names for S and every teammate)
 export const S_FRAMES: Record<Move, string> = {
   idle: "idle", listen: "listen", think: "think", talk: "talk", ask: "click", cheer: "cheer", oops: "oops", sleep: "sleep",
 };
-export const mascotSrc = (frame: string) => `${import.meta.env.BASE_URL}mascot/${frame}.webp`;
+// S's frames sit in /mascot; a teammate's recoloured ones in /mascot/<id>
+export const mascotSrc = (frame: string, id = "s") => `${import.meta.env.BASE_URL}mascot/${id === "s" ? "" : `${id}/`}${frame}.webp`;
 
 function Eyes({ x1, x2, y, r, mood, ink = INK, style = "dot" }: { x1: number; x2: number; y: number; r: number; mood: Move; ink?: string; style?: string }) {
   const w = r * 0.5;
@@ -90,15 +91,23 @@ function Mouth({ x, y, mood, ink = INK }: { x: number; y: number; mood: Move; in
 // `personality` (a bot people built, or a built-in given another one) changes how it idles; see .pers-* in index.css
 export function Mascot({ id, move = "idle", size = 36, title, look, personality }: { id: string; move?: Move; size?: number; title?: string; look?: Look | null; personality?: string | null }) {
   const uid = useId().replace(/:/g, "");
+  const [missing, setMissing] = useState<string | null>(null); // a frame that failed to load: show the hood instead
   const cls = `mascot move-${move} p-${id in COLORS ? id : "custom"}${personality ? ` pers-${personality}` : ""}`;
-  if (id === "s") { // the real mascot: the full figure when it's big, the head in a circle when it's small
-    const src = mascotSrc(S_FRAMES[move] ?? "idle");
-    return size >= 96
-      ? <img className={`${cls} s-full`} src={src} width={size} height={size} alt={title ?? ""} draggable={false} />
-      : <span className={`${cls} s-head`} role="img" aria-label={title}
-              style={{ width: size, height: size, background: `#18171B url("${src}") 50% 9% / 172% auto no-repeat`, borderRadius: "50%" }} />;
-  }
   const built = look && Object.keys(look).length ? look : null;
+  const src = mascotSrc(S_FRAMES[move] ?? "idle", id);
+  // the crew are drawn mascots (a teammate you restyled wears its hood): the full figure when it's big, the head when small
+  if (id in COLORS && (id === "s" || !built) && missing !== src) {
+    const lost = () => setMissing(src);
+    return size >= 96
+      ? <img className={`${cls} s-full`} src={src} width={size} height={size} alt={title ?? ""} draggable={false} onError={lost} />
+      : (
+        <span className={`${cls} s-head`} role="img" aria-label={title}
+              style={{ width: size, height: size, borderRadius: "50%",
+                background: `${id === "s" ? "#18171B" : `color-mix(in srgb, ${COLORS[id]} 22%, #F6F1E8)`} url("${src}") 50% 34% / 150% auto no-repeat` }}>
+          <img src={src} alt="" hidden onError={lost} />
+        </span>
+      );
+  }
   const rainbow = built?.colour === "rainbow";
   const colour = built?.colour && !rainbow ? built.colour : botColor(id);
   const body = built?.body && FRAMES[built.body] ? built.body : "blob";
