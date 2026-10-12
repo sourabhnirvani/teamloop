@@ -63,7 +63,8 @@ Times are targets. Each block lists the screen, then the voice-over. **The exact
     break even in Oct 2028.
   - Bootstrapped (founders paid only from revenue), cash **never runs out** and the plan is profitable from **Aug 2027**.
   - The lever is how many users go Pro, not model costs.
-- **Honesty line:** if cfo.ai needed a card, say so (see the voice-over).
+- **Built in cfo.ai:** Yang's workspace (no card needed). cfo.ai's AI CFO modelled all four scenarios and matched the
+  script (`evidence/cfo/cfo-ai-plan.md`); show its "TeamLoop — Business plan" page.
 
 ## 2:45-3:00 Close
 - **Screen:** the Board with the job done; the evidence folder.

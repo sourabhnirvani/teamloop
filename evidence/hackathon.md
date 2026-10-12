@@ -26,7 +26,7 @@ One line per file: the claim, then where to see it. ⚠ marks items still missin
 | **Day 2: Sourabh's laptop**: 11 checkpoints, and 10 of that day's commits carry an `Entire-Checkpoint:` trailer (prompts stripped, no transcripts) | `evidence/entire/checkpoints-sourabh-day2.md` |
 | Not captured: Yang's day-2 work ran in the Claude desktop app, which Entire's Claude Code hook doesn't record. That laptop has no checkpoints after 11 Oct 01:51; its commits are still in `git log` with their dates | `git log --author=JrKrishh` |
 | Business plan: 24 months, four scenarios (pricing, costs, revenue, runway), computed from the cfo.ai brief with the real $0-per-user inference and hub costs; the rest is labelled as assumptions. Finding: as briefed, cash runs out in May 2027 (about $22.6k needed to break even in Oct 2028); bootstrapped, it never runs out and is profitable from Aug 2027 | `evidence/cfo/teamloop-plan.md` (+ 4 CSVs), `scripts/business_plan.py` |
-| ⚠ The same plan inside cfo.ai: its 14-day trial needs a card, and the team doesn't pay; checking Yang's workspace for access without one | `evidence/cfo/` |
+| **The same plan built inside cfo.ai** (Yang's workspace, no card needed): cfo.ai's AI CFO built the 24-month model and all 4 scenarios from the same inputs and reconciled every month. Base and pessimistic match our script exactly; optimistic differs by $1 of rounding; bootstrapped differs only by the founder-pay rule (both never run out of cash). Its finding: founder pay, not inference cost, decides the plan | `evidence/cfo/cfo-ai-plan.md`, `evidence/cfo/cfo-ai-plan-*.jpg` |
 
 ## The agent (30%)
 | Claim | Evidence |

@@ -14,7 +14,7 @@ This is for `evidence/video-script.md`: the same blocks and times, with the exac
    - `evidence/runs/before-after-yang.md`, the crew vs one bot table
    - `evidence/runs/evals-local-sourabh.md`, the before/after "Not done" pair
    - a terminal showing `entire checkpoint list` and `git log -1` with an `Entire-Checkpoint:` trailer
-   - `evidence/cfo/teamloop-plan.md`, the scenario table
+   - the cfo.ai page "TeamLoop — Business plan" (Yang's workspace), or `evidence/cfo/cfo-ai-plan-scenarios.jpg`
 5. Record at 1080p (OBS, or Win+Alt+R with the Xbox Game Bar). Mic test first.
 
 ---
@@ -65,7 +65,7 @@ Optional extra line while the demo trace is on screen (if time allows):
 [checkpoints-sourabh*.md, checkpoints-jrkrishh.md; Yang's day-2 commits have no checkpoints, so show day 1 or
 Sourabh's day 2]
 
-## 2:15–2:45 · cfo.ai (the plan's scenario table)
+## 2:15–2:45 · cfo.ai (the TeamLoop — Business plan page in cfo.ai, scenario tables)
 > TeamLoop costs zero dollars per user to run: free models with your own keys, and a phone hub on your own free
 > Cloudflare account. So we sell convenience: Pro at five dollars a month, and team seats.
 >
@@ -73,11 +73,8 @@ Sourabh's day 2]
 > 2027. Paid only from revenue, it never runs out and turns profitable in August 2027. What decides it is how many users
 > go Pro, not model costs.
 
-Say this line only if cfo.ai itself was used (Yang's workspace works without a card):
-> We built the plan in cfo.ai from these inputs.
-
-If cfo.ai needed a card, say this instead (honest, and it's in the submission too):
-> cfo.ai's trial needed a card, so we ran the same brief through our own model; the inputs are ready for cfo.ai.
+Then (cfo.ai's scenario table on screen, `cfo-ai-plan-scenarios.jpg` or the live page):
+> We built it in cfo.ai: its AI CFO modelled all four scenarios, checked every month, and matched our own numbers.
 
 [evidence/cfo/teamloop-plan.md: base case runs out 2027-05, about $22.6k to break even in 2028-10; bootstrapped never
 runs out, profitable from 2027-08]
