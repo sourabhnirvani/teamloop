@@ -123,5 +123,25 @@
       "desk[chat]: Typed “hello from the final pass” into Notepad."
     ],
     "cards": []
+  },
+  {
+    "row": "14 (history, after 649d929)",
+    "ok": false,
+    "what": "same repro in dm-desk with the old 'close without saving' in history",
+    "messages": [
+      "user[chat]: open notepad and type hello from the final pass",
+      "desk[chat]: I opened Notepad, typed “hello from the final pass”, clicked the close button and then tried to click “Don’t Save”. The click failed, and Notepad is now closed "
+    ],
+    "cards": []
+  },
+  {
+    "row": "14 (history, after e426655+91e9a28)",
+    "ok": true,
+    "what": "dm-desk with 'close without saving' in history: opens and types, and no close attempt (any card is denied)",
+    "messages": [
+      "user[chat]: open notepad and type hello from the final pass",
+      "desk[chat]: Typed “hello from the final pass” into Notepad."
+    ],
+    "cards": []
   }
 ]

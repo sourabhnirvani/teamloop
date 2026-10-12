@@ -52,3 +52,32 @@ per-monitor DPI.
   what the person's latest message asks; earlier messages are context, not tasks to redo."
 - **Run 4:** when one step is blocked (an unanswered card), S should still do the independent remaining steps (the
   reminder) before reporting.
+
+## After the second round of fixes (09:10-09:25 IST; app restarted on 915b5f3)
+New fixes, each with tests (suite 371 green):
+- `649d929`: RULES "Do only what the person's latest message asks". **This alone did not stop the replay:** a retest
+  still closed Notepad, see below.
+- **`e426655`, a safety hole found by that retest.**
+  - **Before:** the model replayed "close notepad without saving" through **`click_on`**. It clicked the title-bar Close,
+    then "Don't Save", with **no card**, because `click_risk` didn't treat Close / Don't Save as risky.
+  - **Now:** Close, Don't Save (curly quotes too), Do not save, Discard, Exit and Quit **ask first on every click path**
+    (`click_on`, `ui_act`, and the mouse via its UIA name or OCR label).
+  - Mouse cards can never be always-allowed.
+- `91e9a28`, a structural fix for the replay: earlier person messages reach the model as "(earlier message, already
+  handled) …", and only the newest is plain. A "try again" keeps the request it refers to.
+- `915b5f3`: LEAD_RULES "If one step is blocked, declined or unanswered, still do the other parts that don't depend on it".
+
+| Retest | Result | What came back |
+|---|---|---|
+| Row 14 with history (after `649d929` only) | **FAIL** | "I opened Notepad, typed…, clicked the close button and then tried to click 'Don't Save'… Notepad is now closed": **no card**. This led to `e426655` + `91e9a28` |
+| Row 14 with history (after `e426655` + `91e9a28`; any card denied) | **PASS** | "Typed 'hello from the final pass' into Notepad.": no cards, no close attempt, text read back from Notepad |
+| Demo goal run 5, through the UI | **PASS** | 1 research hand-off (Scout), report saved, Desk's card **approved in the app**, opened, Monday 9 AM routine set; ~40 s |
+
+Test side effects removed again: routine `9ca2f5bc` deleted (list empty), report window closed, report moved to
+`demo-reports-yang/final-pass/run5-…`.
+
+**Bottom line for the freeze:**
+- Every §6 row passes on the final code.
+- The demo goal passed 3 of the last 4 UI runs. The one miss was my unanswered card, and it then got the
+  independent-steps fix.
+- Computer use passes 10/10.

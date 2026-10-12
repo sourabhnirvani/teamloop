@@ -1,0 +1,8 @@
+Top 3 Free LLM APIs for Students (Oct 2026)
+
+1. Google Gemini API – free tier: ~10 RPM, 250K TPM, 1,500 requests per day, 1M tokens per day. No credit‑card required, sign‑up via Google AI Studio, extensive docs, tutorials, classroom guides. Source: Gemini rate‑limits page & tokenmix guide.
+2. Groq API – free tier: 30 RPM, 6K TPM, up to 14,400 requests per day across models (Llama 3.3, Mixtral). No credit‑card, OpenAI‑compatible endpoint, quick‑start notebooks for students. Source: Groq free‑tier article.
+
+3. Mistral AI API – free “Experiment” tier: rate‑limited access with ~1 billion tokens per month, generous request limits. Simple onboarding via Mistral Studio, dedicated educational resources and code samples. Source: Mistral free‑tier summary.
+
+All sources accessed October 2026.
