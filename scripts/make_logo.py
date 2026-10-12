@@ -1,5 +1,5 @@
-"""TeamLoop's logo: a black badge with a bold white S, a blue-violet drop at the top right, and a grain of white
-speckles rising from the bottom right. Writes ui/public/logo.svg, the one source make_icons.py draws every icon from.
+"""TeamLoop's logo: a black badge with a clean white S, a blue drop at the top right, and a grain of white speckles
+rising from the bottom right. Writes ui/public/logo.svg, the one source make_icons.py draws every icon from.
 
     .venv\\Scripts\\python.exe scripts\\make_logo.py && .venv\\Scripts\\python.exe scripts\\make_icons.py
 
@@ -15,34 +15,51 @@ import math
 import random
 from pathlib import Path
 
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "ui" / "public" / "logo.svg"
-BG = "#0b0b10"
+BG = "#000000"
+BLUE = "#1783ff"
 SIZE = 512
+STROKE = 42  # one even line weight, like a geometric sans
 
 
-def grain(seed: int = 12) -> str:
-    """White speckles thickening toward the bottom right, clustered like a stipple (base64 WebP, 512x512)."""
+def _noise(rnd: random.Random, cells: int, blur: float):
+    """Random values on a cells x cells grid, smoothly upscaled to the full size and spread evenly over 0-255
+    (so a threshold of t keeps about t/255 of the pixels; bigger cells = bigger specks)."""
+    img = Image.new("L", (cells, cells))
+    img.putdata([rnd.randint(0, 255) for _ in range(cells * cells)])
+    img = img.resize((SIZE, SIZE), Image.BICUBIC)
+    if blur:
+        img = img.filter(ImageFilter.GaussianBlur(blur))
+    return ImageOps.equalize(img).load()
+
+
+def grain(seed: int = 7) -> str:
+    """A wormy white speckle, thickest along the bottom-right rim and thinning out toward the middle (base64 WebP)."""
     rnd = random.Random(seed)
-    coarse = Image.new("L", (150, 150))
-    coarse.putdata([rnd.randint(0, 255) for _ in range(150 * 150)])
-    coarse = coarse.resize((SIZE, SIZE), Image.BICUBIC).filter(ImageFilter.GaussianBlur(0.7))
-    fine = Image.new("L", (SIZE, SIZE))
-    fine.putdata([rnd.randint(0, 255) for _ in range(SIZE * SIZE)])
+    clumps = _noise(rnd, 16, 6)     # where the speckle bunches up
+    worms = _noise(rnd, 190, 0.9)   # the worms themselves: thresholded near the middle they join into a maze
     out = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    px, cp, fp = out.load(), coarse.load(), fine.load()
+    px = out.load()
+    c = SIZE / 2
     for y in range(SIZE):
         for x in range(SIZE):
-            # how far into the bottom-right corner: 0 at the middle, 1 at the corner
-            d = ((x - 300) * 0.8 + (y - 300)) / 250
+            # how far toward the bottom right (leaning down): 0 on a wavy line through the lower middle, 1 at the rim
+            clump = clumps[x, y] / 255
+            d = ((x - c) * 0.55 + (y - c) * 0.84 - 74 + (clump - 0.5) * 60) / 182
             if d <= 0:
                 continue
-            density = min(1.0, d) ** 1.7 * 0.62  # never solid: speckles all the way to the edge
-            noise = (cp[x, y] * 0.55 + fp[x, y] * 0.45) / 255
-            if noise < density:
-                px[x, y] = (255, 255, 255, 255)
+            r = math.hypot(x - c, y - c) / c
+            if r > 1:
+                continue
+            # at most about half white, so it stays a maze of worms and holes and never goes solid
+            density = min(1.0, d) ** 0.9 * (0.34 + 0.18 * r ** 4) * (0.75 + 0.5 * clump)
+            # soft edge on each worm, so it doesn't look pixelated at large sizes; dimmer away from the rim
+            a = ((density * 255 - worms[x, y]) / 28 + 0.5) * min(1.0, d * 4)
+            if a > 0:
+                px[x, y] = (255, 255, 255, int(min(1.0, a) * (150 + 95 * min(1.0, d))))
     buf = io.BytesIO()
     out.save(buf, "WEBP", lossless=True, method=6)
     return base64.b64encode(buf.getvalue()).decode()
@@ -55,31 +72,26 @@ def drop(cx: float, cy: float, r: float) -> str:
 
 
 def s_path() -> str:
-    """A bold geometric S: two stacked bowls drawn as one thick stroke."""
-    def pt(cx, cy, rx, ry, deg):
-        a = math.radians(deg)
-        return f"{cx + rx * math.cos(a):.1f} {cy + ry * math.sin(a):.1f}"
-    top = (256, 196, 74, 58)
-    bot = (256, 312, 80, 58)
-    return (f"M{pt(*top, -28)} "
-            f"A{top[2]} {top[3]} 0 1 0 {pt(*top, 90)} "
-            f"A{bot[2]} {bot[3]} 0 1 1 {pt(*bot, 152)}")
+    """The S's centre line: a top bowl opening right, a diagonal spine, a bottom bowl opening left (stroked at STROKE).
+    The letter is about 220 tall and centred in the badge, the size of the K in the reference badge."""
+    return ("M327 195 "
+            "C318 176 294 166 259 166 "
+            "C218 166 193 185 193 212 "
+            "C193 236 211 246 240 252 "
+            "L272 259 "
+            "C305 266 327 280 327 308 "
+            "C327 335 299 346 257 346 "
+            "C216 346 190 334 181 311")
 
 
 def main() -> None:
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-bg="{BG}">
-  <!-- TeamLoop: S on a black badge, a blue-violet drop, and grain rising from the bottom right -->
-  <defs>
-    <linearGradient id="tl-drop" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4f86ff"/>
-      <stop offset="1" stop-color="#7b5cff"/>
-    </linearGradient>
-    <clipPath id="tl-round"><circle cx="256" cy="256" r="256"/></clipPath>
-  </defs>
+  <!-- TeamLoop: S on a black badge, a blue drop, and grain rising from the bottom right -->
+  <defs><clipPath id="tl-round"><circle cx="256" cy="256" r="256"/></clipPath></defs>
   <circle cx="256" cy="256" r="256" fill="{BG}"/>
   <image width="512" height="512" clip-path="url(#tl-round)" href="data:image/webp;base64,{grain()}"/>
-  <path d="{s_path()}" fill="none" stroke="#ffffff" stroke-width="66" stroke-linecap="butt" stroke-linejoin="round"/>
-  <path d="{drop(372, 132, 24)}" fill="url(#tl-drop)"/>
+  <path d="{s_path()}" fill="none" stroke="#ffffff" stroke-width="{STROKE}" stroke-linecap="butt"/>
+  <path d="{drop(400, 122, 24)}" fill="{BLUE}"/>
 </svg>
 '''
     OUT.write_text(svg, encoding="utf-8")
