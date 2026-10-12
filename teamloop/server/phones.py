@@ -259,6 +259,8 @@ def install(app: FastAPI, phones: Phones) -> None:
         if path.startswith("/api") and is_remote(request):
             if path.startswith("/api/phones"):
                 return JSONResponse({"detail": "Phones are managed on the laptop."}, 403)
+            if path.startswith("/api/integrations/") and request.method not in SAFE_METHODS:
+                return JSONResponse({"detail": "Telegram is set up on the laptop."}, 403)
             if phones.check(request.cookies.get(COOKIE, "")) is None:
                 return JSONResponse({"detail": "Pair this phone first."}, 401)
         return await call_next(request)

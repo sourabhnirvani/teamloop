@@ -59,6 +59,8 @@ const post = <T,>(path: string, body?: unknown) =>
 
 export const api = {
   security: () => call<SecurityInfo>("/api/security"),
+  integrations: () => call<{ telegram: { on: boolean; bot_name: string; allowed_ids_count: number; error: string };
+    tracing: { on: boolean }; default_provider: string | null }>("/api/integrations"),
   bots: () => call<Bot[]>("/api/bots"),
   chats: () => call<Chat[]>("/api/chats"),
   newChat: (title: string, members: string[]) => post<Chat>("/api/chats", { title, members }),

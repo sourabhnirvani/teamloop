@@ -82,3 +82,15 @@ def test_a_phone_cant_open_the_laptops_endless_event_stream(tmp_path):
     with TestClient(app):
         out = asyncio.run(asyncio.wait_for(hub.answer(app, msg), 10))
     assert out["status"] == 404  # phones long-poll /api/events/poll instead
+
+
+def test_a_paired_phone_sees_telegram_but_cant_change_who_may_use_it(tmp_path):
+    # a stolen phone mustn't add its own Telegram id (the bot drives this laptop) and keep control after removal
+    app, client = client_for(tmp_path, "https://bright-words-here.trycloudflare.com")
+    token = app.state.phones.redeem(app.state.phones.new_code(), "Phone")
+    phone = {"x-forwarded-for": "1.2.3.4", "cookie": f"{phones.COOKIE}={token}",
+             "origin": "https://bright-words-here.trycloudflare.com"}
+    with client:
+        assert client.get("/api/integrations", headers=phone).status_code == 200
+        assert client.post("/api/integrations/telegram", json={"allowed_ids": "42"}, headers=phone).status_code == 403
+        assert client.delete("/api/integrations/telegram", headers=phone).status_code == 403

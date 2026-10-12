@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { canDo, choices, labelOf, localState, type Choice } from "./models";
 import { api, onLaptop, type AllowRule, type Bot, type SecurityInfo, type HubStatus, type KeyInfo, type ModelInfo, type Pairing, type Phone, type Routine, type Settings, type Usage } from "./api";
 import { Avatar } from "./Avatar";
+import { IntegrationsPage } from "./settings/IntegrationsPage";
 import { KeysList } from "./settings/KeysList";
 import { OperatorPage } from "./settings/OperatorPage";
 import { SecurityPage } from "./settings/SecurityPage";
@@ -10,8 +11,8 @@ import { applyUpdate, askToNotify, runningVersion, updateAvailable } from "./upd
 
 // Settings: a home page of cards (each with a live status line) that open their own page, on laptop and phone.
 
-type Page = "keys" | "models" | "usage" | "routines" | "phone" | "chrome" | "operator" | "allowed" | "security" | "appearance";
-const PAGES: string[] = ["keys", "models", "usage", "routines", "phone", "chrome", "operator", "allowed", "security", "appearance"];
+type Page = "keys" | "models" | "usage" | "routines" | "phone" | "telegram" | "chrome" | "operator" | "allowed" | "security" | "appearance";
+const PAGES: string[] = ["keys", "models", "usage", "routines", "phone", "telegram", "chrome", "operator", "allowed", "security", "appearance"];
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -35,6 +36,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
   const [rules, setRules] = useState<AllowRule[]>([]);
   const [hub, setHub] = useState<HubStatus | null>(null);
   const [security, setSecurity] = useState<SecurityInfo | null>(null);
+  const [links, setLinks] = useState<Awaited<ReturnType<typeof api.integrations>> | null>(null);
   const [note, setNote] = useState("");
 
   const refresh = useCallback(() => {
@@ -46,6 +48,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
     api.allowed().then(setRules).catch(() => {});
     api.hub().then(setHub).catch(() => {});
     api.security().then(setSecurity).catch(() => {});
+    api.integrations().then(setLinks).catch(() => {});
     if (onLaptop) api.phones().then(setPhones).catch(() => setPhones(null));
   }, []);
   useEffect(refresh, [refresh, page]);
@@ -86,6 +89,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         {card("routines", "⏰", "Routines", routines.length ? `${routines.length} scheduled` : "None yet: “every Monday at 9am, …”")}
         <h2>Devices</h2>
         {card("phone", "📱", "Your phone", `${onLaptop ? (phones ? `${plural(phones.length, "phone")} paired` : "Pair a phone with a QR code") : "This phone is paired"} · ${hub?.connected ? "fixed link on" : hub?.configured ? "fixed link connecting" : "fixed link not set up"}`)}
+        {card("telegram", "✈️", "Telegram & tracing", links ? `Telegram ${links.telegram.on ? `on as ${links.telegram.bot_name}` : "off"} · neatlogs tracing ${links.tracing.on ? "on" : "off"}` : "Talk to the crew from Telegram")}
         {card("chrome", "🌐", "Crew's Chrome", "Sign in to sites once; bots read and draft, you send")}
         {card("operator", "🖱️", "Operator safety", "Pauses while you use the mouse or keyboard · Ctrl+Alt+Q stops everything")}
         <h2>Safety</h2>
@@ -188,6 +192,7 @@ export function SettingsView({ page, bots, theme, setTheme }: {
         </>
       )}
       {page === "security" && <SecurityPage header={header("🔒 Key security")} />}
+      {page === "telegram" && <IntegrationsPage header={header("✈️ Telegram & tracing")} />}
       {page === "operator" && <OperatorPage header={header("🖱️ Operator safety")} bots={bots} />}
       {page === "appearance" && (
         <>
