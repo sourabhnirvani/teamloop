@@ -12,19 +12,33 @@ from teamloop.crew import bots
 from teamloop.tools import files, registry
 
 
-def test_powershell_and_percent_variables_expand_inside_the_allowed_folders():
+def test_folder_variables_expand_inside_the_allowed_folders(monkeypatch):
     desktop = files.roots()["desktop"].resolve()
-    os.environ["TL_TEST_DIR"] = str(desktop)
-    assert files.resolve(r"$env:TL_TEST_DIR\a.txt") == desktop / "a.txt"
-    assert files.resolve(r"%TL_TEST_DIR%\b.txt") == desktop / "b.txt"
+    monkeypatch.setenv("USERPROFILE", str(desktop.parent))
+    monkeypatch.setenv("TEMP", str(desktop))
+    assert files.resolve(rf"$env:USERPROFILE\{desktop.name}\a.txt") == desktop / "a.txt"
+    assert files.resolve(r"%TEMP%\b.txt") == desktop / "b.txt"
+    assert files.resolve(r"$TEMP\c.txt") == desktop / "c.txt"
 
 
-def test_a_variable_cannot_reach_outside_the_allowed_folders():
-    os.environ["TL_TEST_DIR"] = str(files.roots()["desktop"])
-    for raw in (r"%TL_TEST_DIR%\..\..\..\Windows\x.txt", r"$env:WINDIR\System32\drivers\etc\hosts",
-                r"$env:SystemRoot\win.ini"):
-        with pytest.raises(ValueError):
-            files.resolve(raw)
+def test_a_variable_cannot_reach_outside_the_allowed_folders(monkeypatch):
+    monkeypatch.setenv("TEMP", str(files.roots()["desktop"]))
+    with pytest.raises(ValueError):
+        files.resolve(r"%TEMP%\..\..\..\Windows\x.txt")
+    # variables outside the allowlist stay literal: a harmless name inside the workspace, never C:\Windows
+    workspace = files.roots()["workspace"].resolve()
+    for raw in (r"$env:WINDIR\System32\drivers\etc\hosts", r"%SystemRoot%\win.ini"):
+        assert files.resolve(raw).is_relative_to(workspace), raw
+
+
+def test_secret_variables_never_expand_into_a_path(monkeypatch):
+    key = "gsk_" + "fakekeyfortheexpandtest0123456789abcdEF"
+    monkeypatch.setenv("GROQ_API_KEY", key)
+    monkeypatch.setenv("NVIDIA_API_KEY", key)
+    for raw in ("Documents/$env:GROQ_API_KEY.txt", "Documents/%NVIDIA_API_KEY%.txt", "Documents/${GROQ_API_KEY}.txt",
+                "Documents/$GROQ_API_KEY.txt"):
+        assert key not in str(files.resolve(raw)), raw
+        assert key not in files.expand(raw), raw
 
 
 def test_the_lead_sees_what_each_teammate_does_but_not_their_working_notes():

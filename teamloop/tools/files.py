@@ -89,13 +89,27 @@ def dedupe_link_lines(text: str) -> str:
 
 
 _PS_VAR = re.compile(r"\$env:(\w+)", re.IGNORECASE)
+_PCT_VAR = re.compile(r"%(\w+)%")
+_DOLLAR_VAR = re.compile(r"\$\{?(\w+)\}?")
+# Only folder-ish variables. Anything else stays literal: "Documents/$env:GROQ_API_KEY.txt" must never become a file
+# whose name is the key (the key guard only sees "$env:GROQ_API_KEY" in the args, and the file could sync to OneDrive).
+PATH_VARS = {"USERPROFILE", "HOME", "HOMEDRIVE", "HOMEPATH", "ONEDRIVE", "ONEDRIVECONSUMER", "PUBLIC", "USERNAME",
+             "APPDATA", "LOCALAPPDATA", "TEMP", "TMP"}
+
+
+def _var(match: re.Match) -> str:
+    name = match.group(1)
+    if name.upper() not in PATH_VARS:
+        return match.group(0)
+    return os.environ.get(name) or os.environ.get(name.upper()) or match.group(0)
 
 
 def expand(text: str) -> str:
-    """$env:USERPROFILE (PowerShell) and %USERPROFILE% / $HOME, the way a model often writes paths. The folder
-    checks in resolve() run on the expanded path, so a variable can't reach outside the allowed folders."""
-    text = _PS_VAR.sub(lambda m: os.environ.get(m.group(1), m.group(0)), text)
-    return os.path.expandvars(text)
+    """$env:USERPROFILE (PowerShell), %USERPROFILE% and $HOME, the way a model often writes paths, for the
+    folder variables in PATH_VARS only. resolve() still checks the expanded path against the allowed folders."""
+    for pattern in (_PS_VAR, _PCT_VAR, _DOLLAR_VAR):
+        text = pattern.sub(_var, text)
+    return text
 
 
 def resolve(raw: str) -> Path:
